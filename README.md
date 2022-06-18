@@ -1,3 +1,3 @@
 # PandaReversi
-Reversi AI written in Java.
+Reversi Discord Bot with AI written in Java.
 Work in progress.
