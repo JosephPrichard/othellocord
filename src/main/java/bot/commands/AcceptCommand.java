@@ -2,14 +2,14 @@ package bot.commands;
 
 import bot.JDASingleton;
 import bot.commands.abstracts.CommandContext;
-import bot.commands.abstracts.CommandHandler;
+import bot.commands.abstracts.Command;
 import bot.dtos.ChallengeDto;
 import bot.services.exceptions.AlreadyPlayingException;
 import bot.services.ChallengeService;
 import bot.services.GameService;
 import bot.dtos.GameDto;
 import bot.dtos.PlayerDto;
-import bot.messages.game.GameStartMessageBuilder;
+import bot.builders.senders.GameStartMessageSender;
 import bot.imagerenderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
@@ -18,22 +18,19 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import java.awt.image.BufferedImage;
 import java.util.logging.Logger;
 
-public class AcceptCommandHandler extends CommandHandler
+public class AcceptCommand extends Command
 {
     private final Logger logger = Logger.getLogger("command.accept");
     private final GameService gameService;
     private final ChallengeService challengeService;
     private final OthelloBoardRenderer boardRenderer;
 
-    public AcceptCommandHandler(
+    public AcceptCommand(
         GameService gameService,
         ChallengeService challengeService,
         OthelloBoardRenderer boardRenderer
     ) {
-        super(
-            "Accepts a challenge directly from a challenger",
-            "challenger"
-        );
+        super("accept", "Accepts a challenge from another discord user", "challenger");
         this.gameService = gameService;
         this.challengeService = challengeService;
         this.boardRenderer = boardRenderer;
@@ -62,7 +59,7 @@ public class AcceptCommandHandler extends CommandHandler
             GameDto game = gameService.createGame(player, opponent);
             BufferedImage image = boardRenderer.drawBoard(game.getBoard());
 
-            new GameStartMessageBuilder()
+            new GameStartMessageSender()
                 .setGame(game)
                 .setTag(game)
                 .setImage(image)

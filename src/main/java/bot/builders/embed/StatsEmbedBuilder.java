@@ -1,25 +1,22 @@
-package bot.messages.stats;
+package bot.builders.embed;
 
 import bot.dtos.StatsDto;
-import bot.messages.MessageBuilder;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 
 import java.awt.*;
 
-public class StatsMessageBuilder implements MessageBuilder
+public class StatsEmbedBuilder
 {
-    private static final int GREEN = new Color(82, 172, 85).getRGB();
-
     private final EmbedBuilder embedBuilder;
 
-    public StatsMessageBuilder() {
+    public StatsEmbedBuilder() {
         embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(GREEN);
+        embedBuilder.setColor(Color.GREEN);
     }
 
-    public StatsMessageBuilder setStats(StatsDto stats) {
+    public StatsEmbedBuilder setStats(StatsDto stats) {
         embedBuilder.setTitle(stats.getPlayer().getName() + "'s stats")
             .addField("Rating", Float.toString(stats.getElo()), false)
             .addField("Win Rate", stats.getWinRate() + "%", false)
@@ -29,12 +26,12 @@ public class StatsMessageBuilder implements MessageBuilder
         return this;
     }
 
-    public StatsMessageBuilder setAuthor(User author) {
+    public StatsEmbedBuilder setAuthor(User author) {
         embedBuilder.setThumbnail(author.getAvatarUrl());
         return this;
     }
 
-    public void sendMessage(MessageChannel channel) {
-        channel.sendMessageEmbeds(embedBuilder.build()).queue();
+    public MessageEmbed build() {
+        return embedBuilder.build();
     }
 }

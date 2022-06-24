@@ -11,7 +11,7 @@ public final class OthelloBoard
     public static final byte WHITE = 1;
     public static final byte BLACK = 2;
 
-    private static final int[][] BOARD_DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {-1, 1}, {1, 1}};
+    private static final int[][] BOARD_DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
     private static final int[][] BOARD_CORNERS = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 
     private byte[][] board;
@@ -130,7 +130,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Searches the board for all reversi pieces of matching color
+     * Searches the board for all othello pieces of matching color
      * @param color to find pieces for
      * @return list containing positions of the pieces
      */
@@ -148,7 +148,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Find the available moves the reversi board depending on the board state
+     * Find the available moves the othello board depending on the board state
      * @return a list containing the moves
      */
     public List<Tile> findPotentialMoves() {
@@ -156,7 +156,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Find the available moves the reversi board depending on the board state
+     * Find the available moves the othello board depending on the board state
      * @return a list containing the moves
      */
     private List<Tile> findPotentialMoves(byte color) {
@@ -165,14 +165,14 @@ public final class OthelloBoard
         List<Tile> pieces = findPieces(color);
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
-        // check each placed piece for potential flanks
+        // check each piece for potential flanks
         for (Tile piece : pieces) {
-            // check each direction from placed piece for potential flank
+            // check each direction from piece for potential flank
             for (int[] direction : BOARD_DIRECTIONS) {
                 int row = piece.getRow() + direction[0];
                 int col = piece.getCol() + direction[1];
 
-                // iterate from placed piece to next opposite color
+                // iterate from piece to next opposite color
                 int count = 0;
                 while (inBounds(row, col)) {
                     if (board[row][col] != oppositeColor)
@@ -181,8 +181,9 @@ public final class OthelloBoard
                     col += direction[1];
                     count++;
                 }
-                // add move to potential moves list
-                if (count > 0 && inBounds(row, col)) {
+                // add move to potential moves list assuming
+                // we flank at least once piece, the tile is in bounds and is empty
+                if (count > 0 && inBounds(row, col) && board[row][col] == EMPTY) {
                     moves.add(new Tile(row, col));
                 }
             }
@@ -192,39 +193,11 @@ public final class OthelloBoard
     }
 
     /**
-     * Find the available moves the reversi board depending on the board state
+     * Find the available moves the othello board depending on the board state
      * @return a list containing the moves
      */
     private int countPotentialMoves(byte color) {
-        int moves = 0;
-
-        List<Tile> pieces = findPieces(color);
-        int oppositeColor = color == BLACK ? WHITE : BLACK;
-
-        // check each placed piece for potential flanks
-        for (Tile piece : pieces) {
-            // check each direction from placed piece for potential flank
-            for (int[] direction : BOARD_DIRECTIONS) {
-                int row = piece.getRow() + direction[0];
-                int col = piece.getCol() + direction[1];
-
-                // iterate from placed piece to next opposite color
-                int count = 0;
-                while (inBounds(row, col)) {
-                    if (board[row][col] != oppositeColor)
-                        break;
-                    row += direction[0];
-                    col += direction[1];
-                    count++;
-                }
-                // increase count of potential moves
-                if (count > 0 && inBounds(row, col)) {
-                    moves++;
-                }
-            }
-        }
-
-        return moves;
+       return findPotentialMoves(color).size();
     }
 
     public boolean isGameOver() {
@@ -232,19 +205,12 @@ public final class OthelloBoard
     }
 
     /**
-     * Makes a move on a position on the reversi board
+     * Makes a move on a position on the othello board
      * @param move to make move
      */
     public void makeMove(Tile move) {
-        byte oppositeColor;
-        byte currentColor;
-        if (blackMove) {
-            oppositeColor = WHITE;
-            currentColor = BLACK;
-        } else {
-            oppositeColor = BLACK;
-            currentColor = WHITE;
-        }
+        byte oppositeColor = blackMove ? WHITE : BLACK;
+        byte currentColor = blackMove ? BLACK : WHITE;
 
         blackMove = !blackMove;
         board[move.getRow()][move.getCol()] = currentColor;
@@ -259,7 +225,7 @@ public final class OthelloBoard
 
             boolean flank = false;
 
-            // iterate from placed piece until first potential flank
+            // iterate from piece until first potential flank
             while (inBounds(row, col)) {
                 if (board[row][col] == currentColor) {
                     flank = true;
@@ -292,8 +258,8 @@ public final class OthelloBoard
     }
 
     /**
-     * Sets a square to a value on the board by reversi board notation
-     * @param square in reversi board notation
+     * Sets a square to a value on the board by othello board notation
+     * @param square in othello board notation
      * @param color to set, must be one of the constants
      */
     public void setSquare(String square, byte color) {
@@ -303,7 +269,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Sets a square to a value on the board by reversi board notation
+     * Sets a square to a value on the board by othello board notation
      * @param position on the board
      * @param color to set, must be one of the constants
      */
@@ -314,8 +280,8 @@ public final class OthelloBoard
     }
 
     /**
-     * Gets a square from the reversi board
-     * @param square in reversi board notation
+     * Gets a square from the othello board
+     * @param square in othello board notation
      */
     public byte getSquare(String square) {
         int col = square.charAt(0) - 'a';
@@ -324,7 +290,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Gets a square from the reversi board
+     * Gets a square from the othello board
      * @param position on the board
      */
     public byte getSquare(int position) {
@@ -334,7 +300,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Gets a square from the reversi board
+     * Gets a square from the othello board
      * @param piece position on the board
      */
     public byte getSquare(Tile piece) {
@@ -342,7 +308,7 @@ public final class OthelloBoard
     }
 
     /**
-     * Gets a square from the reversi board
+     * Gets a square from the othello board
      * @param row to get for
      * @param col to get for
      */
@@ -376,5 +342,15 @@ public final class OthelloBoard
             builder.append("\n");
         }
         return builder.toString();
+    }
+
+    public static void main(String[] args) {
+        OthelloBoard board = new OthelloBoard();
+        board.makeMove(new Tile("d3"));
+        System.out.println(board);
+        board.makeMove(new Tile("e3"));
+        System.out.println(board);
+        board.makeMove(new Tile("f2"));
+        System.out.println(board);
     }
 }

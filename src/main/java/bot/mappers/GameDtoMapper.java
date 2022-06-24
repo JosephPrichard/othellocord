@@ -10,12 +10,9 @@ import org.modelmapper.ModelMapper;
 import othello.utils.BoardUtils;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Logger;
 
 public class GameDtoMapper
 {
-    private final Logger logger = Logger.getLogger("mapper.game");
     private final ModelMapper modelMapper = new ModelMapper();
 
     public GameDtoMapper() {
@@ -25,29 +22,27 @@ public class GameDtoMapper
             mapper.using(ctx -> BoardUtils.deserialize((String) ctx.getSource()))
                 .map(GameEntity::getBoard, GameDto::setBoard);
 
-            mapper.using(converter)
-                .map(GameEntity::getBlackPlayerId, GameDto::setBlackPlayer);
+            mapper.using(converter).map(GameEntity::getBlackPlayerId, GameDto::setBlackPlayer);
 
-            mapper.using(converter)
-                .map(GameEntity::getWhitePlayerId, GameDto::setWhitePlayer);
+            mapper.using(converter).map(GameEntity::getWhitePlayerId, GameDto::setWhitePlayer);
         });
 
         modelMapper.validate();
     }
 
     public GameDto map(GameEntity entity) {
+        // map entity to dto
+        GameDto dto = modelMapper.map(entity, GameDto.class);
+
         // fetch both white player tag and black player tag at the same time
         CompletableFuture<User> whiteUserFuture = JDASingleton.fetchUser(entity.getWhitePlayerId()).submit();
         CompletableFuture<User> blackUserFuture = JDASingleton.fetchUser(entity.getBlackPlayerId()).submit();
         CompletableFuture.allOf(whiteUserFuture, blackUserFuture).join();
-        // map entity to dto
-        GameDto dto = modelMapper.map(entity, GameDto.class);
-        try {
-            dto.getWhitePlayer().setName(whiteUserFuture.get().getAsTag());
-            dto.getBlackPlayer().setName(blackUserFuture.get().getAsTag());
-        } catch (ExecutionException | InterruptedException e) {
-            logger.severe("Failed to fetch tags for game mapping.");
-        }
+
+        // assign tags from completed futures
+        dto.getWhitePlayer().setName(whiteUserFuture.join().getAsTag());
+        dto.getBlackPlayer().setName(blackUserFuture.join().getAsTag());
+
         return dto;
     }
 }

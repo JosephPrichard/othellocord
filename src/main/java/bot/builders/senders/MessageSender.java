@@ -1,6 +1,5 @@
-package bot.messages.game;
+package bot.builders.senders;
 
-import bot.messages.MessageBuilder;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import bot.utils.ImageUtils;
@@ -10,60 +9,48 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class GameMessageBuilder implements MessageBuilder
+public class MessageSender
 {
-    private static final int GREEN = new Color(82, 172, 85).getRGB();
-
     private final EmbedBuilder embedBuilder;
     private BufferedImage image;
     private String tag;
 
-    public GameMessageBuilder() {
+    public MessageSender() {
         embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(GREEN);
-    }
-
-    public static int getColor() {
-        return GREEN;
+        embedBuilder.setColor(Color.GREEN);
     }
 
     public EmbedBuilder getEmbedBuilder() {
         return embedBuilder;
     }
 
-    public BufferedImage getImage() {
-        return image;
-    }
-
-    public void setImage(BufferedImage image) {
+    public MessageSender setImage(BufferedImage image) {
         this.image = image;
+        return this;
     }
 
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(String tag) {
+    public MessageSender setTag(String tag) {
         this.tag = tag;
+        return this;
     }
 
     public void sendMessage(MessageChannel channel) {
         try {
             InputStream is = ImageUtils.toPngIS(image);
-            embedBuilder.setImage("attachment://board.png");
+            embedBuilder.setImage("attachment://image.png");
 
             if (tag != null) {
                 channel.sendMessage(tag)
                     .setEmbeds(embedBuilder.build())
-                    .addFile(is, "board.png")
+                    .addFile(is, "image.png")
                     .queue();
             } else {
                 channel.sendMessageEmbeds(embedBuilder.build())
-                    .addFile(is, "board.png")
+                    .addFile(is, "image.png")
                     .queue();
             }
         } catch(IOException ex) {
-            channel.sendMessage("Unexpected error: couldn't create board image").queue();
+            channel.sendMessage("Unexpected error: couldn't create image").queue();
         }
     }
 }

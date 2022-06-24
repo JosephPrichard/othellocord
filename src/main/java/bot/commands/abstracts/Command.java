@@ -9,33 +9,35 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class CommandHandler
+public abstract class Command
 {
     private final Logger logger = Logger.getLogger("command.handler");
-    private final String description;
+    private final String key;
+    private final String desc;
     private final List<String> params;
     private final int minCount;
 
-    public CommandHandler(String description) {
-        this.description = description;
-        this.params = new ArrayList<>();
-        this.minCount = 0;
+    public Command(String key, String desc) {
+        this(key, desc, new String[0]);
     }
 
-    public CommandHandler(String description, String... params) {
-        this.description = description;
-        this.params = Arrays.stream(params).toList();
-        this.minCount = this.params.size();
+    public Command(String key, String desc, String... params) {
+        this(key, desc, params.length, params);
     }
 
-    public CommandHandler(String description, int minCount, String... params) {
-        this.description = description;
+    public Command(String key, String desc, int minCount, String... params) {
         this.params = Arrays.stream(params).toList();
         this.minCount = minCount;
+        this.key = key;
+        this.desc = desc;
     }
 
-    public String getDescription() {
-        return description;
+    public String getKey() {
+        return key;
+    }
+
+    public String getDesc() {
+        return desc;
     }
 
     public List<String> getParams() {

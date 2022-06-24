@@ -11,12 +11,9 @@ import org.modelmapper.ModelMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Logger;
 
 public class StatsDtoMapper
 {
-    private final Logger logger = Logger.getLogger("mapper.stats");
     private final ModelMapper modelMapper = new ModelMapper();
 
     public StatsDtoMapper() {
@@ -46,15 +43,13 @@ public class StatsDtoMapper
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
         // map each entity to dto
         List<StatsDto> dtoList = new ArrayList<>();
-        try {
-            for(int i = 0; i < futures.size(); i++){
-                CompletableFuture<User> future = futures.get(i);
-                StatsDto dto = modelMapper.map(entityList.get(i), StatsDto.class);
-                dto.getPlayer().setName(future.get().getAsTag());
-                dtoList.add(dto);
-            }
-        } catch (ExecutionException | InterruptedException e) {
-            logger.severe("Failed to fetch tags for game mapping.");
+        for(int i = 0; i < futures.size(); i++){
+            // retrieve tag from completed future
+            String tag = futures.get(i).join().getAsTag();
+            // map entity to dto and add to dto list
+            StatsDto dto = modelMapper.map(entityList.get(i), StatsDto.class);
+            dto.getPlayer().setName(tag);
+            dtoList.add(dto);
         }
         return dtoList;
     }

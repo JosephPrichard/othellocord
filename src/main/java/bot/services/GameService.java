@@ -41,6 +41,14 @@ public class GameService
         return gameDto;
     }
 
+    public GameDto createBotGame(PlayerDto player) throws AlreadyPlayingException {
+        boolean playingBlack = Math.random() < 0.5;
+        PlayerDto blackPlayer = playingBlack ? player : PlayerDto.Bot();
+        PlayerDto whitePlayer = playingBlack ? PlayerDto.Bot() : player;
+
+        return createGame(blackPlayer, whitePlayer);
+    }
+
     @Nullable
     public GameDto getGame(PlayerDto player) {
         GameEntity gameEntity = gameDao.getGame(player.getId());

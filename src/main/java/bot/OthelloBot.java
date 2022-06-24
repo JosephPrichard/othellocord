@@ -1,27 +1,30 @@
 package bot;
 
-import bot.commands.info.CommandsInfo;
 import bot.commands.*;
-import bot.commands.abstracts.CommandHandler;
+import bot.commands.abstracts.Command;
 import bot.dao.ChallengeDao;
 import bot.dao.GameDao;
 import bot.dao.StatsDao;
 import bot.services.ChallengeService;
 import bot.services.GameService;
+import bot.services.OthelloAiService;
 import bot.services.StatsService;
 import bot.imagerenderers.OthelloBoardRenderer;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Timer;
 
 public class OthelloBot extends ListenerAdapter
 {
-    private final Map<String, CommandHandler> handlers = new HashMap<>();
+    private final Map<String, Command> commandMap = new HashMap<>();
+    private final List<Command> commandList = new ArrayList<>();
 
     public OthelloBot() {
         DataSource ds = new DataSource();
@@ -30,23 +33,53 @@ public class OthelloBot extends ListenerAdapter
         StatsDao statsDao = new StatsDao(ds);
         ChallengeDao challengeDao = new ChallengeDao();
 
+        OthelloAiService aiService = new OthelloAiService();
         GameService gameService = new GameService(gameDao);
         StatsService statsService = new StatsService(statsDao);
         ChallengeService challengeService = new ChallengeService(challengeDao);
 
         OthelloBoardRenderer boardRenderer = new OthelloBoardRenderer(8);
 
-        CommandsInfo commandsInfo = new CommandsInfo();
+        // add all bot commands to the handler map for handling events
+        addCommand(new ChallengeCommand(challengeService));
+        addCommand(new ChallengeBotCommand(gameService, boardRenderer));
+        addCommand(new AcceptCommand(gameService, challengeService, boardRenderer));
+        addCommand(new ForfeitCommand(gameService, statsService, boardRenderer));
+        addCommand(new MoveCommand(gameService, statsService, boardRenderer));
+        addCommand(new ViewCommand(gameService, boardRenderer));
+        addCommand(new AnalyzeCommand(gameService, aiService));
+        addCommand(new StatsCommand(statsService));
+        addCommand(new LeaderboardCommand(statsService));
+    }
 
-        // add all bot.commands to the handler map for handling events
-        handlers.put("!challenge", new ChallengeCommandHandler(challengeService));
-        handlers.put("!accept", new AcceptCommandHandler(gameService, challengeService, boardRenderer));
-        handlers.put("!forfeit", new ForfeitCommandHandler(gameService, statsService, boardRenderer));
-        handlers.put("!move", new MoveCommandHandler(gameService, statsService, boardRenderer));
-        handlers.put("!view", new ViewCommandHandler(gameService, boardRenderer));
-        handlers.put("!stats", new StatsCommandHandler(statsService));
-        handlers.put("!leaderboard", new LeaderBoardCommand(statsService));
-        handlers.put("!help", new HelpCommandHandler(commandsInfo));
+    public void addCommand(Command command) {
+        commandMap.put("!" + command.getKey(), command);
+        commandList.add(command);
+    }
+
+    public void onHelpForCommand(MessageChannel channel, String key) {
+        key = "!" + key;
+        Command command = commandMap.get(key);
+        if (command != null) {
+            StringBuilder text = new StringBuilder(command.getDesc() + "\n" + key);
+            for (String param : command.getParams()) {
+                text.append(" `").append(param).append("`");
+            }
+            channel.sendMessage(text.toString()).queue();
+        } else {
+            channel.sendMessage("No such command: " + key).queue();
+        }
+    }
+
+    public void onHelp(MessageChannel channel) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Commands: ");
+        for (Command command : commandList) {
+            stringBuilder.append("`!")
+                .append(command.getKey())
+                .append("` ");
+        }
+        channel.sendMessage(stringBuilder.toString()).queue();
     }
 
     @Override
@@ -57,13 +90,24 @@ public class OthelloBot extends ListenerAdapter
 
         String message = event.getMessage().getContentRaw();
         // extracts the command key from the string
-        int i = message.indexOf(' ');
-        String key = i != -1 ? message.substring(0, i) : message;
+        String[] tokens = message.split("\\s+");
+        String key = tokens[0];
+
+        // special case for help command
+        if (key.equals("!help")) {
+            if (tokens.length >= 2) {
+                onHelpForCommand(event.getChannel(), tokens[1]);
+            } else {
+                onHelp(event.getChannel());
+            }
+
+            return;
+        }
 
         // fetch command handler from bot.commands map, execute if command exists
-        CommandHandler handler = handlers.get(key);
-        if (handler != null) {
-            handler.onMessageEvent(event);
+        Command command = commandMap.get(key);
+        if (command != null) {
+            command.onMessageEvent(event);
         }
     }
 

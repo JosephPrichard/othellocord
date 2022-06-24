@@ -2,28 +2,25 @@ package bot.commands;
 
 import bot.JDASingleton;
 import bot.commands.abstracts.CommandContext;
-import bot.commands.abstracts.CommandHandler;
+import bot.commands.abstracts.Command;
 import bot.services.StatsService;
 import bot.dtos.PlayerDto;
 import bot.dtos.StatsDto;
-import bot.messages.stats.StatsMessageBuilder;
+import bot.builders.embed.StatsEmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.util.logging.Logger;
 
-public class StatsCommandHandler extends CommandHandler
+public class StatsCommand extends Command
 {
     private final Logger logger = Logger.getLogger("command.stats");
     private final StatsService statsService;
 
-    public StatsCommandHandler(StatsService statsService) {
-        super(
-            "Retrieves the stats profile for a player",
-            0,
-            "player"
-        );
+    public StatsCommand(StatsService statsService) {
+        super("stats", "Retrieves the stats profile for a player", 0, "player");
         this.statsService = statsService;
     }
 
@@ -48,10 +45,12 @@ public class StatsCommandHandler extends CommandHandler
 
         StatsDto stats = statsService.getStats(player);
 
-        new StatsMessageBuilder()
+        MessageEmbed embed = new StatsEmbedBuilder()
             .setStats(stats)
             .setAuthor(user)
-            .sendMessage(channel);
+            .build();
+
+        channel.sendMessageEmbeds(embed).queue();
 
         logger.info("Retrieved stats for " + stats.getPlayer());
     }

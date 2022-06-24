@@ -1,10 +1,8 @@
-package bot.messages.challenge;
+package bot.builders.message;
 
 import bot.dtos.PlayerDto;
-import bot.messages.MessageBuilder;
-import net.dv8tion.jda.api.entities.MessageChannel;
 
-public class ChallengeMessageBuilder implements MessageBuilder
+public class ChallengeMessageBuilder
 {
     private final StringBuilder messageBuilder;
     private PlayerDto challenged;
@@ -24,13 +22,18 @@ public class ChallengeMessageBuilder implements MessageBuilder
         return this;
     }
 
-    public void sendMessage(MessageChannel channel) {
-        messageBuilder.append("<@").append(challenged.getId()).append(">, ")
-            .append(challenger.getName()).append(" has challenged you to a game of reversi. ")
+    public String build() {
+        messageBuilder.append("<@")
+            .append(challenged.getId())
+            .append(">, ")
+            .append(challenger.getName())
+            .append(" has challenged you to a game of reversi. ")
             .append("Type !accept ")
-            .append("<@").append(challenger.getId()).append(">, ")
+            .append("<@")
+            .append(challenger.getId())
+            .append(">, ")
             .append("or ignore to decline.");
 
-        channel.sendMessage(messageBuilder.toString()).queue();
+        return messageBuilder.toString();
     }
 }

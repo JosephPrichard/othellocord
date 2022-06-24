@@ -64,11 +64,14 @@ public class StatsDao
         return stats;
     }
 
-    public void updateStats(StatsEntity stats) {
+    public void updateStats(StatsEntity... stats) {
         Session session = dataSource.getSession();
         Transaction transaction = session.beginTransaction();
 
-        session.update(stats);
+        for (StatsEntity s : stats) {
+            session.update(s);
+        }
+
         transaction.commit();
         session.close();
     }

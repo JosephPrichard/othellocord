@@ -5,8 +5,15 @@ import bot.utils.DiscordUtils;
 
 public class PlayerDto
 {
+    private static final long BOT_ID = -1;
+    private static final String BOT_NAME = "Bot";
+
     private long id;
     private String name;
+
+    public static PlayerDto Bot() {
+        return new PlayerDto(BOT_ID, BOT_NAME);
+    }
 
     public PlayerDto() {}
 
@@ -22,6 +29,10 @@ public class PlayerDto
     public PlayerDto(User user) {
         this.id = DiscordUtils.toLongId(user.getId());
         this.name = user.getAsTag();
+    }
+
+    public boolean isBot() {
+        return id == BOT_ID;
     }
 
     public long getId() {

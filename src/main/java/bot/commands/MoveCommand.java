@@ -1,14 +1,14 @@
 package bot.commands;
 
 import bot.commands.abstracts.CommandContext;
-import bot.commands.abstracts.CommandHandler;
+import bot.commands.abstracts.Command;
 import bot.services.StatsService;
 import bot.dtos.GameDto;
 import bot.services.GameService;
 import bot.dtos.GameResultDto;
 import bot.dtos.PlayerDto;
-import bot.messages.game.GameViewMessageBuilder;
-import bot.messages.game.GameOverMessageBuilder;
+import bot.builders.senders.GameViewMessageSender;
+import bot.builders.senders.GameOverMessageSender;
 import bot.imagerenderers.OthelloBoardRenderer;
 import bot.services.exceptions.InvalidMoveException;
 import bot.services.exceptions.NotPlayingException;
@@ -22,22 +22,19 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class MoveCommandHandler extends CommandHandler
+public class MoveCommand extends Command
 {
     private final Logger logger = Logger.getLogger("command.move");
     private final GameService gameService;
     private final StatsService statsService;
     private final OthelloBoardRenderer boardRenderer;
 
-    public MoveCommandHandler(
+    public MoveCommand(
         GameService gameService,
         StatsService statsService,
         OthelloBoardRenderer boardRenderer
     ) {
-        super(
-            "Makes a move on user's current game",
-            "move"
-        );
+        super("move", "Makes a move on user's current game", "move");
         this.gameService = gameService;
         this.statsService = statsService;
         this.boardRenderer = boardRenderer;
@@ -67,7 +64,7 @@ public class MoveCommandHandler extends CommandHandler
                 GameResultDto result = game.getResult();
                 statsService.updateStats(result);
                 // send embed response
-                new GameOverMessageBuilder()
+                new GameOverMessageSender()
                     .setGame(result)
                     .addMoveMessage(result.getWinner(), move)
                     .setTag(result)
@@ -77,8 +74,8 @@ public class MoveCommandHandler extends CommandHandler
                 // send updated board back to server
                 gameService.updateGame(game);
 
-                new GameViewMessageBuilder()
-                    .setGame(game, move.toLowerCase())
+                new GameViewMessageSender()
+                    .setGame(game, new Tile(move.toLowerCase()))
                     .setTag(game)
                     .setImage(image)
                     .sendMessage(channel);

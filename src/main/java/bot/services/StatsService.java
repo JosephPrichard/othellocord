@@ -9,6 +9,10 @@ import bot.mappers.StatsDtoMapper;
 import bot.utils.EloUtils;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StatsService
 {
@@ -30,9 +34,16 @@ public class StatsService
     }
 
     public void updateStats(GameResultDto result) {
-        // retrieve the stats for the winner and the loser
-        StatsEntity winnerStats = statsDao.getOrSaveStats(result.getWinner().getId());
-        StatsEntity loserStats = statsDao.getOrSaveStats(result.getLoser().getId());
+        // retrieve the stats for the winner and the loser in parallel
+        Supplier<StatsEntity> getWinner = () -> statsDao.getOrSaveStats(result.getWinner().getId());
+        Supplier<StatsEntity> getLoser = () -> statsDao.getOrSaveStats(result.getLoser().getId());
+        List<StatsEntity> entities = Stream.of(getWinner, getLoser)
+            .parallel()
+            .map(Supplier::get)
+            .collect(Collectors.toList());
+
+        StatsEntity winnerStats = entities.get(0);
+        StatsEntity loserStats = entities.get(1);
 
         if (result.isDraw() || result.getWinner().equals(result.getLoser())) {
             // draw games don't need to update the elo, nor do games against self
@@ -56,8 +67,7 @@ public class StatsService
         loserStats.setLost(loserStats.getLost() + 1);
 
         // update stats in dao
-        statsDao.updateStats(winnerStats);
-        statsDao.updateStats(loserStats);
+        statsDao.updateStats(winnerStats, loserStats);
 
         // set the changed values for the result object
         result.setElo(winnerStats.getElo(), loserStats.getElo());

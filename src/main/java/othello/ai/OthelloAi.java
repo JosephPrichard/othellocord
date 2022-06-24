@@ -4,6 +4,7 @@ import othello.board.OthelloBoard;
 import othello.board.Tile;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public final class OthelloAi
@@ -40,6 +41,27 @@ public final class OthelloAi
         return rootBoard;
     }
 
+    public List<Move> findRankedMoves() {
+        List<Tile> moves = rootBoard.findPotentialMoves();
+        List<Move> rankedMoves = new ArrayList<>();
+
+        // call the iterative deepening negamax to calculate the heuristic for each move and add it to list
+        for (Tile move : moves) {
+            OthelloBoard copiedBoard = rootBoard.copy();
+            copiedBoard.makeMove(move);
+
+            float heuristic = negamaxIDDFS(copiedBoard, maxDepth - 1);
+            rankedMoves.add(new Move(move, heuristic));
+        }
+
+        Comparator<Move> comparator = rootBoard.isBlackMove() ?
+            (m1, m2) -> Float.compare(m2.getHeuristic(), m1.getHeuristic()) :
+            (m1, m2) -> Float.compare(m1.getHeuristic(), m2.getHeuristic());
+        rankedMoves.sort(comparator);
+
+        return rankedMoves;
+    }
+
     public Move findBestMove() {
         List<Tile> moves = rootBoard.findPotentialMoves();
         Tile bestMove = null;
@@ -61,7 +83,7 @@ public final class OthelloAi
     }
 
     /**
-     * Searches reversi game tree with iterative deepening depth first search
+     * Searches othello game tree with iterative deepening depth first search
      * Starts from a relative depth of 1 until a specified relative max depth
      */
     public float negamaxIDDFS(OthelloBoard board, int maxDepth) {
@@ -73,15 +95,9 @@ public final class OthelloAi
     }
 
     /**
-     * Searches reversi game tree DLS with alpha beta pruning to evaluate how good a board is
+     * Searches othello game tree DLS with alpha beta pruning to evaluate how good a board is
      */
-    public float negamax(
-        OthelloBoard board,
-        int depth,
-        boolean maximizer,
-        float alpha,
-        float beta
-    ) {
+    public float negamax(OthelloBoard board, int depth, boolean maximizer, float alpha, float beta) {
         List<Tile> moves = board.findPotentialMoves();
 
         // stop when we reach depth floor or cannot expand node's children
