@@ -18,7 +18,7 @@ public class GameDao
         this.dataSource = dataSource;
     }
 
-    public void saveGame(Long whitePlayerId, Long  blackPlayerId, String board) {
+    public void saveGame(Long blackPlayerId, Long whitePlayerId, String board) {
         Session session = dataSource.getSession();
         Transaction transaction = session.beginTransaction();
 

@@ -4,12 +4,10 @@ import bot.JDASingleton;
 import bot.dtos.GameDto;
 import bot.dtos.PlayerDto;
 import bot.entities.GameEntity;
-import net.dv8tion.jda.api.entities.User;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import othello.utils.BoardUtils;
-
-import java.util.concurrent.CompletableFuture;
+import othello.utils.BotUtils;
 
 public class GameDtoMapper
 {
@@ -34,14 +32,24 @@ public class GameDtoMapper
         // map entity to dto
         GameDto dto = modelMapper.map(entity, GameDto.class);
 
-        // fetch both white player tag and black player tag at the same time
-        CompletableFuture<User> whiteUserFuture = JDASingleton.fetchUser(entity.getWhitePlayerId()).submit();
-        CompletableFuture<User> blackUserFuture = JDASingleton.fetchUser(entity.getBlackPlayerId()).submit();
-        CompletableFuture.allOf(whiteUserFuture, blackUserFuture).join();
+        boolean isWhiteBot = BotUtils.isBotId(entity.getWhitePlayerId());
+        boolean isBlackBot = BotUtils.isBotId(entity.getBlackPlayerId());
 
-        // assign tags from completed futures
-        dto.getWhitePlayer().setName(whiteUserFuture.join().getAsTag());
-        dto.getBlackPlayer().setName(blackUserFuture.join().getAsTag());
+        // for players, fetch users from discord, for bot names, calculate
+        if (!isWhiteBot) {
+            String tag = JDASingleton.fetchUser(entity.getWhitePlayerId()).complete().getAsTag();
+            dto.getWhitePlayer().setName(tag);
+        } else {
+            String whiteBotName = BotUtils.getBotName(entity.getWhitePlayerId());
+            dto.getWhitePlayer().setName(whiteBotName);
+        }
+        if (!isBlackBot) {
+            String tag = JDASingleton.fetchUser(entity.getBlackPlayerId()).complete().getAsTag();
+            dto.getBlackPlayer().setName(tag);
+        } else {
+            String blackBotName = BotUtils.getBotName(entity.getBlackPlayerId());
+            dto.getBlackPlayer().setName(blackBotName);
+        }
 
         return dto;
     }

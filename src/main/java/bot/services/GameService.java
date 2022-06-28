@@ -12,6 +12,7 @@ import bot.services.exceptions.TurnException;
 import othello.board.OthelloBoard;
 import othello.board.Tile;
 import othello.utils.BoardUtils;
+import othello.utils.BotUtils;
 
 import javax.annotation.Nullable;
 import javax.persistence.PersistenceException;
@@ -41,12 +42,8 @@ public class GameService
         return gameDto;
     }
 
-    public GameDto createBotGame(PlayerDto player) throws AlreadyPlayingException {
-        boolean playingBlack = Math.random() < 0.5;
-        PlayerDto blackPlayer = playingBlack ? player : PlayerDto.Bot();
-        PlayerDto whitePlayer = playingBlack ? PlayerDto.Bot() : player;
-
-        return createGame(blackPlayer, whitePlayer);
+    public GameDto createBotGame(PlayerDto player, int level) throws AlreadyPlayingException {
+        return createGame(player, BotUtils.Bot(level));
     }
 
     @Nullable
@@ -78,6 +75,7 @@ public class GameService
                 return gameDto;
             }
         }
+
         throw new InvalidMoveException();
     }
 

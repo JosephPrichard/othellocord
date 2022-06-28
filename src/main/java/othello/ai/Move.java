@@ -12,7 +12,7 @@ public class Move
         this.heuristic = heuristic;
     }
 
-    public Tile getPiece() {
+    public Tile getTile() {
         return piece;
     }
 

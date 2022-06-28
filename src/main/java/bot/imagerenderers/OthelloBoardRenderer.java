@@ -100,6 +100,10 @@ public class OthelloBoardRenderer
         return drawBoard(board, new ArrayList<>());
     }
 
+    public BufferedImage drawBoardMoves(OthelloBoard board) {
+        return drawBoard(board, board.findPotentialMoves());
+    }
+
     public BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
         BufferedImage backgroundImage = backgroundImages.get(board.getBoardSize());
         if (backgroundImage == null) {

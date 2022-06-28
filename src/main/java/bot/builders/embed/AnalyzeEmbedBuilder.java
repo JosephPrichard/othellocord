@@ -1,12 +1,13 @@
 package bot.builders.embed;
 
-import bot.builders.string.TableStringBuilder;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import othello.ai.Move;
 
 import java.awt.*;
 import java.util.List;
+
+import static bot.utils.StringUtils.*;
 
 public class AnalyzeEmbedBuilder
 {
@@ -18,14 +19,17 @@ public class AnalyzeEmbedBuilder
     }
 
     public AnalyzeEmbedBuilder setRankedMoves(List<Move> rankedMoves) {
-        TableStringBuilder builder = new TableStringBuilder(8, 8, 26);
-        builder.addHeaders("Rank", "Move", "Heuristic");
+        StringBuilder desc = new StringBuilder();
+        desc.append("```");
         int count = 1;
         for (Move move : rankedMoves) {
-            builder.addRow(Integer.toString(count), move.getPiece().toString(), Float.toString(move.getHeuristic()));
+            desc.append(rightPad(count + ")", 5))
+                .append(rightPad(move.getTile().toString(), 5))
+                .append(move.getHeuristic()).append(" ")
+                .append("\n");
             count++;
         }
-        String desc = "```\n" + builder + "```";
+        desc.append("```");
         embedBuilder.setTitle("Move Analysis")
             .setDescription(desc)
             .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");

@@ -2,6 +2,7 @@ package bot.commands;
 
 import bot.commands.abstracts.CommandContext;
 import bot.commands.abstracts.Command;
+import bot.dtos.AiRequestDto;
 import bot.dtos.GameDto;
 import bot.dtos.PlayerDto;
 import bot.builders.embed.AnalyzeEmbedBuilder;
@@ -33,6 +34,7 @@ public class AnalyzeCommand extends Command
         MessageReceivedEvent event = ctx.getEvent();
         MessageChannel channel = event.getChannel();
 
+        // retrieve depth parameter and perform type validation
         Integer depth = 5;
         String depthStr = ctx.getParam("depth");
         if (depthStr != null) {
@@ -43,6 +45,7 @@ public class AnalyzeCommand extends Command
             }
         }
 
+        // check if depth is within range
         if (depth < 5 || depth > 15) {
             channel.sendMessage("Invalid depth. Type !help analyze for valid depths.").queue();
             return;
@@ -50,26 +53,30 @@ public class AnalyzeCommand extends Command
 
         PlayerDto player = new PlayerDto(event.getAuthor());
 
+        // fetch game to analyze
         GameDto game = gameService.getGame(player);
         if (game == null) {
             channel.sendMessage("You're not currently in a game.").queue();
             return;
         }
 
+        // send starting message, then add queue an ai request, send back the results in a message when its done
         int d = depth;
         channel.sendMessage("Analyzing... Wait a second...").queue(m -> {
             logger.info("Starting board state analysis");
 
-            List<Move> rankedMoves = aiService.findRankedMoves(game.getBoard(), d);
+            aiService.findRankedMoves(
+                new AiRequestDto<>(game.getBoard(), d, (List<Move> rankedMoves) -> {
+                    MessageEmbed embed = new AnalyzeEmbedBuilder()
+                        .setRankedMoves(rankedMoves)
+                        .build();
 
-            MessageEmbed embed = new AnalyzeEmbedBuilder()
-                .setRankedMoves(rankedMoves)
-                .build();
+                    m.editMessage("<@" + player + "> ").queue();
+                    m.editMessageEmbeds(embed).queue();
 
-            m.editMessage("<@" + player + "> ").queue();
-            m.editMessageEmbeds(embed).queue();
-
-            logger.info("Finished board state analysis");
+                    logger.info("Finished board state analysis");
+                })
+            );
         });
     }
 }

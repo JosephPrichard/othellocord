@@ -33,7 +33,14 @@ public class GameOverMessageSender extends MessageSender
     }
 
     public GameOverMessageSender setTag(GameResultDto result) {
-        super.setTag("<@" + result.getWinner() + "> " + "<@" + result.getLoser() + ">");
+        String tag = "";
+        if (!result.getWinner().isBot()) {
+            tag += "<@" + result.getWinner() + "> ";
+        }
+        if (!result.getLoser().isBot()) {
+            tag += "<@" + result.getLoser() + "> ";
+        }
+        super.setTag(tag);
         return this;
     }
 

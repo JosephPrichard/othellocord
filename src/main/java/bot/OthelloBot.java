@@ -45,7 +45,7 @@ public class OthelloBot extends ListenerAdapter
         addCommand(new ChallengeBotCommand(gameService, boardRenderer));
         addCommand(new AcceptCommand(gameService, challengeService, boardRenderer));
         addCommand(new ForfeitCommand(gameService, statsService, boardRenderer));
-        addCommand(new MoveCommand(gameService, statsService, boardRenderer));
+        addCommand(new MoveCommand(gameService, statsService, aiService, boardRenderer));
         addCommand(new ViewCommand(gameService, boardRenderer));
         addCommand(new AnalyzeCommand(gameService, aiService));
         addCommand(new StatsCommand(statsService));

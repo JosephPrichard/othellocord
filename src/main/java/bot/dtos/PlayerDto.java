@@ -2,18 +2,12 @@ package bot.dtos;
 
 import net.dv8tion.jda.api.entities.User;
 import bot.utils.DiscordUtils;
+import othello.utils.BotUtils;
 
 public class PlayerDto
 {
-    private static final long BOT_ID = -1;
-    private static final String BOT_NAME = "Bot";
-
     private long id;
     private String name;
-
-    public static PlayerDto Bot() {
-        return new PlayerDto(BOT_ID, BOT_NAME);
-    }
 
     public PlayerDto() {}
 
@@ -32,7 +26,7 @@ public class PlayerDto
     }
 
     public boolean isBot() {
-        return id == BOT_ID;
+        return BotUtils.isBotId(id);
     }
 
     public long getId() {
