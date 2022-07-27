@@ -52,6 +52,10 @@ public class GameDto
         return whitePlayer.isBot() || blackPlayer.isBot();
     }
 
+    public boolean isGameOver() {
+        return board.isGameOver();
+    }
+
     public GameResultDto getResult() {
         float diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {

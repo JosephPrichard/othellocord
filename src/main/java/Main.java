@@ -6,7 +6,7 @@ public class Main
 {
     public static void main(String[] args) throws LoginException {
         if (args.length < 1) {
-            System.out.println("You have to provide a token as first argument!");
+            System.out.println("You have to provide a Discord token as first argument!");
             System.exit(1);
         }
 

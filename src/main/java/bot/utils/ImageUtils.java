@@ -12,13 +12,13 @@ public class ImageUtils
     public static BufferedImage readImage(String path) {
         try {
             ClassLoader classLoader = ImageUtils.class.getClassLoader();
-            URL resource = classLoader.getResource(path);
-            if (resource != null) {
-                return ImageIO.read(new File(resource.toURI()));
+            InputStream is = classLoader.getResourceAsStream(path);
+            if (is != null) {
+                return ImageIO.read(is);
             } else {
                 throw new IOException();
             }
-        } catch(IOException | URISyntaxException ex) {
+        } catch(IOException ex) {
             System.out.println(path + " failed to load");
             System.exit(1);
             return null;

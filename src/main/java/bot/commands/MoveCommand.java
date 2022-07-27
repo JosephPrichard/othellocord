@@ -104,14 +104,13 @@ public class MoveCommand extends Command
         logger.info("Started ai make move of depth " + depth);
         aiService.findBestMove(
             new AiRequestDto<>(game.getBoard(), depth, (Move bestMove) -> {
-                Tile moveTile = bestMove.getTile();
                 // make the ai's best move on the game state, and update in storage
-                game.getBoard().makeMove(moveTile);
+                game.getBoard().makeMove(bestMove.getTile());
                 gameService.updateGame(game);
                 // render the board and send back the message
                 BufferedImage botImage = boardRenderer.drawBoardMoves(game.getBoard());
                 new GameViewMessageSender()
-                    .setGame(game, moveTile)
+                    .setGame(game, bestMove.getTile())
                     .setTag(game)
                     .setImage(botImage)
                     .sendMessage(channel);
@@ -128,11 +127,9 @@ public class MoveCommand extends Command
         PlayerDto player = new PlayerDto(event.getAuthor());
 
         try {
+            // make player's move, then respond accordingly depending on the new game state
             GameDto game = gameService.makeMove(player, move);
-            OthelloBoard board = game.getBoard();
-
-            // check if game is over or not, then check if game is against an ai or a player
-            if (!board.isGameOver()) {
+            if (!game.isGameOver()) {
                 if (!game.isAgainstBot()) {
                     onMoveVsPlayer(channel, game, move);
                 } else {

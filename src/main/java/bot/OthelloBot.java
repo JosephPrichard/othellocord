@@ -49,7 +49,7 @@ public class OthelloBot extends ListenerAdapter
         addCommand(new ViewCommand(gameService, boardRenderer));
         addCommand(new AnalyzeCommand(gameService, aiService));
         addCommand(new StatsCommand(statsService));
-        addCommand(new LeaderboardCommand(statsService));
+        addCommand(new LeaderBoardCommand(statsService));
     }
 
     public void addCommand(Command command) {

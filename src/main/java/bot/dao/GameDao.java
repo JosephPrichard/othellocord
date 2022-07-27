@@ -4,7 +4,6 @@ import bot.DataSource;
 import bot.entities.GameEntity;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.query.Query;
 
 import javax.annotation.Nullable;
