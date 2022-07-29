@@ -1,14 +1,9 @@
 package bot.entities;
 
-import org.hibernate.annotations.DynamicUpdate;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
-@Table(name="Stats")
+@Table(name="Stats", indexes = { @Index(name = "idx_elo", columnList = "elo") })
 public class StatsEntity
 {
     @Id

@@ -7,10 +7,12 @@ import bot.entities.StatsEntity;
 import net.dv8tion.jda.api.entities.User;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
+import othello.utils.BotUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.FutureTask;
 
 public class StatsDtoMapper
 {
@@ -26,6 +28,7 @@ public class StatsDtoMapper
     }
 
     public StatsDto map(StatsEntity entity) {
+        System.out.println(entity.getPlayerId());
         // fetch tag from jda and assign
         String tag = JDASingleton.fetchUser(entity.getPlayerId()).complete().getAsTag();
         // map entity to dto
@@ -38,14 +41,19 @@ public class StatsDtoMapper
         // fetch each tag from jda using futures
         List<CompletableFuture<User>> futures = new ArrayList<>();
         for (StatsEntity entity : entityList) {
-            futures.add(JDASingleton.fetchUser(entity.getPlayerId()).submit());
+            if (!BotUtils.isBotId(entity.getPlayerId())) {
+                futures.add(JDASingleton.fetchUser(entity.getPlayerId()).submit());
+            } else {
+                futures.add(CompletableFuture.completedFuture(null));
+            }
         }
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
         // map each entity to dto
         List<StatsDto> dtoList = new ArrayList<>();
         for(int i = 0; i < futures.size(); i++){
             // retrieve tag from completed future
-            String tag = futures.get(i).join().getAsTag();
+            User user = futures.get(i).join();
+            String tag = user != null ? user.getAsTag() : BotUtils.getBotName(entityList.get(i).getPlayerId());
             // map entity to dto and add to dto list
             StatsDto dto = modelMapper.map(entityList.get(i), StatsDto.class);
             dto.getPlayer().setName(tag);

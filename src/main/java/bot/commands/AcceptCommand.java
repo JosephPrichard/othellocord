@@ -50,7 +50,7 @@ public class AcceptCommand extends Command
         PlayerDto opponent = new PlayerDto(opponentUser);
         PlayerDto player = new PlayerDto(event.getAuthor());
 
-        if (!challengeService.acceptChallenge(new ChallengeDto(opponent, player))) {
+        if (!challengeService.acceptChallenge(new ChallengeDto(player, opponent))) {
             channel.sendMessage("No challenge to accept.").queue();
             return;
         }

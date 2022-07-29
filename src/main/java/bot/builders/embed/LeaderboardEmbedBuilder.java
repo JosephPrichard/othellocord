@@ -25,7 +25,7 @@ public class LeaderboardEmbedBuilder
         for (StatsDto stats : statsList) {
             desc.append(rightPad(count + ")", 4))
                 .append(leftPad(stats.getPlayer().getName(), 40))
-                .append(leftPad(Float.toString(stats.getElo()), 8))
+                .append(leftPad(Float.toString(stats.getElo()), 16))
                 .append("\n");
             count++;
         }
