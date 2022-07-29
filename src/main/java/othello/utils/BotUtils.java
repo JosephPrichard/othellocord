@@ -4,8 +4,8 @@ import bot.dtos.PlayerDto;
 
 public class BotUtils
 {
-    public static final int MAX_BOT_LEVEL = 5;
-    public static final int MIN_DEPTH = 4;
+    public static final int MAX_BOT_LEVEL = 15;
+    public static final int MIN_DEPTH = 0;
     public static final int DEPTH_STEP = 1;
 
     public static int getDepthFromId(long id) {

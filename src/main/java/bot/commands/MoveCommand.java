@@ -107,13 +107,18 @@ public class MoveCommand extends Command
                 // make the ai's best move on the game state, and update in storage
                 game.getBoard().makeMove(bestMove.getTile());
                 gameService.updateGame(game);
-                // render the board and send back the message
-                BufferedImage botImage = boardRenderer.drawBoardMoves(game.getBoard());
-                new GameViewMessageSender()
-                    .setGame(game, bestMove.getTile())
-                    .setTag(game)
-                    .setImage(botImage)
-                    .sendMessage(channel);
+                // check if game is over after ai makes move
+                if (game.isGameOver()) {
+                    onGameOver(channel, game, bestMove.getTile().toString());
+                } else {
+                    // render the board and send back the message
+                    BufferedImage botImage = boardRenderer.drawBoardMoves(game.getBoard());
+                    new GameViewMessageSender()
+                        .setGame(game, bestMove.getTile())
+                        .setTag(game)
+                        .setImage(botImage)
+                        .sendMessage(channel);
+                }
             })
         );
     }
