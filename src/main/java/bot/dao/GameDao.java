@@ -40,6 +40,9 @@ public class GameDao
         query.setParameter("id", playerId);
 
         List<GameEntity> games = query.list();
+        if (games.size() > 1) {
+            throw new IllegalStateException("Player shouldn't be in more than one game at a time.");
+        }
         GameEntity game = games.size() == 1 ? games.get(0) : null;
 
         session.close();

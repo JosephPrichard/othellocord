@@ -33,6 +33,10 @@ public class GameService
         gameDto.setWhitePlayer(whitePlayer);
         gameDto.setBoard(new OthelloBoard());
 
+        if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
+            throw new AlreadyPlayingException();
+        }
+
         try {
             gameDao.saveGame(blackPlayer.getId(), whitePlayer.getId(), BoardUtils.serialize(gameDto.getBoard()));
         } catch (PersistenceException ex) {
@@ -42,8 +46,24 @@ public class GameService
         return gameDto;
     }
 
-    public GameDto createBotGame(PlayerDto player, int level) throws AlreadyPlayingException {
-        return createGame(player, BotUtils.Bot(level));
+    public GameDto createBotGame(PlayerDto blackPlayer, int level) throws AlreadyPlayingException {
+        PlayerDto whitePlayer = BotUtils.Bot(level);
+
+        GameDto gameDto = new GameDto();
+        gameDto.setBlackPlayer(blackPlayer);
+        gameDto.setWhitePlayer(whitePlayer);
+        gameDto.setBoard(new OthelloBoard());
+
+        if (isPlaying(blackPlayer)) {
+            throw new AlreadyPlayingException();
+        }
+
+        try {
+            gameDao.saveGame(blackPlayer.getId(), whitePlayer.getId(), BoardUtils.serialize(gameDto.getBoard()));
+        } catch (PersistenceException ex) {
+            throw new AlreadyPlayingException();
+        }
+        return gameDto;
     }
 
     @Nullable

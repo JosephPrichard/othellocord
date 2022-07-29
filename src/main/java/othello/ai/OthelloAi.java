@@ -65,7 +65,9 @@ public final class OthelloAi
     public Move findBestMove() {
         List<Tile> moves = rootBoard.findPotentialMoves();
         Tile bestMove = null;
-        float bestHeuristic = -INF;
+        float bestHeuristic = rootBoard.isBlackMove() ? -INF : INF;
+
+        Comparator<Float> comparator = rootBoard.isBlackMove() ? Float::compare : (m1, m2) -> Float.compare(m2, m1);
 
         // call the iterative deepening negamax to calculate the heuristic for each potential move and determine the best one
         for (Tile move : moves) {
@@ -73,7 +75,7 @@ public final class OthelloAi
             copiedBoard.makeMove(move);
 
             float heuristic = negamaxIDDFS(copiedBoard, maxDepth - 1);
-            if (heuristic > bestHeuristic) {
+            if (comparator.compare(heuristic, bestHeuristic) > 0) {
                 bestMove = move;
                 bestHeuristic = heuristic;
             }

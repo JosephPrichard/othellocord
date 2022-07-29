@@ -346,11 +346,10 @@ public final class OthelloBoard
 
     public static void main(String[] args) {
         OthelloBoard board = new OthelloBoard();
-        board.makeMove(new Tile("d3"));
-        System.out.println(board);
-        board.makeMove(new Tile("e3"));
-        System.out.println(board);
-        board.makeMove(new Tile("f2"));
-        System.out.println(board);
+        board.setSquare("a1", BLACK);
+        board.setSquare("h1", BLACK);
+        board.setSquare("a8", BLACK);
+        board.setSquare("h8", BLACK);
+        System.out.println(board.cornerHeuristic());
     }
 }
