@@ -32,7 +32,7 @@ Challenges another user to an othello game. Another player can accept the challe
 
 `!challengebot level`
 
-Challenges the bot to an othello game. The bot can be level 1-5, level 1 being the weakest and level 5 being the highest.
+Challenges the bot to an othello game. The bot can be level 1-15, level 1 searching until depth 1 and level 15 searching until depth 15 (for the bot to work past level 10 you need very good hardware)
 
 <img src="" width="35%" height="35%">
 
