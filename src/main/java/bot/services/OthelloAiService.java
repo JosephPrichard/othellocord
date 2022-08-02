@@ -10,7 +10,7 @@ import java.util.concurrent.*;
 
 public class OthelloAiService
 {
-    private final ExecutorService executorService = Executors.newFixedThreadPool(30);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     public void findRankedMoves(AiRequestDto<List<Move>> aiRequestDto) {
         executorService.submit(() -> {

@@ -57,11 +57,15 @@ public class GameResultDto
         return eloDiffPair.getRight();
     }
 
+    private static String formatElo(float elo) {
+        return elo >= 0 ? "+" + elo : Float.toString(elo);
+    }
+
     public String formatWinnerDiffElo() {
-        return Float.toString(eloDiffPair.getLeft());
+        return formatElo(eloDiffPair.getLeft());
     }
 
     public String formatLoserDiffElo() {
-        return Float.toString(eloDiffPair.getRight());
+        return formatElo(eloDiffPair.getRight());
     }
 }

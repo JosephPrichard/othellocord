@@ -34,7 +34,7 @@ public class ChallengeBotCommand extends Command
         MessageChannel channel = event.getChannel();
 
         // retrieve depth parameter and perform type validation
-        Integer level = 3;
+        Integer level = 5;
         String levelStr = ctx.getParam("level");
         if (levelStr != null) {
             level = NumberUtils.parseIntOrNull(levelStr);

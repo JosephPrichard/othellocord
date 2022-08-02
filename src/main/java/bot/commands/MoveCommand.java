@@ -18,7 +18,6 @@ import bot.services.exceptions.TurnException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
-import othello.board.OthelloBoard;
 import othello.board.Tile;
 import othello.utils.BotUtils;
 
@@ -63,6 +62,7 @@ public class MoveCommand extends Command
         new GameOverMessageSender()
             .setGame(result)
             .addMoveMessage(result.getWinner(), move)
+            .addScoreMessage(game.getWhiteScore(), game.getBlackScore())
             .setTag(result)
             .setImage(image)
             .sendMessage(channel);

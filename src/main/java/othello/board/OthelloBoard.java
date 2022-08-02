@@ -13,6 +13,7 @@ public final class OthelloBoard
 
     private static final int[][] BOARD_DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
     private static final int[][] BOARD_CORNERS = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    private static final int[][] BOARD_X_OFFSET = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
     private byte[][] board;
     private boolean blackMove;
@@ -22,6 +23,10 @@ public final class OthelloBoard
     }
 
     public OthelloBoard(int boardSize) {
+        if (boardSize < 4) {
+            throw new BoardSizeException();
+        }
+
         board = new byte[boardSize][boardSize];
 
         board[getBoardSize() / 2 - 1][getBoardSize() / 2 - 1] = WHITE;
@@ -97,6 +102,28 @@ public final class OthelloBoard
             return 0f;
         }
         return 100f * (blackCorners - whiteCorners) / (blackCorners + whiteCorners);
+    }
+
+    public float xSquareHeuristic() {
+        int whiteXSquares = 0;
+        int blackXSquares = 0;
+        int farCorner = getBoardSize() - 1;
+        // iterate over x squares and calculate the number of white and black xc squares
+        for (int i = 0; i < BOARD_CORNERS.length; i++) {
+            int[] corner = BOARD_CORNERS[i];
+            int[] xOffset = BOARD_X_OFFSET[i];
+            byte currentColor = board[farCorner * corner[0] + xOffset[0]][farCorner * corner[1] + xOffset[1]];
+            if (currentColor == WHITE) {
+                whiteXSquares++;
+            } else if (currentColor == BLACK) {
+                blackXSquares++;
+            }
+        }
+        if (whiteXSquares + blackXSquares == 0) {
+            return 0f;
+        }
+        // having more x squares is bad
+        return 50f * (whiteXSquares - blackXSquares) / (blackXSquares + whiteXSquares);
     }
 
     public float mobilityHeuristic() {
@@ -346,10 +373,10 @@ public final class OthelloBoard
 
     public static void main(String[] args) {
         OthelloBoard board = new OthelloBoard();
-        board.setSquare("a1", BLACK);
-        board.setSquare("h1", BLACK);
-        board.setSquare("a8", BLACK);
-        board.setSquare("h8", BLACK);
-        System.out.println(board.cornerHeuristic());
+        board.setSquare("b2", BLACK);
+        board.setSquare("g2", BLACK);
+        board.setSquare("b7", BLACK);
+        board.setSquare("g7", BLACK);
+        System.out.println(board.xSquareHeuristic());
     }
 }

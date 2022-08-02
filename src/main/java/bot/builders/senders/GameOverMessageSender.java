@@ -10,6 +10,7 @@ public class GameOverMessageSender extends MessageSender
 {
     private String resultDesc = "";
     private String messageDesc = "";
+    private String scoreDesc = "";
 
     public GameOverMessageSender setGame(GameResultDto result) {
         resultDesc = result.getWinner().getName() +
@@ -24,6 +25,11 @@ public class GameOverMessageSender extends MessageSender
 
     public GameOverMessageSender addForfeitMessage(PlayerDto winner) {
         messageDesc = winner.getName() + " won by forfeit \n";
+        return this;
+    }
+
+    public GameOverMessageSender addScoreMessage(int whiteScore, int blackScore) {
+        scoreDesc = "Score: " + blackScore + " - " + whiteScore + "\n";
         return this;
     }
 
@@ -46,7 +52,12 @@ public class GameOverMessageSender extends MessageSender
 
     @Override
     public void sendMessage(MessageChannel channel) {
-        getEmbedBuilder().setDescription(messageDesc + "\n" + resultDesc);
+        String desc = messageDesc + "\n";
+        if (!scoreDesc.equals("")) {
+            desc += scoreDesc + "\n";
+        }
+        desc += resultDesc;
+        getEmbedBuilder().setDescription(desc);
         super.sendMessage(channel);
     }
 }
