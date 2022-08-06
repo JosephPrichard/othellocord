@@ -258,19 +258,23 @@ public final class OthelloBitBoard implements OthelloBoard
     }
 
     private void setSquare(int row, int col, byte color) {
+        // calculate bit position
         int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
+        long clearMask = ~(1L << p) & ~(1L << (p + 1));
+        // clear bits then set bits
         if (row < HALF_SIZE ) {
-            boardA &= ~(1L << p) & ~(1L << (p + 1));
+            boardA &= clearMask;
             boardA |= (long) color << p;
         } else {
-            boardB &= ~(1L << p) & ~(1L << (p + 1));
+            boardB &= clearMask;
             boardB |= (long) color << p;
         }
     }
 
     private byte getSquare(int row, int col) {
+        int mask = (1 << 2) - 1;
         int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
-        return row < HALF_SIZE ? (byte) (((1 << 2) - 1) & (boardA >> p)) : (byte) (((1 << 2) - 1) & (boardB >> p));
+        return row < HALF_SIZE ? (byte) (mask & (boardA >> p)) : (byte) (mask & (boardB >> p));
     }
 
     /**

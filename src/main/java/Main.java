@@ -1,4 +1,4 @@
-import bot.JDASingleton;
+import discord.JDASingleton;
 
 import javax.security.auth.login.LoginException;
 
