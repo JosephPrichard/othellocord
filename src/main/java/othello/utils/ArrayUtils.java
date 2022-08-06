@@ -9,4 +9,10 @@ public class ArrayUtils
         }
         return arrayCopy;
     }
+
+    public static byte[] copyOfArray(byte[] array) {
+        byte[] arrayCopy = new byte[array.length];
+        System.arraycopy(array, 0, arrayCopy, 0, array.length);
+        return arrayCopy;
+    }
 }

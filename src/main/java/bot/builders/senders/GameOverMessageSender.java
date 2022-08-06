@@ -52,11 +52,11 @@ public class GameOverMessageSender extends MessageSender
 
     @Override
     public void sendMessage(MessageChannel channel) {
-        String desc = messageDesc + "\n";
+        String desc = messageDesc;
         if (!scoreDesc.equals("")) {
-            desc += scoreDesc + "\n";
+            desc += scoreDesc;
         }
-        desc += resultDesc;
+        desc += "\n" + resultDesc;
         getEmbedBuilder().setDescription(desc);
         super.sendMessage(channel);
     }

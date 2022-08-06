@@ -1,5 +1,6 @@
 package othello.ai;
 
+import othello.board.OthelloBitBoard;
 import othello.board.OthelloBoard;
 import othello.board.Tile;
 
@@ -20,7 +21,7 @@ public final class OthelloAi
     private final TTable tTable;
 
     public OthelloAi(int boardSize, int maxDepth) {
-        this.rootBoard = new OthelloBoard(boardSize);
+        this.rootBoard = new OthelloBitBoard();
         this.maxDepth = maxDepth;
         this.hasher = new ZHasher(boardSize);
         this.tTable = new TTable(TT_SIZE, CL_SIZE);
@@ -29,7 +30,7 @@ public final class OthelloAi
     public OthelloAi(OthelloBoard board, int maxDepth) {
         this.rootBoard = board.copy();
         this.maxDepth = maxDepth;
-        this.hasher = new ZHasher(board.getBoardSize());
+        this.hasher = new ZHasher(OthelloBoard.getBoardSize());
         this.tTable = new TTable(TT_SIZE, CL_SIZE);
     }
 
@@ -125,8 +126,6 @@ public final class OthelloAi
                     break;
                 }
             }
-            // empty the board to save memory, a node expanded once never needs to be expanded again
-            board.setBoardEmpty();
             return alpha;
         } else {
             // explore best children first for move ordering, find the best moves and return them
@@ -137,8 +136,6 @@ public final class OthelloAi
                     break;
                 }
             }
-            // empty the board to save memory, a node expanded once never needs to be expanded again
-            board.setBoardEmpty();
             return beta;
         }
     }

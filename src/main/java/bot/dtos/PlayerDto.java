@@ -2,7 +2,7 @@ package bot.dtos;
 
 import net.dv8tion.jda.api.entities.User;
 import bot.utils.DiscordUtils;
-import othello.utils.BotUtils;
+import bot.utils.BotUtils;
 
 public class PlayerDto
 {

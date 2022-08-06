@@ -9,10 +9,10 @@ import bot.services.exceptions.AlreadyPlayingException;
 import bot.services.exceptions.InvalidMoveException;
 import bot.services.exceptions.NotPlayingException;
 import bot.services.exceptions.TurnException;
-import othello.board.OthelloBoard;
+import othello.board.OthelloBitBoard;
 import othello.board.Tile;
 import othello.utils.BoardUtils;
-import othello.utils.BotUtils;
+import bot.utils.BotUtils;
 
 import javax.annotation.Nullable;
 import javax.persistence.PersistenceException;
@@ -31,7 +31,7 @@ public class GameService
         GameDto gameDto = new GameDto();
         gameDto.setBlackPlayer(blackPlayer);
         gameDto.setWhitePlayer(whitePlayer);
-        gameDto.setBoard(new OthelloBoard());
+        gameDto.setBoard(new OthelloBitBoard());
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
@@ -52,7 +52,7 @@ public class GameService
         GameDto gameDto = new GameDto();
         gameDto.setBlackPlayer(blackPlayer);
         gameDto.setWhitePlayer(whitePlayer);
-        gameDto.setBoard(new OthelloBoard());
+        gameDto.setBoard(new OthelloBitBoard());
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();

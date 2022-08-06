@@ -1,5 +1,6 @@
 package bot.imagerenderers;
 
+import othello.board.OthelloBitBoard;
 import othello.board.OthelloBoard;
 import othello.board.Tile;
 import bot.utils.ImageUtils;
@@ -11,7 +12,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class OthelloBoardRenderer
@@ -29,18 +29,14 @@ public class OthelloBoardRenderer
     private final BufferedImage blackDiscImage;
     private final BufferedImage whiteStarImage;
     private final BufferedImage blackStarImage;
+    private final BufferedImage backgroundImage;
 
-    private final HashMap<Integer, BufferedImage> backgroundImages = new HashMap<>();
-
-    public OthelloBoardRenderer(int... boardSizes) {
+    public OthelloBoardRenderer() {
         whiteDiscImage = ImageUtils.readResizedImage("images/white_disc.png", DISC_SIZE);
         blackDiscImage = ImageUtils.readResizedImage("images/black_disc.png", DISC_SIZE);
         whiteStarImage = ImageUtils.readResizedImage("images/white_star.png", DISC_SIZE);
         blackStarImage = ImageUtils.readResizedImage("images/black_star.png", DISC_SIZE);
-
-        for (int size : boardSizes) {
-            backgroundImages.put(size, drawBackground(size));
-        }
+        backgroundImage = drawBackground(OthelloBoard.getBoardSize());
     }
 
     private static BufferedImage drawBackground(int boardSize) {
@@ -105,11 +101,6 @@ public class OthelloBoardRenderer
     }
 
     public BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
-        BufferedImage backgroundImage = backgroundImages.get(board.getBoardSize());
-        if (backgroundImage == null) {
-            throw new ImageSizeMismatchException();
-        }
-
         BufferedImage boardImage = new BufferedImage(
             backgroundImage.getWidth(),
             backgroundImage.getHeight(),
@@ -135,26 +126,24 @@ public class OthelloBoardRenderer
 
     private void drawDiscs(Graphics boardGraphics, OthelloBoard board) {
         // draw discs onto board, either empty, black, or white
-        for (int row = 0; row < board.getBoardSize(); row++) {
-            for (int col = 0; col < board.getBoardSize(); col++) {
-                int x = SIDE_OFFSET + LINE_THICKNESS + col * TILE_SIZE;
-                int y = SIDE_OFFSET + LINE_THICKNESS + row * TILE_SIZE;
-                // determine which bitmap belongs in the disc slot
-                int color = board.getSquare(row, col);
-                if (color == OthelloBoard.BLACK) {
-                    boardGraphics.drawImage(blackDiscImage, x, y, null);
-                } else if (color == OthelloBoard.WHITE) {
-                    boardGraphics.drawImage(whiteDiscImage, x, y, null);
-                }
+        for (Tile tile : board.tiles()) {
+            int x = SIDE_OFFSET + LINE_THICKNESS + tile.getCol() * TILE_SIZE;
+            int y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
+            // determine which bitmap belongs in the disc slot
+            int color = board.getSquare(tile);
+            if (color == OthelloBitBoard.BLACK) {
+                boardGraphics.drawImage(blackDiscImage, x, y, null);
+            } else if (color == OthelloBitBoard.WHITE) {
+                boardGraphics.drawImage(whiteDiscImage, x, y, null);
             }
         }
     }
 
     // test driver function to see board image
     public static void main(String[] args) throws IOException {
-        OthelloBoard board = new OthelloBoard(8);
+        OthelloBoard board = new OthelloBitBoard();
 
-        OthelloBoardRenderer renderer = new OthelloBoardRenderer(8);
+        OthelloBoardRenderer renderer = new OthelloBoardRenderer();
 
         List<Tile> moves = board.findPotentialMoves();
 

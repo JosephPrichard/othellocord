@@ -7,7 +7,7 @@ import bot.entities.GameEntity;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import othello.utils.BoardUtils;
-import othello.utils.BotUtils;
+import bot.utils.BotUtils;
 
 public class GameDtoMapper
 {

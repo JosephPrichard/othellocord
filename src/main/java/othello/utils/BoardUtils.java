@@ -1,7 +1,9 @@
 package othello.utils;
 
 import othello.board.BoardDeserializationException;
+import othello.board.OthelloBitBoard;
 import othello.board.OthelloBoard;
+import othello.board.Tile;
 
 public class BoardUtils
 {
@@ -10,10 +12,8 @@ public class BoardUtils
         // add the turn indicator
         builder.append(board.isBlackMove() ? "B" : "W");
         // for each square add the number to the serialized string
-        for (int row = 0; row < board.getBoardSize(); row++) {
-            for (int col = 0; col < board.getBoardSize(); col++) {
-                builder.append(board.getSquare(row, col));
-            }
+        for (Tile tile : board.tiles()) {
+            builder.append(board.getSquare(tile));
         }
         return builder.toString();
     }
@@ -39,19 +39,17 @@ public class BoardUtils
             throw new BoardDeserializationException();
         }
 
-        int size = (int) sizeReal;
-
         // extract the turn indicator
         boolean isBlack = boardStr.charAt(0) == 'B';
 
         // populate board array by assigning characters to board
-        byte[][] board = new byte[size][size];
+        OthelloBoard board = new OthelloBitBoard(isBlack);
         for (int i = 1; i < boardStr.length(); i++) {
             int pos = i - 1;
-            board[pos / size][pos % size] = (byte) (boardStr.charAt(i) - '0');
+            board.setSquare(pos, (byte) (boardStr.charAt(i) - '0'));
         }
 
-        return new OthelloBoard(board, isBlack);
+        return board;
     }
 
     public static void main(String[] args) {

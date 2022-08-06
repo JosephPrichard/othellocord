@@ -19,7 +19,7 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
 import othello.board.Tile;
-import othello.utils.BotUtils;
+import bot.utils.BotUtils;
 
 import java.awt.image.BufferedImage;
 import java.util.logging.Logger;
@@ -101,7 +101,6 @@ public class MoveCommand extends Command
 
         // queue an ai request which will find the best move, make the move, and send back a response
         int depth = BotUtils.getDepthFromId(game.getCurrentPlayer().getId());
-        logger.info("Started ai make move of depth " + depth);
         aiService.findBestMove(
             new AiRequestDto<>(game.getBoard(), depth, (Move bestMove) -> {
                 // make the ai's best move on the game state, and update in storage
@@ -121,6 +120,8 @@ public class MoveCommand extends Command
                 }
             })
         );
+
+        logger.info("Started ai make move of depth " + depth);
     }
 
     @Override

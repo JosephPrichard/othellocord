@@ -1,4 +1,4 @@
-package othello.utils;
+package bot.utils;
 
 public class NumberUtils
 {

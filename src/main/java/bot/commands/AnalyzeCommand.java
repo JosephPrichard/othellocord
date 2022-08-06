@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
-import othello.utils.NumberUtils;
+import bot.utils.NumberUtils;
 
 import java.util.List;
 import java.util.logging.Logger;

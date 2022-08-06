@@ -1,4 +1,4 @@
-package othello.utils;
+package bot.utils;
 
 import bot.dtos.PlayerDto;
 

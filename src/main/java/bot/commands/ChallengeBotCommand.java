@@ -10,8 +10,8 @@ import bot.services.GameService;
 import bot.services.exceptions.AlreadyPlayingException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import othello.utils.NumberUtils;
-import othello.utils.BotUtils;
+import bot.utils.NumberUtils;
+import bot.utils.BotUtils;
 
 import java.awt.image.BufferedImage;
 import java.util.logging.Logger;

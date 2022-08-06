@@ -1,6 +1,5 @@
 package bot.services;
 
-import bot.dao.GameDao;
 import bot.dtos.AiRequestDto;
 import othello.ai.Move;
 import othello.ai.OthelloAi;

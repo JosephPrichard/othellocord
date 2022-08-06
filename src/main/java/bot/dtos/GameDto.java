@@ -57,6 +57,8 @@ public class GameDto
     }
 
     public GameResultDto getResult() {
+        System.out.println("result " + whitePlayer);
+        System.out.println("result " + blackPlayer);
         float diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {
             return new GameResultDto(blackPlayer, whitePlayer);

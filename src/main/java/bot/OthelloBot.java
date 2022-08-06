@@ -38,7 +38,7 @@ public class OthelloBot extends ListenerAdapter
         StatsService statsService = new StatsService(statsDao);
         ChallengeService challengeService = new ChallengeService(challengeDao);
 
-        OthelloBoardRenderer boardRenderer = new OthelloBoardRenderer(8);
+        OthelloBoardRenderer boardRenderer = new OthelloBoardRenderer();
 
         // add all bot commands to the handler map for handling events
         addCommand(new ChallengeCommand(challengeService));

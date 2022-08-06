@@ -7,12 +7,11 @@ import bot.entities.StatsEntity;
 import net.dv8tion.jda.api.entities.User;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
-import othello.utils.BotUtils;
+import bot.utils.BotUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.FutureTask;
 
 public class StatsDtoMapper
 {
@@ -28,7 +27,6 @@ public class StatsDtoMapper
     }
 
     public StatsDto map(StatsEntity entity) {
-        System.out.println(entity.getPlayerId());
         // fetch tag from jda and assign
         String tag = JDASingleton.fetchUser(entity.getPlayerId()).complete().getAsTag();
         // map entity to dto
@@ -38,7 +36,7 @@ public class StatsDtoMapper
     }
 
     public List<StatsDto> mapAll(List<StatsEntity> entityList) {
-        // fetch each tag from jda using futures
+        // fetch each tag from jda using futures, for the bots return null and map bot name instead
         List<CompletableFuture<User>> futures = new ArrayList<>();
         for (StatsEntity entity : entityList) {
             if (!BotUtils.isBotId(entity.getPlayerId())) {
