@@ -3,7 +3,7 @@ package discord.commands;
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
 import modules.stats.Stats;
-import discord.message.embed.LeaderboardEmbedBuilder;
+import discord.message.builder.LeaderboardEmbedBuilder;
 import modules.stats.StatsService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;

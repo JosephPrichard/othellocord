@@ -1,7 +1,7 @@
 package discord.message.senders;
 
 import modules.game.GameResult;
-import modules.Player;
+import modules.player.Player;
 import net.dv8tion.jda.api.entities.MessageChannel;
 
 public class GameOverMessageSender extends MessageSender

@@ -4,7 +4,7 @@ import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
 import modules.game.Game;
 import modules.game.GameService;
-import modules.Player;
+import modules.player.Player;
 import discord.message.senders.GameViewMessageSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

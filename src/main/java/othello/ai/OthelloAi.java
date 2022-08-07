@@ -1,6 +1,5 @@
 package othello.ai;
 
-import othello.board.OthelloBitBoard;
 import othello.board.OthelloBoard;
 import othello.board.Tile;
 
@@ -21,7 +20,7 @@ public final class OthelloAi
     private final TTable tTable;
 
     public OthelloAi(int boardSize, int maxDepth) {
-        this.rootBoard = new OthelloBitBoard();
+        this.rootBoard = new OthelloBoard();
         this.maxDepth = maxDepth;
         this.hasher = new ZHasher(boardSize);
         this.tTable = new TTable(TT_SIZE, CL_SIZE);

@@ -1,7 +1,7 @@
 package modules.stats;
 
 import discord.JDASingleton;
-import modules.Player;
+import modules.player.Player;
 import net.dv8tion.jda.api.entities.User;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;

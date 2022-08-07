@@ -1,6 +1,6 @@
 package utils;
 
-import modules.Player;
+import modules.player.Player;
 
 public class BotUtils
 {

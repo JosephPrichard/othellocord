@@ -8,7 +8,7 @@ import modules.game.exceptions.AlreadyPlayingException;
 import modules.challenge.ChallengeService;
 import modules.game.GameService;
 import modules.game.Game;
-import modules.Player;
+import modules.player.Player;
 import discord.message.senders.GameStartMessageSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

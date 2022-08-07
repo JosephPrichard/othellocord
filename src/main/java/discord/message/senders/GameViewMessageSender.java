@@ -26,7 +26,9 @@ public class GameViewMessageSender extends MessageSender
     }
 
     public GameViewMessageSender setTag(Game game) {
-        super.setTag("<@" + game.getCurrentPlayer() + ">");
+        if (!game.getCurrentPlayer().isBot()) {
+            super.setTag("<@" + game.getCurrentPlayer() + ">");
+        }
         return this;
     }
 }

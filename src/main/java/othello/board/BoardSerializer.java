@@ -40,7 +40,7 @@ public class BoardSerializer
         boolean isBlack = boardStr.charAt(0) == 'B';
 
         // populate board array by assigning characters to board
-        OthelloBoard board = new OthelloBitBoard(isBlack);
+        OthelloBoard board = new OthelloBoard(isBlack);
         for (int i = 1; i < boardStr.length(); i++) {
             int pos = i - 1;
             board.setSquare(pos, (byte) (boardStr.charAt(i) - '0'));
@@ -50,7 +50,7 @@ public class BoardSerializer
     }
 
     public static void main(String[] args) {
-        String boardStr = serialize(new OthelloBitBoard());
+        String boardStr = serialize(new OthelloBoard());
         System.out.println(boardStr);
         OthelloBoard board = deserialize(boardStr);
         System.out.println(board);

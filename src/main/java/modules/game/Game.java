@@ -1,6 +1,6 @@
 package modules.game;
 
-import modules.Player;
+import modules.player.Player;
 import othello.board.OthelloBoard;
 
 public class Game

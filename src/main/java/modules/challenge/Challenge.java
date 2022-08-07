@@ -1,6 +1,6 @@
 package modules.challenge;
 
-import modules.Player;
+import modules.player.Player;
 
 import java.util.Objects;
 

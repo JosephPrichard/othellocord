@@ -11,8 +11,14 @@ public class Tile
     }
 
     public Tile(String square) {
-        this.col = square.charAt(0) - 'a';
-        this.row = Character.getNumericValue(square.charAt(1)) - 1;
+        square = square.toLowerCase();
+        if (square.length() != 2) {
+            this.row = -1;
+            this.col = -1;
+        } else {
+            this.col = square.charAt(0) - 'a';
+            this.row = Character.getNumericValue(square.charAt(1)) - 1;
+        }
     }
 
     public int getRow() {
@@ -27,6 +33,14 @@ public class Tile
         char c = (char) (col + 'a');
         String r = Integer.toString(row + 1);
         return c + r;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Tile tile = (Tile) o;
+        return row == tile.row && col == tile.col;
     }
 
     public boolean equalsNotation(String notation) {

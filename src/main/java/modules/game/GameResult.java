@@ -1,6 +1,6 @@
 package modules.game;
 
-import modules.Player;
+import modules.player.Player;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
 

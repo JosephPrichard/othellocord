@@ -1,6 +1,6 @@
-package discord.message.message;
+package discord.message.builder;
 
-import modules.Player;
+import modules.player.Player;
 
 public class ChallengeMessageBuilder
 {

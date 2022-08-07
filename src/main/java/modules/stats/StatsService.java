@@ -1,7 +1,7 @@
 package modules.stats;
 
 import modules.game.GameResult;
-import modules.Player;
+import modules.player.Player;
 import utils.EloUtils;
 
 import java.util.List;

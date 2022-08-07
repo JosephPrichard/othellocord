@@ -1,6 +1,5 @@
 package discord.renderers;
 
-import othello.board.OthelloBitBoard;
 import othello.board.OthelloBoard;
 import othello.board.Tile;
 import utils.ImageUtils;
@@ -130,9 +129,9 @@ public class OthelloBoardRenderer
             int y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
             // determine which bitmap belongs in the disc slot
             int color = board.getSquare(tile);
-            if (color == OthelloBitBoard.BLACK) {
+            if (color == OthelloBoard.BLACK) {
                 boardGraphics.drawImage(blackDiscImage, x, y, null);
-            } else if (color == OthelloBitBoard.WHITE) {
+            } else if (color == OthelloBoard.WHITE) {
                 boardGraphics.drawImage(whiteDiscImage, x, y, null);
             }
         }
@@ -140,7 +139,7 @@ public class OthelloBoardRenderer
 
     // test driver function to see board image
     public static void main(String[] args) throws IOException {
-        OthelloBoard board = new OthelloBitBoard();
+        OthelloBoard board = new OthelloBoard();
 
         OthelloBoardRenderer renderer = new OthelloBoardRenderer();
 

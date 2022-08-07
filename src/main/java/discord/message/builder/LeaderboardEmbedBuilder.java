@@ -1,4 +1,4 @@
-package discord.message.embed;
+package discord.message.builder;
 
 import modules.stats.Stats;
 import net.dv8tion.jda.api.EmbedBuilder;

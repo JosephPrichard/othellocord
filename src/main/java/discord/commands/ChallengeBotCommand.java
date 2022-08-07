@@ -4,7 +4,7 @@ import discord.message.senders.GameStartMessageSender;
 import discord.commands.abstracts.Command;
 import discord.commands.abstracts.CommandContext;
 import modules.game.Game;
-import modules.Player;
+import modules.player.Player;
 import discord.renderers.OthelloBoardRenderer;
 import modules.game.GameService;
 import modules.game.exceptions.AlreadyPlayingException;

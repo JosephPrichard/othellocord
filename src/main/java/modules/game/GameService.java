@@ -1,6 +1,6 @@
 package modules.game;
 
-import modules.Player;
+import modules.player.Player;
 import modules.game.exceptions.AlreadyPlayingException;
 import modules.game.exceptions.InvalidMoveException;
 import modules.game.exceptions.NotPlayingException;
@@ -9,7 +9,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import org.jetbrains.annotations.NotNull;
-import othello.board.OthelloBitBoard;
+import othello.board.OthelloBoard;
 import othello.board.Tile;
 import utils.BotUtils;
 
@@ -35,7 +35,7 @@ public class GameService
         );
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
-        Game game = new Game(new OthelloBitBoard(), whitePlayer, blackPlayer);
+        Game game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
@@ -52,7 +52,7 @@ public class GameService
 
     public Game createBotGame(Player blackPlayer, int level) throws AlreadyPlayingException {
         Player whitePlayer = BotUtils.Bot(level);
-        Game game = new Game(new OthelloBitBoard(), whitePlayer, blackPlayer);
+        Game game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();
@@ -82,7 +82,46 @@ public class GameService
         }
     }
 
-    public Game makeMove(Player player, String move) throws NotPlayingException, InvalidMoveException, TurnException {
+    public void saveGame(Game game) {
+        if (!game.getBlackPlayer().isBot()) {
+            games.put(game.getBlackPlayer().getId(), Optional.of(game));
+        }
+        if (!game.getWhitePlayer().isBot()) {
+            games.put(game.getWhitePlayer().getId(), Optional.of(game));
+        }
+    }
+
+    public void deleteGame(Game game) {
+        games.invalidate(game.getWhitePlayer().getId());
+        games.invalidate(game.getBlackPlayer().getId());
+    }
+
+    public boolean isPlaying(Player player) {
+        return getGame(player) != null;
+    }
+
+    /**
+     * Makes a move directly on a game
+     * @param game to make the move on
+     * @param move to be made
+     */
+    public void makeMove(Game game, Tile move) {
+        game.getBoard().makeMove(move);
+        if (!game.isGameOver()) {
+            saveGame(game);
+        } else {
+            deleteGame(game);
+        }
+    }
+
+    /**
+     * Responsible for making the given move on the player's game. Updates the game in the storage if
+     * the game is not complete, deletes the game in the storage if the game is complete
+     * @param player to make move for
+     * @param move to make move
+     * @return a mutable copy of the game from the storage
+     */
+    public Game makeMove(Player player, Tile move) throws NotPlayingException, InvalidMoveException, TurnException {
         Game game = getGame(player);
         if (game == null) {
             throw new NotPlayingException();
@@ -96,33 +135,12 @@ public class GameService
         List<Tile> potentialMoves = game.getBoard().findPotentialMoves();
         // check if the move being requested is any of the potential moves, if so make the move
         for (Tile potentialMove : potentialMoves) {
-            if (potentialMove.equalsNotation(move)) {
-                game.getBoard().makeMove(potentialMove);
+            if (potentialMove.equals(move)) {
+                makeMove(game, potentialMove);
                 return game;
             }
         }
 
         throw new InvalidMoveException();
-    }
-
-    public void saveGame(Game game) {
-        if (!game.getBlackPlayer().isBot()) {
-            games.put(game.getBlackPlayer().getId(), Optional.of(game));
-        }
-        if (!game.getWhitePlayer().isBot()) {
-            games.put(game.getWhitePlayer().getId(), Optional.of(game));
-        }
-    }
-
-    public boolean isPlaying(Player player) {
-        return getGame(player) != null;
-    }
-
-    public void deleteGame(Game game) {
-        Game oldGame = getGame(game.getBlackPlayer());
-        if (oldGame != null) {
-            games.invalidate(oldGame.getWhitePlayer().getId());
-            games.invalidate(oldGame.getBlackPlayer().getId());
-        }
     }
 }

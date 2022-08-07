@@ -6,7 +6,7 @@ import modules.game.GameService;
 import modules.stats.StatsService;
 import modules.game.Game;
 import modules.game.GameResult;
-import modules.Player;
+import modules.player.Player;
 import discord.message.senders.GameOverMessageSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

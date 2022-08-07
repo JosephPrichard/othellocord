@@ -1,4 +1,4 @@
-package modules;
+package modules.player;
 
 import net.dv8tion.jda.api.entities.User;
 import utils.DiscordUtils;
