@@ -1,6 +1,6 @@
 # OthelloBot
 
-OthelloBot is a Discord Bot used to play othello in discord text channels against other players or a bot. It includes graphical interface to see the chess board and a database with statistics for each player.
+OthelloBot is a Discord Bot used to play othello in discord text channels against other players or a bot. It includes graphical interface to see the othello board and a database with statistics for each player.
 
 ## Start the Bot
 
@@ -21,18 +21,6 @@ cd to the built jar file in `/target`.
 run `java -cp JarName.jar Main <your_discord_token>`.
 
 The bot should be ready to respond to commands!
-
-## Images
-
-<img src="https://user-images.githubusercontent.com/58538077/181820016-f7f330ee-481b-4eb7-ab93-9047336fef0d.png" width="35%" height="35%">
-
-<img src="https://user-images.githubusercontent.com/58538077/181819192-c6bbda8d-45a8-4662-bf68-6d259ec552c9.png" width="35%" height="35%">
-
-<img src="https://user-images.githubusercontent.com/58538077/181821354-1f19f262-2679-4969-8204-75d8f251a847.png" width="35%" height="35%">
-
-<img src="https://user-images.githubusercontent.com/58538077/181820414-d42266fc-a8be-4858-8825-ad91396f7a1c.png" width="50%" height="50%">
-
-<img src="https://user-images.githubusercontent.com/58538077/181812823-3b57c144-8b5b-4fa1-95e7-594032092780.png" width="50%" height="50%">
 
 ## Commands
 
@@ -71,3 +59,10 @@ Fetches the stats for the current user. Displays rating, winrate, wins, losses, 
 `!leaderboard`
 
 Shows the top users with the highest elo in the entire database.
+
+
+## Images
+
+<img src="https://user-images.githubusercontent.com/58538077/181820016-f7f330ee-481b-4eb7-ab93-9047336fef0d.png" width="35%" height="35%">
+
+<img src="https://user-images.githubusercontent.com/58538077/181821354-1f19f262-2679-4969-8204-75d8f251a847.png" width="35%" height="35%">
