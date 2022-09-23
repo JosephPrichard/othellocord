@@ -1,23 +1,24 @@
-package modules.ai;
+package modules.agent;
 
+import modules.game.Game;
 import othello.board.OthelloBoard;
 
 import java.util.function.Consumer;
 
-public class AiRequest<Result>
+public class AgentRequest<Result>
 {
-    private final OthelloBoard board;
+    private final Game game;
     private final int depth;
     private final Consumer<Result> onComplete;
 
-    public AiRequest(OthelloBoard board, int depth, Consumer<Result> onComplete) {
-        this.board = board;
+    public AgentRequest(Game game, int depth, Consumer<Result> onComplete) {
+        this.game = game;
         this.depth = depth;
         this.onComplete = onComplete;
     }
 
-    public OthelloBoard getBoard() {
-        return board;
+    public Game getGame() {
+        return game;
     }
 
     public int getDepth() {
@@ -30,8 +31,8 @@ public class AiRequest<Result>
 
     @Override
     public String toString() {
-        return "AiRequest{" +
-            "board=\n" + board +
+        return "AgentRequest{" +
+            "board=\n" + game.getBoard() +
             ", depth=" + depth +
             ", onComplete=" + onComplete +
             '}';

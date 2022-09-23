@@ -4,8 +4,11 @@ import modules.game.GameResult;
 import modules.player.Player;
 import net.dv8tion.jda.api.entities.MessageChannel;
 
-public class GameOverMessageSender extends MessageSender
+import java.awt.image.BufferedImage;
+
+public class GameOverMessageSender
 {
+    private final MessageSender sender = new MessageSender();
     private String resultDesc = "";
     private String messageDesc = "";
     private String scoreDesc = "";
@@ -17,7 +20,7 @@ public class GameOverMessageSender extends MessageSender
             result.getLoser().getName() +
             "'s new rating is " + result.getLoserElo() +
             " (" + result.formatLoserDiffElo() + ") \n";
-        getEmbedBuilder().setTitle("Game has ended");
+        sender.getEmbedBuilder().setTitle("Game has ended");
         return this;
     }
 
@@ -44,18 +47,22 @@ public class GameOverMessageSender extends MessageSender
         if (!result.getLoser().isBot()) {
             tag += "<@" + result.getLoser() + "> ";
         }
-        super.setTag(tag);
+        sender.setMessage(tag);
         return this;
     }
 
-    @Override
+    public GameOverMessageSender setImage(BufferedImage image) {
+        sender.setImage(image);
+        return this;
+    }
+
     public void sendMessage(MessageChannel channel) {
         String desc = messageDesc;
         if (!scoreDesc.equals("")) {
             desc += scoreDesc;
         }
         desc += "\n" + resultDesc;
-        getEmbedBuilder().setDescription(desc);
-        super.sendMessage(channel);
+        sender.getEmbedBuilder().setDescription(desc);
+        sender.sendMessage(channel);
     }
 }

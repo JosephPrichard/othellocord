@@ -97,7 +97,11 @@ public class GameService
     }
 
     public boolean isPlaying(Player player) {
-        return getGame(player) != null;
+        try {
+            return games.get(player.getId()).isPresent();
+        } catch(ExecutionException e) {
+            return true;
+        }
     }
 
     /**

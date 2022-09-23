@@ -4,20 +4,20 @@ import othello.board.Tile;
 
 public class Move
 {
-    private Tile piece;
+    private Tile disc;
     private float heuristic;
 
-    public Move(Tile piece, float heuristic) {
-        this.piece = piece;
+    public Move(Tile disc, float heuristic) {
+        this.disc = disc;
         this.heuristic = heuristic;
     }
 
     public Tile getTile() {
-        return piece;
+        return disc;
     }
 
-    public void setPiece(Tile piece) {
-        this.piece = piece;
+    public void setDisc(Tile disc) {
+        this.disc = disc;
     }
 
     public float getHeuristic() {
@@ -29,6 +29,6 @@ public class Move
     }
 
     public String toString() {
-        return "Piece: " + piece + ", Heuristic: " + heuristic;
+        return "Disc: " + disc + ", Heuristic: " + heuristic;
     }
 }

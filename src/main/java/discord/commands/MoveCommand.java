@@ -2,8 +2,8 @@ package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.ai.AiRequest;
-import modules.ai.AiRequestService;
+import modules.agent.AgentRequest;
+import modules.agent.AgentService;
 import modules.stats.StatsService;
 import modules.game.Game;
 import modules.game.GameService;
@@ -29,19 +29,19 @@ public class MoveCommand extends Command
     private final Logger logger = Logger.getLogger("command.move");
     private final GameService gameService;
     private final StatsService statsService;
-    private final AiRequestService aiService;
+    private final AgentService agentService;
     private final OthelloBoardRenderer boardRenderer;
 
     public MoveCommand(
         GameService gameService,
         StatsService statsService,
-        AiRequestService aiService,
+        AgentService agentService,
         OthelloBoardRenderer boardRenderer
     ) {
         super("move", "Makes a move on user's current game", "move");
         this.gameService = gameService;
         this.statsService = statsService;
-        this.aiService = aiService;
+        this.agentService = agentService;
         this.boardRenderer = boardRenderer;
     }
 
@@ -118,8 +118,8 @@ public class MoveCommand extends Command
                     sendGameMessage(channel, game);
                     // queue an ai request which will find the best move, make the move, and send back a response
                     int depth = BotUtils.getDepthFromId(game.getCurrentPlayer().getId());
-                    aiService.findBestMove(
-                        new AiRequest<>(game.getBoard(), depth, (Move bestMove) -> {
+                    agentService.findBestMove(
+                        new AgentRequest<>(game, depth, (Move bestMove) -> {
                             // make the ai's best move on the game state, and update in storage
                             gameService.makeMove(game, bestMove.getTile());
                             // check if game is over after ai makes move

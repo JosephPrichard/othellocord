@@ -1,8 +1,7 @@
 package modules.game;
 
 import modules.player.Player;
-import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
+import utils.tuple.Pair;
 
 public class GameResult
 {
@@ -19,7 +18,7 @@ public class GameResult
     }
 
     public GameResult(Player winner, Player loser) {
-        this.playerPair =  new ImmutablePair<>(winner, loser);
+        this.playerPair =  new Pair<>(winner, loser);
     }
 
     public boolean isDraw() {
@@ -35,7 +34,7 @@ public class GameResult
     }
 
     public void setElo(float eloWinner, float eloLoser) {
-        this.eloPair = new ImmutablePair<>(eloWinner, eloLoser);
+        this.eloPair = new Pair<>(eloWinner, eloLoser);
     }
 
     public float getWinnerElo() {
@@ -47,7 +46,7 @@ public class GameResult
     }
 
     public void setEloDiff(float diffWinner, float diffLoser) {
-        this.eloDiffPair = new ImmutablePair<>(diffWinner, diffLoser);
+        this.eloDiffPair = new Pair<>(diffWinner, diffLoser);
     }
 
     private static String formatElo(float elo) {

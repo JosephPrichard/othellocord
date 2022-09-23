@@ -6,7 +6,7 @@ import modules.DataSource;
 import modules.stats.StatsDao;
 import modules.challenge.ChallengeService;
 import modules.game.GameService;
-import modules.ai.AiRequestService;
+import modules.agent.AgentService;
 import modules.stats.StatsService;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -29,7 +29,7 @@ public class OthelloBot extends ListenerAdapter
 
         StatsDao statsDao = new StatsDao(ds);
 
-        AiRequestService aiService = new AiRequestService();
+        AgentService agentService = new AgentService();
         GameService gameService = new GameService();
         StatsService statsService = new StatsService(statsDao);
         ChallengeService challengeService = new ChallengeService();
@@ -41,9 +41,9 @@ public class OthelloBot extends ListenerAdapter
         addCommand(new ChallengeBotCommand(gameService, boardRenderer));
         addCommand(new AcceptCommand(gameService, challengeService, boardRenderer));
         addCommand(new ForfeitCommand(gameService, statsService, boardRenderer));
-        addCommand(new MoveCommand(gameService, statsService, aiService, boardRenderer));
+        addCommand(new MoveCommand(gameService, statsService, agentService, boardRenderer));
         addCommand(new ViewCommand(gameService, boardRenderer));
-        addCommand(new AnalyzeCommand(gameService, aiService));
+        addCommand(new AnalyzeCommand(gameService, agentService));
         addCommand(new StatsCommand(statsService));
         addCommand(new LeaderBoardCommand(statsService));
     }

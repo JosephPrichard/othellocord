@@ -48,9 +48,9 @@ public class ForfeitCommand extends Command
 
         BufferedImage image = boardRenderer.drawBoard(game.getBoard());
 
-        // remove game
+        // remove game from storage
         gameService.deleteGame(game);
-        // update elo
+        // update elo from game result
         GameResult result = game.getForfeitResult();
         statsService.updateStats(result);
         // send embed response

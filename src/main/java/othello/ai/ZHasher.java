@@ -8,18 +8,20 @@ public class ZHasher
 {
     private final int[][] table;
 
-    public ZHasher(int boardSize) {
+    public ZHasher() {
+        int tableLen = OthelloBoard.getBoardSize() * OthelloBoard.getBoardSize();
         Random generator = new Random();
-        table = new int[boardSize * boardSize][3];
-        for (int i = 0; i < boardSize * boardSize; i++) {
+        table = new int[tableLen][3];
+        for (int i = 0; i < tableLen; i++) {
             for (int j = 0; j < 3; j++) {
-                table[i][j] = generator.nextInt();
+                int n = generator.nextInt();
+                table[i][j] = n >= 0 ? n : -n;
             }
         }
     }
 
-    public int hash(OthelloBoard board) {
-        int hash = 0;
+    public long hash(OthelloBoard board) {
+        long hash = 0;
         for (int i = 0; i < table.length; i++) {
             hash = hash ^ table[i][board.getSquare(i)];
         }

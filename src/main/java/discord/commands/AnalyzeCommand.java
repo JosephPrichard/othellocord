@@ -2,16 +2,17 @@ package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.ai.AiRequest;
+import modules.agent.AgentRequest;
 import modules.game.Game;
 import modules.player.Player;
 import discord.message.builder.AnalyzeEmbedBuilder;
 import modules.game.GameService;
-import modules.ai.AiRequestService;
+import modules.agent.AgentService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
+import utils.BotUtils;
 import utils.NumberUtils;
 
 import java.util.List;
@@ -21,12 +22,12 @@ public class AnalyzeCommand extends Command
 {
     private final Logger logger = Logger.getLogger("command.analyze");
     private final GameService gameService;
-    private final AiRequestService aiService;
+    private final AgentService agentService;
 
-    public AnalyzeCommand(GameService gameService, AiRequestService aiService) {
+    public AnalyzeCommand(GameService gameService, AgentService agentService) {
         super("analyze", "Runs an analysis of the board until a given depth between 5 and 15", 0, "depth");
         this.gameService = gameService;
-        this.aiService = aiService;
+        this.agentService = agentService;
     }
 
     @Override
@@ -46,7 +47,7 @@ public class AnalyzeCommand extends Command
         }
 
         // check if depth is within range
-        if (depth < 5 || depth > 15) {
+        if (!BotUtils.isValidLevel(depth)) {
             channel.sendMessage("Invalid depth. Type !help analyze for valid depths.").queue();
             return;
         }
@@ -65,8 +66,8 @@ public class AnalyzeCommand extends Command
         channel.sendMessage("Analyzing... Wait a second...").queue(m -> {
             logger.info("Starting board state analysis");
 
-            aiService.findRankedMoves(
-                new AiRequest<>(game.getBoard(), d, (List<Move> rankedMoves) -> {
+            agentService.findRankedMoves(
+                new AgentRequest<>(game, d, (List<Move> rankedMoves) -> {
                     MessageEmbed embed = new AnalyzeEmbedBuilder()
                         .setRankedMoves(rankedMoves)
                         .build();

@@ -2,37 +2,25 @@ package othello.ai;
 
 public class TTNode
 {
-    private int key;
-    private int heuristic;
-    private int depth;
+    private final long key;
+    private final float heuristic;
+    private final int depth;
 
-    public TTNode(int key, int heuristic, int depth) {
+    public TTNode(long key, float heuristic, int depth) {
         this.key = key;
         this.heuristic = heuristic;
         this.depth = depth;
     }
 
-    public int getKey() {
+    public long getKey() {
         return key;
     }
 
-    public void setKey(int key) {
-        this.key = key;
-    }
-
-    public int getHeuristic() {
+    public float getHeuristic() {
         return heuristic;
-    }
-
-    public void setHeuristic(int heuristic) {
-        this.heuristic = heuristic;
     }
 
     public int getDepth() {
         return depth;
-    }
-
-    public void setDepth(int depth) {
-        this.depth = depth;
     }
 }

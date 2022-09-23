@@ -1,15 +1,25 @@
 package othello.ai;
 
-import java.util.*;
+import javax.annotation.Nullable;
 
 public class TTable
 {
-    private final List<Deque<TTNode>> cache;
-    private final int clSize;
+    private final TTNode[][] cache;
+    private int hits = 0;
+    private int misses = 0;
 
-    public TTable(int tableSize, int clSize) {
-        this.cache = new ArrayList<>(tableSize);
-        this.clSize = clSize;
+    public TTable(int tableSize) {
+        // Deep2 replacement scheme https://ai.stackexchange.com/questions/11389/what-are-the-common-techniques-one-could-use-to-deal-with-collisions-in-a-transp
+        // each cache line has 2 elements, one being "replace by depth" and one being "replace always"
+        this.cache = new TTNode[tableSize][2];
+    }
+
+    public int getHits() {
+        return hits;
+    }
+
+    public int getMisses() {
+        return misses;
     }
 
     /**
@@ -17,49 +27,44 @@ public class TTable
      * @param node to be inserted
      */
     public void put(TTNode node) {
-        int h = node.getKey() % cache.size();
+        int h = (int) (node.getKey() % cache.length);
         // retrieve cache line
-        Deque<TTNode> cacheLine = cache.get(h);
-        // check if cache line is populated
-        if (cacheLine != null) {
-            // add node to cache line
-            cacheLine.addFirst(node);
-            if (cacheLine.size() >= clSize) {
-                // remove least recently used from cache line if cache line exceeds size
-                cacheLine.pollLast();
+        TTNode[] cacheLine = cache[h];
+        // check if "replace by depth" is populated
+        if (cacheLine[0] != null) {
+            // populated, new node is better so we do replacement
+            if (node.getDepth() > cacheLine[0].getDepth()) {
+                cacheLine[1] = cacheLine[0];
+                cacheLine[0] = node;
+            } else {
+                // new node is worse so it should be sent to "replace always"
+                cacheLine[1] = node;
             }
         } else {
-            // if not, create a new cache line with node and add it to table
-            cacheLine = new LinkedList<>();
-            cacheLine.add(node);
-            cache.set(h, cacheLine);
+            // not populated, so it can be used
+            cacheLine[0] = node;
         }
     }
 
     /**
      * Retrieve a node from the table
      * @param key to retrieve for
-     * @return ttNode retrieved
+     * @return ttNode retrieved, null if missing
      */
-    public TTNode get(int key) {
-        int h = key % cache.size();
+    @Nullable
+    public TTNode get(long key) {
+        int h = (int) (key % cache.length);
         // retrieve cache line
-        Deque<TTNode> cacheLine = cache.get(h);
-        // check if cache line is populated
-        if (cacheLine != null) {
-            // iterate through cache line
-            Iterator<TTNode> it = cacheLine.iterator();
-            while(it.hasNext()) {
-                TTNode n = it.next();
-                // if node is in cache line, move it to front and return it
-                if (n.getKey() == key) {
-                    it.remove();
-                    cacheLine.addFirst(n);
-                    return n;
-                }
+        TTNode[] cacheLine = cache[h];
+        // iterate through cache line
+        for (TTNode n : cacheLine) {
+            // if node is in cache line return it
+            if (n != null && n.getKey() == key) {
+                hits++;
+                return n;
             }
-            return null;
         }
+        misses++;
         return null;
     }
 }

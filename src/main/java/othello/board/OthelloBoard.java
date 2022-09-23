@@ -13,8 +13,6 @@ public class OthelloBoard
     public static final byte BLACK = 2;
 
     public static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
-    public static final int[][] CORNERS = {{0, 0}, {0, 7}, {7, 0}, {7, 7}};
-    public static final int[][] XC_SQUARES = {{1, 1}, {1, 6}, {6, 1}, {6, 6}, {0, 1}, {0, 6}, {7, 1}, {7, 6}, {1, 0}, {1, 7}, {6, 0}, {6, 7}};
 
     private long boardA;
     private long boardB;
@@ -51,11 +49,11 @@ public class OthelloBoard
     }
 
     public float whiteScore() {
-        return findPieces(WHITE).size();
+        return findDiscs(WHITE).size();
     }
 
     public float blackScore() {
-        return findPieces(BLACK).size();
+        return findDiscs(BLACK).size();
     }
 
     public OthelloBoard copy() {
@@ -72,86 +70,39 @@ public class OthelloBoard
         return tiles;
     }
 
-    private float parityHeuristic() {
-        float whiteScore = 0f;
-        float blackScore = 0f;
+    /**
+     * Counts all discs on the board
+     * @return the number of discs on the board
+     */
+    public int countDiscs() {
+        int discs = 0;
+
+        // iterate through each square and find the discs
         for (int row = 0; row < getBoardSize(); row++) {
             for (int col = 0; col < getBoardSize(); col++) {
-                if (getSquare(row, col) == WHITE)
-                    whiteScore++;
-                if (getSquare(row, col) == BLACK)
-                    blackScore++;
+                if (getSquare(row, col) != EMPTY)
+                    discs += 0;
             }
         }
-        return 100f * (blackScore - whiteScore) / (blackScore + whiteScore);
-    }
-
-    private float cornerHeuristic() {
-        int whiteCorners = 0;
-        int blackCorners = 0;
-        // iterate over corners and calculate the number of white and black corners
-        for (int[] corner : CORNERS) {
-            byte currentColor = getSquare(corner[0], corner[1]);
-            if (currentColor == WHITE) {
-                whiteCorners++;
-            } else if (currentColor == BLACK) {
-                blackCorners++;
-            }
-        }
-        if (blackCorners + whiteCorners == 0) {
-            return 0f;
-        }
-        return 100f * (blackCorners - whiteCorners) / (blackCorners + whiteCorners);
-    }
-
-    private float xcSquareHeuristic() {
-        int whiteXCSquares = 0;
-        int blackXCSquares = 0;
-        // iterate over x squares and calculate the number of white and black xc squares
-        for (int[] corner : XC_SQUARES) {
-            byte currentColor = getSquare(corner[0], corner[1]);
-            if (currentColor == WHITE) {
-                whiteXCSquares++;
-            } else if (currentColor == BLACK) {
-                blackXCSquares++;
-            }
-        }
-        if (whiteXCSquares + blackXCSquares == 0) {
-            return 0f;
-        }
-        // having more x or c squares is bad
-        return 50f * (whiteXCSquares - blackXCSquares) / (blackXCSquares + whiteXCSquares);
-    }
-
-    private float mobilityHeuristic() {
-        int whiteMoves = countPotentialMoves(WHITE);
-        int blackMoves = countPotentialMoves(BLACK);
-        if (whiteMoves + blackMoves == 0) {
-            return 0f;
-        }
-        return 100f * (blackMoves - whiteMoves) / (blackMoves + whiteMoves);
-    }
-
-    public float heuristic() {
-        return parityHeuristic() + cornerHeuristic() + mobilityHeuristic() + xcSquareHeuristic();
+        return discs;
     }
 
     /**
-     * Searches the board for all othello pieces of matching color
-     * @param color to find pieces for
-     * @return list containing positions of the pieces
+     * Searches the board for all othello discs of matching color
+     * @param color to find discs for
+     * @return list containing positions of the discs
      */
-    private List<Tile> findPieces(byte color) {
-        List<Tile> pieces = new ArrayList<>();
+    public List<Tile> findDiscs(byte color) {
+        List<Tile> discs = new ArrayList<>();
 
-        // iterate through each square and find the pieces
+        // iterate through each square and find the discs
         for (int row = 0; row < getBoardSize(); row++) {
             for (int col = 0; col < getBoardSize(); col++) {
                 if (getSquare(row, col) == color)
-                    pieces.add(new Tile(row, col));
+                    discs.add(new Tile(row, col));
             }
         }
-        return pieces;
+        return discs;
     }
 
     /**
@@ -166,20 +117,20 @@ public class OthelloBoard
      * Find the available moves the othello board depending on the board state
      * @return a list containing the moves
      */
-    private List<Tile> findPotentialMoves(byte color) {
+    public List<Tile> findPotentialMoves(byte color) {
         List<Tile> moves = new ArrayList<>();
 
-        List<Tile> pieces = findPieces(color);
+        List<Tile> discs = findDiscs(color);
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
-        // check each piece for potential flanks
-        for (Tile piece : pieces) {
-            // check each direction from piece for potential flank
+        // check each disc for potential flanks
+        for (Tile disc : discs) {
+            // check each direction from disc for potential flank
             for (int[] direction : DIRECTIONS) {
-                int row = piece.getRow() + direction[0];
-                int col = piece.getCol() + direction[1];
+                int row = disc.getRow() + direction[0];
+                int col = disc.getCol() + direction[1];
 
-                // iterate from piece to next opposite color
+                // iterate from disc to next opposite color
                 int count = 0;
                 while (inBounds(row, col)) {
                     if (getSquare(row, col) != oppositeColor)
@@ -189,7 +140,7 @@ public class OthelloBoard
                     count++;
                 }
                 // add move to potential moves list assuming
-                // we flank at least once piece, the tile is in bounds and is empty
+                // we flank at least once disc, the tile is in bounds and is empty
                 if (count > 0 && inBounds(row, col) && getSquare(row, col) == EMPTY) {
                     moves.add(new Tile(row, col));
                 }
@@ -203,7 +154,7 @@ public class OthelloBoard
      * Find the available moves the othello board depending on the board state
      * @return a list containing the moves
      */
-    private int countPotentialMoves(byte color) {
+    public int countPotentialMoves(byte color) {
         return findPotentialMoves(color).size();
     }
 
@@ -222,7 +173,7 @@ public class OthelloBoard
         blackMove = !blackMove;
         setSquare(move.getRow(), move.getCol(), currentColor);
 
-        // check each direction of new piece position
+        // check each direction of new disc position
         for (int[] direction : DIRECTIONS) {
             int initialRow = move.getRow() + direction[0];
             int initialCol = move.getCol() + direction[1];
@@ -232,7 +183,7 @@ public class OthelloBoard
 
             boolean flank = false;
 
-            // iterate from piece until first potential flank
+            // iterate from disc until first potential flank
             while (inBounds(row, col)) {
                 if (getSquare(row, col) == currentColor) {
                     flank = true;
@@ -251,7 +202,7 @@ public class OthelloBoard
             row = initialRow;
             col = initialCol;
 
-            // flip each piece to opposite color to flank, update piece counts
+            // flip each disc to opposite color to flank, update disc counts
             while (inBounds(row, col)) {
                 if (getSquare(row, col) != oppositeColor)
                     break;
@@ -264,7 +215,7 @@ public class OthelloBoard
         }
     }
 
-    private void setSquare(int row, int col, byte color) {
+    public void setSquare(int row, int col, byte color) {
         // calculate bit position
         int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
         long clearMask = ~(1L << p) & ~(1L << (p + 1));
@@ -278,7 +229,7 @@ public class OthelloBoard
         }
     }
 
-    private byte getSquare(int row, int col) {
+    public byte getSquare(int row, int col) {
         int mask = (1 << 2) - 1;
         int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
         return row < HALF_SIZE ? (byte) (mask & (boardA >> p)) : (byte) (mask & (boardB >> p));
@@ -355,5 +306,17 @@ public class OthelloBoard
             builder.append("\n");
         }
         return builder.toString();
+    }
+
+    public static void main(String[] args) {
+        OthelloBoard board = new OthelloBoard();
+        for (int j = 0; j < 10; j++) {
+            var moves = board.findPotentialMoves();
+            for (Tile move : moves) {
+                System.out.print(move + " ");
+            }
+            System.out.println();
+            board.makeMove(board.findPotentialMoves().get(0));
+        }
     }
 }

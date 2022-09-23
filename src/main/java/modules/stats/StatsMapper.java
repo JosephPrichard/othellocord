@@ -17,8 +17,8 @@ public class StatsMapper
 
     public StatsMapper() {
         modelMapper.typeMap(StatsEntity.class, Stats.class).addMappings(mapper -> {
-            Converter<Long, Player> converter = (ctx) -> new Player(ctx.getSource());
-            mapper.using(converter).map(StatsEntity::getPlayerId, Stats::setPlayer);
+            Converter<Long, Player> playerConverter = (ctx) -> new Player(ctx.getSource());
+            mapper.using(playerConverter).map(StatsEntity::getPlayerId, Stats::setPlayer);
         });
 
         modelMapper.validate();
@@ -51,9 +51,9 @@ public class StatsMapper
             User user = futures.get(i).join();
             String tag = user != null ? user.getAsTag() : BotUtils.getBotName(entityList.get(i).getPlayerId());
             // map entity to dto and add to dto list
-            Stats dto = modelMapper.map(entityList.get(i), Stats.class);
-            dto.getPlayer().setName(tag);
-            statsList.add(dto);
+            Stats stats = modelMapper.map(entityList.get(i), Stats.class);
+            stats.getPlayer().setName(tag);
+            statsList.add(stats);
         }
         return statsList;
     }

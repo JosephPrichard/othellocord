@@ -13,7 +13,7 @@ public class MessageSender
 {
     private final EmbedBuilder embedBuilder;
     private BufferedImage image;
-    private String tag;
+    private String message;
 
     public MessageSender() {
         embedBuilder = new EmbedBuilder();
@@ -29,8 +29,8 @@ public class MessageSender
         return this;
     }
 
-    public MessageSender setTag(String tag) {
-        this.tag = tag;
+    public MessageSender setMessage(String message) {
+        this.message = message;
         return this;
     }
 
@@ -39,8 +39,8 @@ public class MessageSender
             InputStream is = ImageUtils.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
-            if (tag != null) {
-                channel.sendMessage(tag)
+            if (message != null) {
+                channel.sendMessage(message)
                     .setEmbeds(embedBuilder.build())
                     .addFile(is, "image.png")
                     .queue();

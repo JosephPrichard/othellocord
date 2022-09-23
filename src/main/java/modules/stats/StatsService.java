@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 public class StatsService
 {
     private final StatsDao statsDao;
-    private final StatsMapper dtoMapper = new StatsMapper();
+    private final StatsMapper mapper = new StatsMapper();
 
     public StatsService(StatsDao statsDao) {
         this.statsDao = statsDao;
@@ -20,12 +20,12 @@ public class StatsService
 
     public Stats getStats(Player player) {
         StatsEntity statsEntity = statsDao.getOrSaveStats(player.getId());
-        return dtoMapper.map(statsEntity);
+        return mapper.map(statsEntity);
     }
 
     public List<Stats> getTopStats() {
         List<StatsEntity> statsEntityList = statsDao.getTopStats(25);
-        return dtoMapper.mapAll(statsEntityList);
+        return mapper.mapAll(statsEntityList);
     }
 
     public void updateStats(GameResult result) {
