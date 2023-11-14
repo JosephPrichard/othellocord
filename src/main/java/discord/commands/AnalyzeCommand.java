@@ -1,19 +1,23 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.agent.AgentRequest;
-import modules.game.Game;
-import modules.player.Player;
-import discord.message.builder.AnalyzeEmbedBuilder;
-import modules.game.GameService;
-import modules.agent.AgentService;
+import services.agent.AgentRequest;
+import services.game.Game;
+import services.player.Player;
+import discord.message.builder.AnalyzeBuilder;
+import services.game.GameService;
+import services.agent.AgentService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
-import utils.BotUtils;
-import utils.NumberUtils;
+import utils.Bot;
+import utils.Number;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -39,7 +43,7 @@ public class AnalyzeCommand extends Command
         Integer depth = 5;
         String depthStr = ctx.getParam("depth");
         if (depthStr != null) {
-            depth = NumberUtils.parseIntOrNull(depthStr);
+            depth = Number.parseIntOrNull(depthStr);
             if (depth == null) {
                 channel.sendMessage("Depth must be a number.").queue();
                 return;
@@ -47,7 +51,7 @@ public class AnalyzeCommand extends Command
         }
 
         // check if depth is within range
-        if (!BotUtils.isValidLevel(depth)) {
+        if (!Bot.isValidLevel(depth)) {
             channel.sendMessage("Invalid depth. Type !help analyze for valid depths.").queue();
             return;
         }
@@ -68,7 +72,7 @@ public class AnalyzeCommand extends Command
 
             agentService.findRankedMoves(
                 new AgentRequest<>(game, d, (List<Move> rankedMoves) -> {
-                    MessageEmbed embed = new AnalyzeEmbedBuilder()
+                    MessageEmbed embed = new AnalyzeBuilder()
                         .setRankedMoves(rankedMoves)
                         .build();
 

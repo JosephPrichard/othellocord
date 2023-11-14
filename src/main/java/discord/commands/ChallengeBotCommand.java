@@ -1,17 +1,21 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
-import discord.message.senders.GameStartMessageSender;
+import discord.message.senders.GameStartSender;
 import discord.commands.abstracts.Command;
 import discord.commands.abstracts.CommandContext;
-import modules.game.Game;
-import modules.player.Player;
+import services.game.Game;
+import services.player.Player;
 import discord.renderers.OthelloBoardRenderer;
-import modules.game.GameService;
-import modules.game.exceptions.AlreadyPlayingException;
+import services.game.GameService;
+import services.game.exceptions.AlreadyPlayingException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import utils.NumberUtils;
-import utils.BotUtils;
+import utils.Number;
+import utils.Bot;
 
 import java.awt.image.BufferedImage;
 import java.util.logging.Logger;
@@ -37,14 +41,14 @@ public class ChallengeBotCommand extends Command
         Integer level = 5;
         String levelStr = ctx.getParam("level");
         if (levelStr != null) {
-            level = NumberUtils.parseIntOrNull(levelStr);
+            level = Number.parseIntOrNull(levelStr);
             if (level == null) {
                 channel.sendMessage("Level must be a number.").queue();
                 return;
             }
         }
 
-        if (!BotUtils.isValidLevel(level)) {
+        if (!Bot.isValidLevel(level)) {
             channel.sendMessage("Invalid level. Type !help analyze for valid levels.").queue();
             return;
         }
@@ -55,7 +59,7 @@ public class ChallengeBotCommand extends Command
             Game game = gameService.createBotGame(player, level);
             BufferedImage image = boardRenderer.drawBoard(game.getBoard());
 
-            new GameStartMessageSender()
+            new GameStartSender()
                 .setGame(game)
                 .setImage(image)
                 .sendMessage(channel);

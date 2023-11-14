@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package othello.board;
 
 import othello.board.exceptions.BoardDeserializationException;

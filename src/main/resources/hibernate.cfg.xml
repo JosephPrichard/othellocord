@@ -5,16 +5,13 @@
 <hibernate-configuration>
     <session-factory>
         <!-- Database connection properties -->
-        <property name="hibernate.hikari.dataSourceClassName">org.postgresql.ds.PGSimpleDataSource</property>
-        <property name="hikari.dataSource.url">jdbc:postgresql://localhost:5432/pandaothello</property>
-        <property name="hikari.dataSource.user">postgres</property>
-        <property name="hikari.dataSource.password">SDGXRHVSWQGHNDZW</property>
+        <property name="hibernate.hikari.dataSourceClassName">org.h2.jdbcx.JdbcDataSource</property>
+        <property name="hikari.dataSource.url">jdbc:h2:file:~/othellobotdb</property>
+        <property name="hikari.dataSource.user">sa</property>
+        <property name="hikari.dataSource.password"> </property>
 
         <!-- SQL dialect -->
-        <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQL92Dialect</property>
-
-        <!-- JDBC connection pool (use the built-in) -->
-        <property name="connection.pool_size">20</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.H2Dialect</property>
 
         <!-- Enable Hibernate's automatic session context management -->
         <property name="current_session_context_class">thread</property>
@@ -33,11 +30,12 @@
 
         <!-- Hikari specific properties -->
         <property name="connection.provider_class">com.zaxxer.hikari.hibernate.HikariConnectionProvider</property>
+        <property name="hikari.minimumIdle">5</property>
         <property name="hikari.maximumPoolSize">30</property>
         <property name="hikari.idleTimeout">30000</property>
 
         <!-- ORM mappings -->
-        <mapping class="modules.stats.StatsEntity"/>
+        <mapping class="services.stats.StatsEntity"/>
 
     </session-factory>
 </hibernate-configuration>

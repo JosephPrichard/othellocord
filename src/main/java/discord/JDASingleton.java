@@ -1,6 +1,10 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord;
 
-import utils.DiscordUtils;
+import utils.Discord;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -40,7 +44,7 @@ public class JDASingleton
     @Nullable
     public static User fetchUserFromDirect(String id) {
         try {
-            long longId = DiscordUtils.toLongId(id);
+            long longId = Discord.toLongId(id);
             return getInstance().jda.retrieveUserById(longId).complete();
         } catch(NumberFormatException ex) {
             return null;

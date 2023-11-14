@@ -1,13 +1,17 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.game.GameService;
-import modules.stats.StatsService;
-import modules.game.Game;
-import modules.game.GameResult;
-import modules.player.Player;
-import discord.message.senders.GameOverMessageSender;
+import services.game.GameService;
+import services.stats.StatsService;
+import services.game.Game;
+import services.game.GameResult;
+import services.player.Player;
+import discord.message.senders.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -54,7 +58,7 @@ public class ForfeitCommand extends Command
         GameResult result = game.getForfeitResult();
         statsService.updateStats(result);
         // send embed response
-        new GameOverMessageSender()
+        new GameOverSender()
             .setGame(result)
             .addForfeitMessage(result.getWinner())
             .setTag(result)

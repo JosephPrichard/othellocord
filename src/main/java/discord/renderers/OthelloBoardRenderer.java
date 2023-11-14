@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.renderers;
 
 import othello.board.OthelloBoard;
 import othello.board.Tile;
-import utils.ImageUtils;
+import utils.Image;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -30,10 +34,10 @@ public class OthelloBoardRenderer
     private final BufferedImage backgroundImage;
 
     public OthelloBoardRenderer() {
-        whiteDiscImage = ImageUtils.readResizedImage("images/white_disc.png", DISC_SIZE);
-        blackDiscImage = ImageUtils.readResizedImage("images/black_disc.png", DISC_SIZE);
-        whiteStarImage = ImageUtils.readResizedImage("images/white_star.png", DISC_SIZE);
-        blackStarImage = ImageUtils.readResizedImage("images/black_star.png", DISC_SIZE);
+        whiteDiscImage = Image.readResizedImage("images/white_disc.png", DISC_SIZE);
+        blackDiscImage = Image.readResizedImage("images/black_disc.png", DISC_SIZE);
+        whiteStarImage = Image.readResizedImage("images/white_star.png", DISC_SIZE);
+        blackStarImage = Image.readResizedImage("images/black_star.png", DISC_SIZE);
         backgroundImage = drawBackground(OthelloBoard.getBoardSize());
     }
 
@@ -75,14 +79,14 @@ public class OthelloBoardRenderer
         for (int i = 0; i < boardSize; i++) {
             String text = Character.toString(i + 'A');
             Rectangle rect = new Rectangle(SIDE_OFFSET + i * TILE_SIZE, 0, TILE_SIZE, SIDE_OFFSET);
-            ImageUtils.drawCenteredString(g, text, rect, font);
+            Image.drawCenteredString(g, text, rect, font);
         }
 
         // draw numbers on vertical sidebar
         for (int i = 0; i < boardSize; i++) {
             String text = Integer.toString(i + 1);
             Rectangle rect = new Rectangle(0, SIDE_OFFSET + i * TILE_SIZE, SIDE_OFFSET, TILE_SIZE);
-            ImageUtils.drawCenteredString(g, text, rect, font);
+            Image.drawCenteredString(g, text, rect, font);
         }
 
         g.dispose();

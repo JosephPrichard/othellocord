@@ -1,11 +1,15 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.game.Game;
-import modules.game.GameService;
-import modules.player.Player;
-import discord.message.senders.GameViewMessageSender;
+import services.game.Game;
+import services.game.GameService;
+import services.player.Player;
+import discord.message.senders.GameViewSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -45,7 +49,7 @@ public class ViewCommand extends Command
         List<Tile> potentialMoves = board.findPotentialMoves();
 
         BufferedImage image = boardRenderer.drawBoard(board, potentialMoves);
-        new GameViewMessageSender()
+        new GameViewSender()
             .setGame(game)
             .setImage(image)
             .sendMessage(channel);

@@ -1,10 +1,14 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.stats.Stats;
-import discord.message.builder.LeaderboardEmbedBuilder;
-import modules.stats.StatsService;
+import services.stats.Stats;
+import discord.message.builder.LeaderboardBuilder;
+import services.stats.StatsService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -29,7 +33,7 @@ public class LeaderBoardCommand extends Command
 
         List<Stats> statsList = statsService.getTopStats();
 
-        MessageEmbed embed = new LeaderboardEmbedBuilder()
+        MessageEmbed embed = new LeaderboardBuilder()
             .setStats(statsList)
             .build();
 

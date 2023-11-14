@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.othellobot</groupId>
-    <artifactId>PandaOthelloBot</artifactId>
+    <artifactId>OthelloBot</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -24,12 +24,10 @@
             <artifactId>hibernate-core</artifactId>
             <version>5.6.9.Final</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.4.0</version>
-            <scope>runtime</scope>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.200</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
@@ -42,11 +40,11 @@
             <artifactId>modelmapper</artifactId>
             <version>3.1.0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>31.1-jre</version>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
         </dependency>
 
 

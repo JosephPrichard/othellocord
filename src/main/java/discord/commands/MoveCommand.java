@@ -1,25 +1,29 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.agent.AgentRequest;
-import modules.agent.AgentService;
-import modules.stats.StatsService;
-import modules.game.Game;
-import modules.game.GameService;
-import modules.game.GameResult;
-import modules.player.Player;
-import discord.message.senders.GameViewMessageSender;
-import discord.message.senders.GameOverMessageSender;
+import services.agent.AgentRequest;
+import services.agent.AgentService;
+import services.stats.StatsService;
+import services.game.Game;
+import services.game.GameService;
+import services.game.GameResult;
+import services.player.Player;
+import discord.message.senders.GameViewSender;
+import discord.message.senders.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
-import modules.game.exceptions.InvalidMoveException;
-import modules.game.exceptions.NotPlayingException;
-import modules.game.exceptions.TurnException;
+import services.game.exceptions.InvalidMoveException;
+import services.game.exceptions.NotPlayingException;
+import services.game.exceptions.TurnException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.ai.Move;
 import othello.board.Tile;
-import utils.BotUtils;
+import utils.Bot;
 
 import java.awt.image.BufferedImage;
 import java.util.logging.Logger;
@@ -45,49 +49,32 @@ public class MoveCommand extends Command
         this.boardRenderer = boardRenderer;
     }
 
-    /**
-     * Sends a move made message to a given channel
-     * @param channel to send message to
-     * @param game included in message
-     * @param move included in message
-     */
     public void sendGameMessage(MessageChannel channel, Game game, Tile move) {
         // render board and send back message
         BufferedImage image = boardRenderer.drawBoardMoves(game.getBoard());
-        new GameViewMessageSender()
+        new GameViewSender()
             .setGame(game, move)
             .setTag(game)
             .setImage(image)
             .sendMessage(channel);
     }
 
-    /**
-     * Sends a game view made message to a given channel
-     * @param channel to send message to
-     * @param game included in message
-     */
     public void sendGameMessage(MessageChannel channel, Game game) {
         // render board and send back message
         BufferedImage image = boardRenderer.drawBoardMoves(game.getBoard());
-        new GameViewMessageSender()
+        new GameViewSender()
             .setGame(game)
             .setImage(image)
             .sendMessage(channel);
     }
 
-    /**
-     * Sends a game over message to a given channel by fetching and updating the stats for the users
-     * @param channel to send message to
-     * @param game included in message
-     * @param move included in message
-     */
     public void sendGameOverMessage(MessageChannel channel, Game game, Tile move) {
         // update elo the elo of the players
         GameResult result = game.getResult();
         statsService.updateStats(result);
         // render board and send back message
         BufferedImage image = boardRenderer.drawBoard(game.getBoard());
-        new GameOverMessageSender()
+        new GameOverSender()
             .setGame(result)
             .addMoveMessage(result.getWinner(), move.toString())
             .addScoreMessage(game.getWhiteScore(), game.getBlackScore())
@@ -116,13 +103,13 @@ public class MoveCommand extends Command
                 } else {
                     // not game over against bot
                     sendGameMessage(channel, game);
-                    // queue an ai request which will find the best move, make the move, and send back a response
-                    int depth = BotUtils.getDepthFromId(game.getCurrentPlayer().getId());
+                    // queue an agent request which will find the best move, make the move, and send back a response
+                    int depth = Bot.getDepthFromId(game.getCurrentPlayer().getId());
                     agentService.findBestMove(
                         new AgentRequest<>(game, depth, (Move bestMove) -> {
-                            // make the ai's best move on the game state, and update in storage
+                            // make the agent's best move on the game state, and update in storage
                             gameService.makeMove(game, bestMove.getTile());
-                            // check if game is over after ai makes move
+                            // check if game is over after agent makes move
                             if (!game.isGameOver()) {
                                 sendGameMessage(channel, game, bestMove.getTile());
                             } else {

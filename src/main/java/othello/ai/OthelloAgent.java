@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package othello.ai;
 
 import othello.board.OthelloBoard;

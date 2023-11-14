@@ -1,11 +1,15 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.JDASingleton;
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.stats.StatsService;
-import modules.player.Player;
-import modules.stats.Stats;
+import services.stats.StatsService;
+import services.player.Player;
+import services.stats.Stats;
 import discord.message.builder.StatsEmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;

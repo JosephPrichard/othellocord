@@ -1,15 +1,19 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.commands;
 
 import discord.JDASingleton;
 import discord.commands.abstracts.CommandContext;
 import discord.commands.abstracts.Command;
-import modules.challenge.Challenge;
-import modules.game.exceptions.AlreadyPlayingException;
-import modules.challenge.ChallengeService;
-import modules.game.GameService;
-import modules.game.Game;
-import modules.player.Player;
-import discord.message.senders.GameStartMessageSender;
+import services.challenge.Challenge;
+import services.game.exceptions.AlreadyPlayingException;
+import services.challenge.ChallengeService;
+import services.game.GameService;
+import services.game.Game;
+import services.player.Player;
+import discord.message.senders.GameStartSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
@@ -59,7 +63,7 @@ public class AcceptCommand extends Command
             Game game = gameService.createGame(player, opponent);
             BufferedImage image = boardRenderer.drawBoard(game.getBoard());
 
-            new GameStartMessageSender()
+            new GameStartSender()
                 .setGame(game)
                 .setTag(game)
                 .setImage(image)

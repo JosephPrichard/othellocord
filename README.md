@@ -37,45 +37,47 @@ Each cache line has 2 buckets, one which is only replaced if the new board is fo
 
 ## Commands
 
-`!challenge @user`
+`/challenge @user`
 
 Challenges another user to an othello game. Another player can accept the challenge with the `!accept` command.
 
-`!challengebot level`
+`/challengebot level`
 
 Challenges the bot to an othello game. The bot can be level 1-15, level 1 searching until depth 1 and level 15 searching until depth 15 (for the bot to work past level 10 you need very good hardware)
 
-`!accept @user`
+`/accept @user`
 
 Accept a challenge from a user.
 
-`!forfeit`
+`/forfeit`
 
 Forfets the game currently being played.
 
-`!move move`
+`/move move`
 
 Make a move on the current game. Move format is column-row.
 
-`!view`
+`/view`
 
 View the current board state the game the user is playing, and all avaliable moves.
 
-`!analyze level`
+`/analyze level`
 
 Performs an analysis on the current game. Displays the bot's heuristic ranking for each move.
 
-`!stats`
+`/stats`
 
 Fetches the stats for the current user. Displays rating, winrate, wins, losses, and draws.
 
-`!leaderboard`
+`/leaderboard`
 
 Shows the top users with the highest elo in the entire database.
 
+`/theme`
+
+Allows you to see your current theme or change it to a new one.
 
 ## Images
 
 <img src="https://user-images.githubusercontent.com/58538077/181820016-f7f330ee-481b-4eb7-ab93-9047336fef0d.png" width="35%" height="35%">
 <img src="https://user-images.githubusercontent.com/58538077/216801119-b08ff083-74d8-49d7-96bf-40e904348004.png" width="35%" height="35%">
-

@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord.message.senders;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import utils.ImageUtils;
+import utils.Image;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -36,7 +40,7 @@ public class MessageSender
 
     public void sendMessage(MessageChannel channel) {
         try {
-            InputStream is = ImageUtils.toPngIS(image);
+            InputStream is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {

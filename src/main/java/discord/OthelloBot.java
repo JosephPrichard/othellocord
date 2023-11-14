@@ -1,13 +1,18 @@
+/*
+ * Copyright (c) Joseph Prichard 2023.
+ */
+
 package discord;
 
 import discord.commands.*;
 import discord.commands.abstracts.Command;
-import modules.DataSource;
-import modules.stats.StatsDao;
-import modules.challenge.ChallengeService;
-import modules.game.GameService;
-import modules.agent.AgentService;
-import modules.stats.StatsService;
+import services.DataSource;
+import services.game.GameResult;
+import services.stats.StatsDao;
+import services.challenge.ChallengeService;
+import services.game.GameService;
+import services.agent.AgentService;
+import services.stats.StatsService;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -30,8 +35,8 @@ public class OthelloBot extends ListenerAdapter
         StatsDao statsDao = new StatsDao(ds);
 
         AgentService agentService = new AgentService();
-        GameService gameService = new GameService();
         StatsService statsService = new StatsService(statsDao);
+        GameService gameService = new GameService(statsService);
         ChallengeService challengeService = new ChallengeService();
 
         OthelloBoardRenderer boardRenderer = new OthelloBoardRenderer();
