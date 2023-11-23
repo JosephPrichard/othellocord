@@ -5,7 +5,7 @@
 package services.game;
 
 import services.player.Player;
-import othello.board.OthelloBoard;
+import othello.OthelloBoard;
 
 public class Game
 {

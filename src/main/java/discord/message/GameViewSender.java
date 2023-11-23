@@ -2,23 +2,21 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.senders;
+package discord.message;
 
 import services.game.Game;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import othello.board.Tile;
+import othello.Tile;
 
 import java.awt.image.BufferedImage;
 
-public class GameViewSender
+public class GameViewSender extends MessageSender
 {
-    private final MessageSender sender = new MessageSender();
-
     public GameViewSender setGame(Game game) {
         String desc = "Black: " + game.getBlackScore() + " points \n" +
             "White: " + game.getWhiteScore() + " points \n" +
             game.getCurrentPlayer().getName() + " to move";
-        sender.getEmbedBuilder()
+       getEmbedBuilder()
             .setTitle(game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName())
             .setDescription(desc);
         return this;
@@ -28,7 +26,7 @@ public class GameViewSender
         String desc = "Black: " + game.getBlackScore() + "\n" +
             "White: " + game.getWhiteScore() + "\n" +
             "Your opponent has moved: " + move;
-        sender.getEmbedBuilder()
+       getEmbedBuilder()
             .setTitle("Your game with " + game.getOtherPlayer().getName())
             .setDescription(desc);
         return this;
@@ -36,17 +34,8 @@ public class GameViewSender
 
     public GameViewSender setTag(Game game) {
         if (!game.getCurrentPlayer().isBot()) {
-            sender.setMessage("<@" + game.getCurrentPlayer() + ">");
+            setMessage("<@" + game.getCurrentPlayer() + ">");
         }
         return this;
-    }
-
-    public GameViewSender setImage(BufferedImage image) {
-        sender.setImage(image);
-        return this;
-    }
-
-    public void sendMessage(MessageChannel channel) {
-        sender.sendMessage(channel);
     }
 }

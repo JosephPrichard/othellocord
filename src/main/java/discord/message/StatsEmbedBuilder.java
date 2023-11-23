@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.builder;
+package discord.message;
 
 import services.stats.Stats;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,17 +11,14 @@ import net.dv8tion.jda.api.entities.User;
 
 import java.awt.*;
 
-public class StatsEmbedBuilder
+public class StatsEmbedBuilder extends EmbedBuilder
 {
-    private final EmbedBuilder embedBuilder;
-
     public StatsEmbedBuilder() {
-        embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(Color.GREEN);
+       setColor(Color.GREEN);
     }
 
     public StatsEmbedBuilder setStats(Stats stats) {
-        embedBuilder.setTitle(stats.getPlayer().getName() + "'s stats")
+        setTitle(stats.getPlayer().getName() + "'s stats")
             .addField("Rating", Float.toString(stats.getElo()), false)
             .addField("Win Rate", stats.getWinRate() + "%", false)
             .addField("Won", Integer.toString(stats.getWon()), true)
@@ -31,11 +28,7 @@ public class StatsEmbedBuilder
     }
 
     public StatsEmbedBuilder setAuthor(User author) {
-        embedBuilder.setThumbnail(author.getAvatarUrl());
+        setThumbnail(author.getAvatarUrl());
         return this;
-    }
-
-    public MessageEmbed build() {
-        return embedBuilder.build();
     }
 }

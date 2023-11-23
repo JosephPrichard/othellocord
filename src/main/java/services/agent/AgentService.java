@@ -4,8 +4,8 @@
 
 package services.agent;
 
-import othello.ai.Move;
-import othello.ai.OthelloAgent;
+import othello.Move;
+import othello.OthelloAgent;
 
 import java.util.List;
 import java.util.concurrent.*;

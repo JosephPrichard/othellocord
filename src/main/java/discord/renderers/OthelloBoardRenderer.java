@@ -4,8 +4,8 @@
 
 package discord.renderers;
 
-import othello.board.OthelloBoard;
-import othello.board.Tile;
+import othello.OthelloBoard;
+import othello.Tile;
 import utils.Image;
 
 import javax.imageio.ImageIO;

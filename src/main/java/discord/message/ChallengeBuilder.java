@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.builder;
+package discord.message;
 
 import services.player.Player;
 

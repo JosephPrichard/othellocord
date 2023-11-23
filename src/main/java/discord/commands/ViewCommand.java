@@ -4,17 +4,15 @@
 
 package discord.commands;
 
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.game.Game;
 import services.game.GameService;
 import services.player.Player;
-import discord.message.senders.GameViewSender;
+import discord.message.GameViewSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import othello.board.OthelloBoard;
-import othello.board.Tile;
+import othello.OthelloBoard;
+import othello.Tile;
 
 import java.awt.image.BufferedImage;
 import java.util.List;

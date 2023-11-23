@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.ai;
+package othello;
 
 import javax.annotation.Nullable;
 

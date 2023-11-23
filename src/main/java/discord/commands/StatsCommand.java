@@ -5,12 +5,10 @@
 package discord.commands;
 
 import discord.JDASingleton;
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.stats.StatsService;
 import services.player.Player;
 import services.stats.Stats;
-import discord.message.builder.StatsEmbedBuilder;
+import discord.message.StatsEmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;

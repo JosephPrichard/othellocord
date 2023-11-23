@@ -2,9 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.ai;
-
-import othello.board.Tile;
+package othello;
 
 public class Move
 {

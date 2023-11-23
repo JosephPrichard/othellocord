@@ -4,18 +4,16 @@
 
 package discord.commands;
 
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.agent.AgentRequest;
 import services.game.Game;
 import services.player.Player;
-import discord.message.builder.AnalyzeBuilder;
+import discord.message.AnalyzeBuilder;
 import services.game.GameService;
 import services.agent.AgentService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import othello.ai.Move;
+import othello.Move;
 import utils.Bot;
 import utils.Number;
 

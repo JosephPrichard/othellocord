@@ -2,24 +2,21 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.builder;
+package discord.message;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import othello.ai.Move;
+import othello.Move;
 
 import java.awt.*;
 import java.util.List;
 
 import static utils.Strings.*;
 
-public class AnalyzeBuilder
+public class AnalyzeBuilder extends EmbedBuilder
 {
-    private final EmbedBuilder embedBuilder;
 
     public AnalyzeBuilder() {
-        embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(Color.GREEN);
+        setColor(Color.GREEN);
     }
 
     public AnalyzeBuilder setRankedMoves(List<Move> rankedMoves) {
@@ -34,13 +31,9 @@ public class AnalyzeBuilder
             count++;
         }
         desc.append("```");
-        embedBuilder.setTitle("Move Analysis")
+        setTitle("Move Analysis")
             .setDescription(desc)
             .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
         return this;
-    }
-
-    public MessageEmbed build() {
-        return embedBuilder.build();
     }
 }

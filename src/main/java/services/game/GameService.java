@@ -9,13 +9,13 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
-import othello.board.OthelloBoard;
-import othello.board.Tile;
+import services.player.Player;
+import othello.OthelloBoard;
+import othello.Tile;
 import services.stats.StatsService;
 import utils.Bot;
 

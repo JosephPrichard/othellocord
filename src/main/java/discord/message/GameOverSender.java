@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.senders;
+package discord.message;
 
 import services.game.GameResult;
 import services.player.Player;
@@ -10,9 +10,8 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 
 import java.awt.image.BufferedImage;
 
-public class GameOverSender
+public class GameOverSender extends MessageSender
 {
-    private final MessageSender sender = new MessageSender();
     private String resultDesc = "";
     private String messageDesc = "";
     private String scoreDesc = "";
@@ -24,7 +23,7 @@ public class GameOverSender
             result.getLoser().getName() +
             "'s new rating is " + result.getLoserElo() +
             " (" + result.formatLoserDiffElo() + ") \n";
-        sender.getEmbedBuilder().setTitle("Game has ended");
+        getEmbedBuilder().setTitle("Game has ended");
         return this;
     }
 
@@ -51,22 +50,17 @@ public class GameOverSender
         if (!result.getLoser().isBot()) {
             tag += "<@" + result.getLoser() + "> ";
         }
-        sender.setMessage(tag);
-        return this;
-    }
-
-    public GameOverSender setImage(BufferedImage image) {
-        sender.setImage(image);
+        setMessage(tag);
         return this;
     }
 
     public void sendMessage(MessageChannel channel) {
         String desc = messageDesc;
-        if (!scoreDesc.equals("")) {
+        if (!scoreDesc.isEmpty()) {
             desc += scoreDesc;
         }
         desc += "\n" + resultDesc;
-        sender.getEmbedBuilder().setDescription(desc);
-        sender.sendMessage(channel);
+        getEmbedBuilder().setDescription(desc);
+        super.sendMessage(channel);
     }
 }

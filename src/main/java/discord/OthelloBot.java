@@ -5,9 +5,8 @@
 package discord;
 
 import discord.commands.*;
-import discord.commands.abstracts.Command;
+import discord.commands.Command;
 import services.DataSource;
-import services.game.GameResult;
 import services.stats.StatsDao;
 import services.challenge.ChallengeService;
 import services.game.GameService;

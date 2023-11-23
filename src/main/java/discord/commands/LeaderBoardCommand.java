@@ -4,10 +4,8 @@
 
 package discord.commands;
 
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.stats.Stats;
-import discord.message.builder.LeaderboardBuilder;
+import discord.message.LeaderboardBuilder;
 import services.stats.StatsService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;

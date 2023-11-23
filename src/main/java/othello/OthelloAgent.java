@@ -2,10 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.ai;
-
-import othello.board.OthelloBoard;
-import othello.board.Tile;
+package othello;
 
 import java.util.ArrayList;
 import java.util.Comparator;

@@ -2,9 +2,10 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.board;
+package othello.exceptions;
 
-import othello.board.exceptions.BoardDeserializationException;
+import othello.OthelloBoard;
+import othello.Tile;
 
 public class BoardSerializer
 {

@@ -4,14 +4,12 @@
 
 package discord.commands;
 
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.game.GameService;
 import services.stats.StatsService;
 import services.game.Game;
 import services.game.GameResult;
 import services.player.Player;
-import discord.message.senders.GameOverSender;
+import discord.message.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;

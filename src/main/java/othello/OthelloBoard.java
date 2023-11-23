@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.board;
+package othello;
 
 import java.util.ArrayList;
 import java.util.List;

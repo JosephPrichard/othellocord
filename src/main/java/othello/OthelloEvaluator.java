@@ -2,9 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.ai;
-
-import othello.board.OthelloBoard;
+package othello;
 
 // https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
 public class OthelloEvaluator

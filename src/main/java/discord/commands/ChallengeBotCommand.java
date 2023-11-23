@@ -4,9 +4,7 @@
 
 package discord.commands;
 
-import discord.message.senders.GameStartSender;
-import discord.commands.abstracts.Command;
-import discord.commands.abstracts.CommandContext;
+import discord.message.GameStartSender;
 import services.game.Game;
 import services.player.Player;
 import discord.renderers.OthelloBoardRenderer;

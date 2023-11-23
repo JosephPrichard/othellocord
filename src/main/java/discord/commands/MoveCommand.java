@@ -4,8 +4,6 @@
 
 package discord.commands;
 
-import discord.commands.abstracts.CommandContext;
-import discord.commands.abstracts.Command;
 import services.agent.AgentRequest;
 import services.agent.AgentService;
 import services.stats.StatsService;
@@ -13,16 +11,16 @@ import services.game.Game;
 import services.game.GameService;
 import services.game.GameResult;
 import services.player.Player;
-import discord.message.senders.GameViewSender;
-import discord.message.senders.GameOverSender;
+import discord.message.GameViewSender;
+import discord.message.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import othello.ai.Move;
-import othello.board.Tile;
+import othello.Move;
+import othello.Tile;
 import utils.Bot;
 
 import java.awt.image.BufferedImage;

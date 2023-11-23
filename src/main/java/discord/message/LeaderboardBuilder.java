@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package discord.message.builder;
+package discord.message;
 
 import services.stats.Stats;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -13,13 +13,11 @@ import java.util.List;
 
 import static utils.Strings.*;
 
-public class LeaderboardBuilder
+public class LeaderboardBuilder extends EmbedBuilder
 {
-    private final EmbedBuilder embedBuilder;
 
     public LeaderboardBuilder() {
-        embedBuilder = new EmbedBuilder();
-        embedBuilder.setColor(Color.GREEN);
+        setColor(Color.GREEN);
     }
 
     public LeaderboardBuilder setStats(List<Stats> statsList) {
@@ -34,12 +32,7 @@ public class LeaderboardBuilder
             count++;
         }
         desc.append("```");
-        embedBuilder.setTitle("Leaderboard")
-            .setDescription(desc.toString());
+        setTitle("Leaderboard").setDescription(desc.toString());
         return this;
-    }
-
-    public MessageEmbed build() {
-        return embedBuilder.build();
     }
 }
