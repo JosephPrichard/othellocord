@@ -4,10 +4,7 @@
 
 package discord.message;
 
-import services.game.Game;
-import net.dv8tion.jda.api.entities.MessageChannel;
-
-import java.awt.image.BufferedImage;
+import services.Game;
 
 public class GameStartSender extends MessageSender
 {

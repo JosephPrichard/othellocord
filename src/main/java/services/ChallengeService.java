@@ -2,9 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.challenge;
-
-import services.player.Player;
+package services;
 
 import java.util.*;
 import java.util.concurrent.*;

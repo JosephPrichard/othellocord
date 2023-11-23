@@ -4,9 +4,9 @@
 
 package discord.commands;
 
-import services.game.Game;
-import services.game.GameService;
-import services.player.Player;
+import services.Game;
+import services.GameService;
+import services.Player;
 import discord.message.GameViewSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

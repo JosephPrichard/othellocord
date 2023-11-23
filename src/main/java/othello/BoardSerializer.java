@@ -2,10 +2,11 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package othello.exceptions;
+package othello;
 
 import othello.OthelloBoard;
 import othello.Tile;
+import othello.exceptions.BoardDeserializationException;
 
 public class BoardSerializer
 {
@@ -29,7 +30,7 @@ public class BoardSerializer
     public static OthelloBoard deserialize(String boardStr) {
         boardStr = boardStr.replaceAll("\\s+","");
 
-        if (boardStr.length() < 1) {
+        if (boardStr.isEmpty()) {
             throw new BoardDeserializationException();
         }
 

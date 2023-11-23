@@ -4,9 +4,9 @@
 
 package discord.commands;
 
-import services.stats.Stats;
+import services.Stats;
 import discord.message.LeaderboardBuilder;
-import services.stats.StatsService;
+import services.StatsService;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;

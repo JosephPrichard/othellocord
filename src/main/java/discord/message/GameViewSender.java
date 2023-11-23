@@ -4,11 +4,8 @@
 
 package discord.message;
 
-import services.game.Game;
-import net.dv8tion.jda.api.entities.MessageChannel;
+import services.Game;
 import othello.Tile;
-
-import java.awt.image.BufferedImage;
 
 public class GameViewSender extends MessageSender
 {

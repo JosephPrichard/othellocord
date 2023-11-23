@@ -4,11 +4,11 @@
 
 package discord.commands;
 
-import services.game.GameService;
-import services.stats.StatsService;
-import services.game.Game;
-import services.game.GameResult;
-import services.player.Player;
+import services.GameService;
+import services.StatsService;
+import services.Game;
+import services.GameResult;
+import services.Player;
 import discord.message.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

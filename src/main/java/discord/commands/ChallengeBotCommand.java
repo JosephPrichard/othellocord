@@ -5,11 +5,11 @@
 package discord.commands;
 
 import discord.message.GameStartSender;
-import services.game.Game;
-import services.player.Player;
+import services.Game;
+import services.Player;
 import discord.renderers.OthelloBoardRenderer;
-import services.game.GameService;
-import services.game.exceptions.AlreadyPlayingException;
+import services.GameService;
+import services.exceptions.AlreadyPlayingException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import utils.Number;

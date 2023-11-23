@@ -4,7 +4,7 @@
 
 package utils;
 
-import services.player.Player;
+import services.Player;
 
 public class Bot
 {

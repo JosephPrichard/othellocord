@@ -2,9 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.agent;
-
-import services.game.Game;
+package services;
 
 import java.util.function.Consumer;
 

@@ -4,19 +4,19 @@
 
 package discord.commands;
 
-import services.agent.AgentRequest;
-import services.agent.AgentService;
-import services.stats.StatsService;
-import services.game.Game;
-import services.game.GameService;
-import services.game.GameResult;
-import services.player.Player;
+import services.AgentRequest;
+import services.AgentService;
+import services.StatsService;
+import services.Game;
+import services.GameService;
+import services.GameResult;
+import services.Player;
 import discord.message.GameViewSender;
 import discord.message.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
-import services.game.exceptions.InvalidMoveException;
-import services.game.exceptions.NotPlayingException;
-import services.game.exceptions.TurnException;
+import services.exceptions.InvalidMoveException;
+import services.exceptions.NotPlayingException;
+import services.exceptions.TurnException;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import othello.Move;

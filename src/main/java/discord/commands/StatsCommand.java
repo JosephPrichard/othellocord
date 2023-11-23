@@ -5,9 +5,9 @@
 package discord.commands;
 
 import discord.JDASingleton;
-import services.stats.StatsService;
-import services.player.Player;
-import services.stats.Stats;
+import services.StatsService;
+import services.Player;
+import services.Stats;
 import discord.message.StatsEmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;

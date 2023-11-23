@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.agent;
+package services;
 
 import othello.Move;
 import othello.OthelloAgent;

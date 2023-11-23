@@ -2,9 +2,8 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.game;
+package services;
 
-import services.player.Player;
 import utils.Pair;
 
 public class GameResult

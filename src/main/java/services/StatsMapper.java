@@ -2,10 +2,9 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.stats;
+package services;
 
 import discord.JDASingleton;
-import services.player.Player;
 import net.dv8tion.jda.api.entities.User;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;

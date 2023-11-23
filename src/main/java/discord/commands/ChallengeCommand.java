@@ -5,9 +5,9 @@
 package discord.commands;
 
 import discord.JDASingleton;
-import services.challenge.Challenge;
-import services.challenge.ChallengeService;
-import services.player.Player;
+import services.Challenge;
+import services.ChallengeService;
+import services.Player;
 import discord.message.ChallengeBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;

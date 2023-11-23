@@ -5,12 +5,12 @@
 package discord.commands;
 
 import discord.JDASingleton;
-import services.challenge.Challenge;
-import services.game.exceptions.AlreadyPlayingException;
-import services.challenge.ChallengeService;
-import services.game.GameService;
-import services.game.Game;
-import services.player.Player;
+import services.Challenge;
+import services.exceptions.AlreadyPlayingException;
+import services.ChallengeService;
+import services.GameService;
+import services.Game;
+import services.Player;
 import discord.message.GameStartSender;
 import discord.renderers.OthelloBoardRenderer;
 import net.dv8tion.jda.api.entities.MessageChannel;

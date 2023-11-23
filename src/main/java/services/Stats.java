@@ -2,9 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.stats;
-
-import services.player.Player;
+package services;
 
 public class Stats
 {

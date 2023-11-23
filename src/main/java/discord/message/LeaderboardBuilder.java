@@ -4,9 +4,8 @@
 
 package discord.message;
 
-import services.stats.Stats;
+import services.Stats;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.awt.*;
 import java.util.List;

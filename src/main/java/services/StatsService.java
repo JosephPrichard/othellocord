@@ -2,10 +2,8 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.stats;
+package services;
 
-import services.game.GameResult;
-import services.player.Player;
 import utils.Elo;
 
 import java.util.List;

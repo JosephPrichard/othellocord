@@ -2,21 +2,19 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.game;
+package services;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import services.game.exceptions.AlreadyPlayingException;
-import services.game.exceptions.InvalidMoveException;
-import services.game.exceptions.NotPlayingException;
-import services.game.exceptions.TurnException;
-import services.player.Player;
 import othello.OthelloBoard;
 import othello.Tile;
-import services.stats.StatsService;
+import services.exceptions.AlreadyPlayingException;
+import services.exceptions.InvalidMoveException;
+import services.exceptions.NotPlayingException;
+import services.exceptions.TurnException;
 import utils.Bot;
 
 import javax.annotation.Nullable;

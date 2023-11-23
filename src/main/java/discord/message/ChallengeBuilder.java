@@ -4,7 +4,7 @@
 
 package discord.message;
 
-import services.player.Player;
+import services.Player;
 
 public class ChallengeBuilder
 {

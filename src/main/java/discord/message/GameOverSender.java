@@ -4,11 +4,9 @@
 
 package discord.message;
 
-import services.game.GameResult;
-import services.player.Player;
+import services.GameResult;
+import services.Player;
 import net.dv8tion.jda.api.entities.MessageChannel;
-
-import java.awt.image.BufferedImage;
 
 public class GameOverSender extends MessageSender
 {

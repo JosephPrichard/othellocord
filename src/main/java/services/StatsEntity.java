@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.stats;
+package services;
 
 import javax.persistence.*;
 

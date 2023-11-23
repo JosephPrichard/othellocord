@@ -2,9 +2,8 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.stats;
+package services;
 
-import services.DataSource;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;

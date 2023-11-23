@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.player;
+package services;
 
 import net.dv8tion.jda.api.entities.User;
 import utils.Discord;
