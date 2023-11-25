@@ -40,7 +40,7 @@ public class MessageSender
 
     public void sendMessage(MessageChannel channel) {
         try {
-            InputStream is = Image.toPngIS(image);
+            var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {

@@ -15,10 +15,10 @@ public class ChallengeService
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     public void createChallenge(Challenge challenge, Runnable onExpiry) {
-        Player challenged = challenge.getChallenged();
-        Player challenger = challenge.getChallenger();
+        var challenged = challenge.getChallenged();
+        var challenger = challenge.getChallenger();
 
-        ScheduledFuture<?> future = scheduler.schedule(() -> {
+        var future = scheduler.schedule(() -> {
             onExpiry.run();
             challenges.remove(new Challenge(challenged, challenger));
             logger.info("Challenge expired " + challenged.getId() + " " + challenger.getId());
@@ -28,10 +28,10 @@ public class ChallengeService
     }
 
     public boolean acceptChallenge(Challenge challenge) {
-        Player challenged = challenge.getChallenged();
-        Player challenger = challenge.getChallenger();
+        var challenged = challenge.getChallenged();
+        var challenger = challenge.getChallenger();
 
-        ScheduledFuture<?> future = challenges.remove(new Challenge(challenged, challenger));
+        var future = challenges.remove(new Challenge(challenged, challenger));
         if (future != null) {
             future.cancel(false);
             return true;

@@ -28,11 +28,11 @@ public class StatsCommand extends Command
 
     @Override
     protected void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        User user = event.getAuthor();
-        String playerId = ctx.getParam("player");
+        var user = event.getAuthor();
+        var playerId = ctx.getParam("player");
         // check if player param is included
         if (playerId != null) {
             // if so, fetch player profile from discord
@@ -43,11 +43,11 @@ public class StatsCommand extends Command
             }
         }
 
-        Player player = new Player(user);
+        var player = new Player(user);
 
-        Stats stats = statsService.getStats(player);
+        var stats = statsService.getStats(player);
 
-        MessageEmbed embed = new StatsEmbedBuilder()
+        var embed = new StatsEmbedBuilder()
             .setStats(stats)
             .setAuthor(user)
             .build();

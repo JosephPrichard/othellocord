@@ -11,11 +11,11 @@ import othello.exceptions.BoardDeserializationException;
 public class BoardSerializer
 {
     public static String serialize(OthelloBoard board) {
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
         // add the turn indicator
         builder.append(board.isBlackMove() ? "B" : "W");
         // for each square add the number to the serialized string
-        for (Tile tile : board.tiles()) {
+        for (var tile : board.tiles()) {
             builder.append(board.getSquare(tile));
         }
         return builder.toString();
@@ -35,20 +35,20 @@ public class BoardSerializer
         }
 
         // board size is the sqrt of the length without the turn indicator
-        int len = boardStr.length() - 1;
-        double sizeReal = Math.sqrt(len);
+        var len = boardStr.length() - 1;
+        var sizeReal = Math.sqrt(len);
 
         if (sizeReal % 1 != 0) {
             throw new BoardDeserializationException();
         }
 
         // extract the turn indicator
-        boolean isBlack = boardStr.charAt(0) == 'B';
+        var isBlack = boardStr.charAt(0) == 'B';
 
         // populate board array by assigning characters to board
-        OthelloBoard board = new OthelloBoard(isBlack);
-        for (int i = 1; i < boardStr.length(); i++) {
-            int pos = i - 1;
+        var board = new OthelloBoard(isBlack);
+        for (var i = 1; i < boardStr.length(); i++) {
+            var pos = i - 1;
             board.setSquare(pos, (byte) (boardStr.charAt(i) - '0'));
         }
 
@@ -56,9 +56,9 @@ public class BoardSerializer
     }
 
     public static void main(String[] args) {
-        String boardStr = serialize(new OthelloBoard());
+        var boardStr = serialize(new OthelloBoard());
         System.out.println(boardStr);
-        OthelloBoard board = deserialize(boardStr);
+        var board = deserialize(boardStr);
         System.out.println(board);
     }
 }

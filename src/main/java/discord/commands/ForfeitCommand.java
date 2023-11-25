@@ -37,23 +37,23 @@ public class ForfeitCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        Player player = new Player(event.getAuthor());
+        var player = new Player(event.getAuthor());
 
-        Game game = gameService.getGame(player);
+        var game = gameService.getGame(player);
         if (game == null) {
             channel.sendMessage("You're not currently in a game.").queue();
             return;
         }
 
-        BufferedImage image = boardRenderer.drawBoard(game.getBoard());
+        var image = boardRenderer.drawBoard(game.getBoard());
 
         // remove game from storage
         gameService.deleteGame(game);
         // update elo from game result
-        GameResult result = game.getForfeitResult();
+        var result = game.getForfeitResult();
         statsService.updateStats(result);
         // send embed response
         new GameOverSender()

@@ -28,7 +28,7 @@ public class Challenge
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Challenge that = (Challenge) o;
+        var that = (Challenge) o;
         return Objects.equals(challenged, that.challenged) && Objects.equals(challenger, that.challenger);
     }
 

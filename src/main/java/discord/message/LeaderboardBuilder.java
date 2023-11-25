@@ -20,10 +20,10 @@ public class LeaderboardBuilder extends EmbedBuilder
     }
 
     public LeaderboardBuilder setStats(List<Stats> statsList) {
-        StringBuilder desc = new StringBuilder();
+        var desc = new StringBuilder();
         desc.append("```");
-        int count = 1;
-        for (Stats stats : statsList) {
+        var count = 1;
+        for (var stats : statsList) {
             desc.append(rightPad(count + ")", 4))
                 .append(leftPad(stats.getPlayer().getName(), 40))
                 .append(leftPad(Float.toString(stats.getElo()), 16))

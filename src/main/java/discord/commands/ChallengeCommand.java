@@ -27,23 +27,23 @@ public class ChallengeCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        User opponentUser = JDASingleton.fetchUserFromDirect(ctx.getParam("opponent"));
+        var opponentUser = JDASingleton.fetchUserFromDirect(ctx.getParam("opponent"));
         if (opponentUser == null) {
             channel.sendMessage("Can't find a discord user with that id. Try using @ directly.").queue();
             return;
         }
 
-        Player opponent = new Player(opponentUser);
-        Player player = new Player(event.getAuthor());
+        var opponent = new Player(opponentUser);
+        var player = new Player(event.getAuthor());
 
-        long id = player.getId();
+        var id = player.getId();
         Runnable onExpiry = () -> channel.sendMessage("<@" + id + "> Challenge timed out!").queue();
         challengeService.createChallenge(new Challenge(opponent, player), onExpiry);
 
-        String message = new ChallengeBuilder()
+        var message = new ChallengeBuilder()
             .setChallenged(opponent)
             .setChallenger(player)
             .build();

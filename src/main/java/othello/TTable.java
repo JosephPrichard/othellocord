@@ -31,9 +31,9 @@ public class TTable
      * @param node to be inserted
      */
     public void put(TTNode node) {
-        int h = (int) (node.getKey() % cache.length);
+        var h = (int) (node.getKey() % cache.length);
         // retrieve cache line
-        TTNode[] cacheLine = cache[h];
+        var cacheLine = cache[h];
         // check if "replace by depth" is populated
         if (cacheLine[0] != null) {
             // populated, new node is better so we do replacement
@@ -57,11 +57,11 @@ public class TTable
      */
     @Nullable
     public TTNode get(long key) {
-        int h = (int) (key % cache.length);
+        var h = (int) (key % cache.length);
         // retrieve cache line
-        TTNode[] cacheLine = cache[h];
+        var cacheLine = cache[h];
         // iterate through cache line
-        for (TTNode n : cacheLine) {
+        for (var n : cacheLine) {
             // if node is in cache line return it
             if (n != null && n.getKey() == key) {
                 hits++;

@@ -29,9 +29,9 @@ public class StatsMapper
 
     public Stats map(StatsEntity entity) {
         // fetch tag from jda and assign
-        String tag = JDASingleton.fetchUser(entity.getPlayerId()).complete().getAsTag();
+        var tag = JDASingleton.fetchUser(entity.getPlayerId()).complete().getAsTag();
         // map entity to dto
-        Stats stats = modelMapper.map(entity, Stats.class);
+        var stats = modelMapper.map(entity, Stats.class);
         stats.getPlayer().setName(tag);
         return stats;
     }
@@ -39,7 +39,7 @@ public class StatsMapper
     public List<Stats> mapAll(List<StatsEntity> entityList) {
         // fetch each tag from jda using futures, for the bots return null and map bot name instead
         List<CompletableFuture<User>> futures = new ArrayList<>();
-        for (StatsEntity entity : entityList) {
+        for (var entity : entityList) {
             if (!Bot.isBotId(entity.getPlayerId())) {
                 futures.add(JDASingleton.fetchUser(entity.getPlayerId()).submit());
             } else {
@@ -49,12 +49,12 @@ public class StatsMapper
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
         // map each entity to dto
         List<Stats> statsList = new ArrayList<>();
-        for(int i = 0; i < futures.size(); i++){
+        for(var i = 0; i < futures.size(); i++){
             // retrieve tag from completed future
-            User user = futures.get(i).join();
-            String tag = user != null ? user.getAsTag() : Bot.getBotName(entityList.get(i).getPlayerId());
+            var user = futures.get(i).join();
+            var tag = user != null ? user.getAsTag() : Bot.getBotName(entityList.get(i).getPlayerId());
             // map entity to dto and add to dto list
-            Stats stats = modelMapper.map(entityList.get(i), Stats.class);
+            var stats = modelMapper.map(entityList.get(i), Stats.class);
             stats.getPlayer().setName(tag);
             statsList.add(stats);
         }

@@ -34,8 +34,8 @@ public class Tile
     }
 
     public String toString() {
-        char c = (char) (col + 'a');
-        String r = Integer.toString(row + 1);
+        var c = (char) (col + 'a');
+        var r = Integer.toString(row + 1);
         return c + r;
     }
 
@@ -43,18 +43,18 @@ public class Tile
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Tile tile = (Tile) o;
+        var tile = (Tile) o;
         return row == tile.row && col == tile.col;
     }
 
     public boolean equalsNotation(String notation) {
-        char cNotLower = (char) (col + 'a');
-        char cNotUpper = (char) (col + 'A');
-        char rNot = (char) ((row + 1) + '0');
+        var cNotLower = (char) (col + 'a');
+        var cNotUpper = (char) (col + 'A');
+        var rNot = (char) ((row + 1) + '0');
 
         if (notation.length() == 2) {
-            char c = notation.charAt(0);
-            char r = notation.charAt(1);
+            var c = notation.charAt(0);
+            var r = notation.charAt(1);
             return (c == cNotUpper || c == cNotLower) && r == rNot;
         }
         return false;

@@ -41,7 +41,7 @@ public class GameOverSender extends MessageSender
     }
 
     public GameOverSender setTag(GameResult result) {
-        String tag = "";
+        var tag = "";
         if (!result.getWinner().isBot()) {
             tag += "<@" + result.getWinner() + "> ";
         }
@@ -53,7 +53,7 @@ public class GameOverSender extends MessageSender
     }
 
     public void sendMessage(MessageChannel channel) {
-        String desc = messageDesc;
+        var desc = messageDesc;
         if (!scoreDesc.isEmpty()) {
             desc += scoreDesc;
         }

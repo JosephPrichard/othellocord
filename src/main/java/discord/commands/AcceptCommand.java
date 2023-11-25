@@ -40,17 +40,17 @@ public class AcceptCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        User opponentUser = JDASingleton.fetchUserFromDirect(ctx.getParam("challenger"));
+        var opponentUser = JDASingleton.fetchUserFromDirect(ctx.getParam("challenger"));
         if (opponentUser == null) {
             channel.sendMessage("Can't find a discord user with that id. Try using @ directly.").queue();
             return;
         }
 
-        Player opponent = new Player(opponentUser);
-        Player player = new Player(event.getAuthor());
+        var opponent = new Player(opponentUser);
+        var player = new Player(event.getAuthor());
 
         if (!challengeService.acceptChallenge(new Challenge(player, opponent))) {
             channel.sendMessage("No challenge to accept.").queue();
@@ -58,8 +58,8 @@ public class AcceptCommand extends Command
         }
 
         try {
-            Game game = gameService.createGame(player, opponent);
-            BufferedImage image = boardRenderer.drawBoard(game.getBoard());
+            var game = gameService.createGame(player, opponent);
+            var image = boardRenderer.drawBoard(game.getBoard());
 
             new GameStartSender()
                 .setGame(game)

@@ -11,12 +11,12 @@ public class ZHasher
     private final int[][] table;
 
     public ZHasher() {
-        int tableLen = OthelloBoard.getBoardSize() * OthelloBoard.getBoardSize();
-        Random generator = new Random();
+        var tableLen = OthelloBoard.getBoardSize() * OthelloBoard.getBoardSize();
+        var generator = new Random();
         table = new int[tableLen][3];
-        for (int i = 0; i < tableLen; i++) {
-            for (int j = 0; j < 3; j++) {
-                int n = generator.nextInt();
+        for (var i = 0; i < tableLen; i++) {
+            for (var j = 0; j < 3; j++) {
+                var n = generator.nextInt();
                 table[i][j] = n >= 0 ? n : -n;
             }
         }
@@ -24,7 +24,7 @@ public class ZHasher
 
     public long hash(OthelloBoard board) {
         long hash = 0;
-        for (int i = 0; i < table.length; i++) {
+        for (var i = 0; i < table.length; i++) {
             hash = hash ^ table[i][board.getSquare(i)];
         }
         return hash;

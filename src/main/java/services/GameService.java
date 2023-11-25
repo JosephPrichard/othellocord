@@ -54,7 +54,7 @@ public class GameService
     }
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
-        Game game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
+        var game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
@@ -70,8 +70,8 @@ public class GameService
     }
 
     public Game createBotGame(Player blackPlayer, int level) throws AlreadyPlayingException {
-        Player whitePlayer = Bot.create(level);
-        Game game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
+        var whitePlayer = Bot.create(level);
+        var game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();
@@ -87,9 +87,9 @@ public class GameService
 
     @Nullable
     public Game getGame(Player player) {
-        Optional<Game> optionalGame = games.get(player.getId());
+        var optionalGame = games.get(player.getId());
         if (optionalGame.isPresent()) {
-            Game game = optionalGame.get();
+            var game = optionalGame.get();
             return new Game(game.getBoard().copy(), game.getWhitePlayer(), game.getBlackPlayer());
         } else {
             return null;
@@ -136,7 +136,7 @@ public class GameService
      * @return a mutable copy of the game from the storage
      */
     public Game makeMove(Player player, Tile move) throws NotPlayingException, InvalidMoveException, TurnException {
-        Game game = getGame(player);
+        var game = getGame(player);
         if (game == null) {
             throw new NotPlayingException();
         }
@@ -146,9 +146,9 @@ public class GameService
         }
 
         // calculate the potential moves
-        List<Tile> potentialMoves = game.getBoard().findPotentialMoves();
+        var potentialMoves = game.getBoard().findPotentialMoves();
         // check if the move being requested is any of the potential moves, if so make the move
-        for (Tile potentialMove : potentialMoves) {
+        for (var potentialMove : potentialMoves) {
             if (potentialMove.equals(move)) {
                 makeMove(game, potentialMove);
                 return game;
@@ -160,7 +160,7 @@ public class GameService
 
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
-        GameResult forfeitResult = new GameResult(game.getOtherPlayer(), game.getCurrentPlayer());
+        var forfeitResult = new GameResult(game.getOtherPlayer(), game.getCurrentPlayer());
         statsService.updateStats(forfeitResult);
     }
 }

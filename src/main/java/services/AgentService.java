@@ -18,8 +18,8 @@ public class AgentService
 
     public void findRankedMoves(AgentRequest<List<Move>> agentRequest) {
         executorService.submit(() -> {
-            OthelloAgent agent = new OthelloAgent(agentRequest.getGame().getBoard(), agentRequest.getDepth());
-            List<Move> moves = agent.findRankedMoves();
+            var agent = new OthelloAgent(agentRequest.getGame().getBoard(), agentRequest.getDepth());
+            var moves = agent.findRankedMoves();
             agentRequest.getOnComplete().accept(moves);
         });
         logger.info("Started agent ranked moves calculation of depth " + agentRequest.getDepth());
@@ -27,8 +27,8 @@ public class AgentService
 
     public void findBestMove(AgentRequest<Move> agentRequest) {
         executorService.submit(() -> {
-            OthelloAgent agent = new OthelloAgent(agentRequest.getGame().getBoard(), agentRequest.getDepth());
-            Move move = agent.findBestMove();
+            var agent = new OthelloAgent(agentRequest.getGame().getBoard(), agentRequest.getDepth());
+            var move = agent.findBestMove();
             agentRequest.getOnComplete().accept(move);
         });
         logger.info("Started agent best move calculation of depth " + agentRequest.getDepth());

@@ -26,7 +26,7 @@ public class JDASingleton
     }
 
     public static void initJDASingleton(String token) throws LoginException {
-        JDA jda = JDABuilder.createLight(token, GatewayIntent.GUILD_MESSAGES)
+        var jda = JDABuilder.createLight(token, GatewayIntent.GUILD_MESSAGES)
             .addEventListeners(new OthelloBot())
             .setActivity(Activity.playing("Othello"))
             .build();
@@ -44,7 +44,7 @@ public class JDASingleton
     @Nullable
     public static User fetchUserFromDirect(String id) {
         try {
-            long longId = Discord.toLongId(id);
+            var longId = Discord.toLongId(id);
             return getInstance().jda.retrieveUserById(longId).complete();
         } catch(NumberFormatException ex) {
             return null;

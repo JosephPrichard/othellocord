@@ -13,8 +13,8 @@ public class Image
 {
     public static BufferedImage readImage(String path) {
         try {
-            ClassLoader classLoader = Image.class.getClassLoader();
-            InputStream is = classLoader.getResourceAsStream(path);
+            var classLoader = Image.class.getClassLoader();
+            var is = classLoader.getResourceAsStream(path);
             if (is != null) {
                 return ImageIO.read(is);
             } else {
@@ -28,29 +28,29 @@ public class Image
     }
 
     public static BufferedImage readResizedImage(String path, int size) {
-        BufferedImage oldImg = readImage(path);
-        java.awt.Image resizedImg = oldImg.getScaledInstance(size, size, java.awt.Image.SCALE_SMOOTH);
+        var oldImg = readImage(path);
+        var resizedImg = oldImg.getScaledInstance(size, size, java.awt.Image.SCALE_SMOOTH);
 
-        BufferedImage newImg = new BufferedImage(size, size, oldImg.getType());
+        var newImg = new BufferedImage(size, size, oldImg.getType());
 
-        Graphics g = newImg.getGraphics();
+        var g = newImg.getGraphics();
         g.drawImage(resizedImg, 0, 0, null);
 
         return newImg;
     }
 
     public static void drawCenteredString(Graphics g, String text, Rectangle rect, Font font) {
-        FontMetrics metrics = g.getFontMetrics(font);
+        var metrics = g.getFontMetrics(font);
         // Determine the X coordinate for the text
-        int x = rect.x + (rect.width - metrics.stringWidth(text)) / 2;
+        var x = rect.x + (rect.width - metrics.stringWidth(text)) / 2;
         // Determine the Y coordinate for the text (note we add the ascent, as in java 2d 0 is top of the screen)
-        int y = rect.y + ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
+        var y = rect.y + ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
         g.setFont(font);
         g.drawString(text, x, y);
     }
 
     public static InputStream toPngIS(BufferedImage image) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        var os = new ByteArrayOutputStream();
         ImageIO.write(image, "png", os);
         return new ByteArrayInputStream(os.toByteArray());
     }

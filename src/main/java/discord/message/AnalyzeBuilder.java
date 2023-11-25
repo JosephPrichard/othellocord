@@ -20,10 +20,10 @@ public class AnalyzeBuilder extends EmbedBuilder
     }
 
     public AnalyzeBuilder setRankedMoves(List<Move> rankedMoves) {
-        StringBuilder desc = new StringBuilder();
+        var desc = new StringBuilder();
         desc.append("```");
-        int count = 1;
-        for (Move move : rankedMoves) {
+        var count = 1;
+        for (var move : rankedMoves) {
             desc.append(rightPad(count + ")", 5))
                 .append(rightPad(move.getTile().toString(), 5))
                 .append(move.getHeuristic()).append(" ")

@@ -32,21 +32,21 @@ public class ViewCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        Player player = new Player(event.getAuthor());
+        var player = new Player(event.getAuthor());
 
-        Game game = gameService.getGame(player);
+        var game = gameService.getGame(player);
         if (game == null) {
             channel.sendMessage("You're not currently in a game.").queue();
             return;
         }
 
-        OthelloBoard board = game.getBoard();
-        List<Tile> potentialMoves = board.findPotentialMoves();
+        var board = game.getBoard();
+        var potentialMoves = board.findPotentialMoves();
 
-        BufferedImage image = boardRenderer.drawBoard(board, potentialMoves);
+        var image = boardRenderer.drawBoard(board, potentialMoves);
         new GameViewSender()
             .setGame(game)
             .setImage(image)

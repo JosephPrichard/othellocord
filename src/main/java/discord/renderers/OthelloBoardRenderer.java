@@ -42,50 +42,50 @@ public class OthelloBoardRenderer
     }
 
     private static BufferedImage drawBackground(int boardSize) {
-        int width = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
-        int height = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var width = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
+        var height = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
+        var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
         // drawing green background
-        for (int x = SIDE_OFFSET; x < image.getWidth(); x++) {
-            for (int y = SIDE_OFFSET; y < image.getHeight(); y++) {
+        for (var x = SIDE_OFFSET; x < image.getWidth(); x++) {
+            for (var y = SIDE_OFFSET; y < image.getHeight(); y++) {
                 image.setRGB(x, y, GREEN);
             }
         }
 
         // draw black horizontal lines
-        for (int i = 0; i < boardSize + 1; i++) {
-            for (int x = SIDE_OFFSET; x < image.getWidth(); x++) {
-                int y = i * TILE_SIZE + SIDE_OFFSET;
-                for (int j = 0; j < LINE_THICKNESS; j++) {
+        for (var i = 0; i < boardSize + 1; i++) {
+            for (var x = SIDE_OFFSET; x < image.getWidth(); x++) {
+                var y = i * TILE_SIZE + SIDE_OFFSET;
+                for (var j = 0; j < LINE_THICKNESS; j++) {
                     image.setRGB(x, y + j, BLACK);
                 }
             }
         }
 
         // draw black vertical lines
-        for (int i = 0; i < boardSize + 1; i++) {
-            for (int y = SIDE_OFFSET; y < image.getHeight(); y++) {
-                int x = i * TILE_SIZE + SIDE_OFFSET;
-                for (int j = 0; j < LINE_THICKNESS; j++) {
+        for (var i = 0; i < boardSize + 1; i++) {
+            for (var y = SIDE_OFFSET; y < image.getHeight(); y++) {
+                var x = i * TILE_SIZE + SIDE_OFFSET;
+                for (var j = 0; j < LINE_THICKNESS; j++) {
                     image.setRGB(x + j, y, BLACK);
                 }
             }
         }
 
-        Graphics g = image.getGraphics();
+        var g = image.getGraphics();
 
         // draw letters on horizontal sidebar
-        for (int i = 0; i < boardSize; i++) {
-            String text = Character.toString(i + 'A');
-            Rectangle rect = new Rectangle(SIDE_OFFSET + i * TILE_SIZE, 0, TILE_SIZE, SIDE_OFFSET);
+        for (var i = 0; i < boardSize; i++) {
+            var text = Character.toString(i + 'A');
+            var rect = new Rectangle(SIDE_OFFSET + i * TILE_SIZE, 0, TILE_SIZE, SIDE_OFFSET);
             Image.drawCenteredString(g, text, rect, font);
         }
 
         // draw numbers on vertical sidebar
-        for (int i = 0; i < boardSize; i++) {
-            String text = Integer.toString(i + 1);
-            Rectangle rect = new Rectangle(0, SIDE_OFFSET + i * TILE_SIZE, SIDE_OFFSET, TILE_SIZE);
+        for (var i = 0; i < boardSize; i++) {
+            var text = Integer.toString(i + 1);
+            var rect = new Rectangle(0, SIDE_OFFSET + i * TILE_SIZE, SIDE_OFFSET, TILE_SIZE);
             Image.drawCenteredString(g, text, rect, font);
         }
 
@@ -103,22 +103,22 @@ public class OthelloBoardRenderer
     }
 
     public BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
-        BufferedImage boardImage = new BufferedImage(
+        var boardImage = new BufferedImage(
             backgroundImage.getWidth(),
             backgroundImage.getHeight(),
             backgroundImage.getType()
         );
-        Graphics g = boardImage.getGraphics();
+        var g = boardImage.getGraphics();
 
         // draw background image and discs onto board
         g.drawImage(backgroundImage, 0, 0, null);
         drawDiscs(g, board);
 
         // draw each move image onto the board
-        BufferedImage moveImage = board.isBlackMove() ? blackStarImage : whiteStarImage;
-        for (Tile move : moves) {
-            int x = SIDE_OFFSET + LINE_THICKNESS + move.getCol() * TILE_SIZE;
-            int y = SIDE_OFFSET + LINE_THICKNESS + move.getRow() * TILE_SIZE;
+        var moveImage = board.isBlackMove() ? blackStarImage : whiteStarImage;
+        for (var move : moves) {
+            var x = SIDE_OFFSET + LINE_THICKNESS + move.getCol() * TILE_SIZE;
+            var y = SIDE_OFFSET + LINE_THICKNESS + move.getRow() * TILE_SIZE;
             g.drawImage(moveImage, x, y, null);
         }
 
@@ -128,9 +128,9 @@ public class OthelloBoardRenderer
 
     private void drawDiscs(Graphics boardGraphics, OthelloBoard board) {
         // draw discs onto board, either empty, black, or white
-        for (Tile tile : board.tiles()) {
-            int x = SIDE_OFFSET + LINE_THICKNESS + tile.getCol() * TILE_SIZE;
-            int y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
+        for (var tile : board.tiles()) {
+            var x = SIDE_OFFSET + LINE_THICKNESS + tile.getCol() * TILE_SIZE;
+            var y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
             // determine which bitmap belongs in the disc slot
             int color = board.getSquare(tile);
             if (color == OthelloBoard.BLACK) {
@@ -143,15 +143,15 @@ public class OthelloBoardRenderer
 
     // test driver function to see board image
     public static void main(String[] args) throws IOException {
-        OthelloBoard board = new OthelloBoard();
+        var board = new OthelloBoard();
 
-        OthelloBoardRenderer renderer = new OthelloBoardRenderer();
+        var renderer = new OthelloBoardRenderer();
 
-        List<Tile> moves = board.findPotentialMoves();
+        var moves = board.findPotentialMoves();
 
-        BufferedImage image = renderer.drawBoard(board, moves);
+        var image = renderer.drawBoard(board, moves);
 
-        File outputFile = new File("test_board.png");
+        var outputFile = new File("test_board.png");
         ImageIO.write(image, "png", outputFile);
     }
 }

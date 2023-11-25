@@ -11,10 +11,10 @@ public class OthelloEvaluator
     public static final int[][] XC_SQUARES = {{1, 1}, {1, 6}, {6, 1}, {6, 6}, {0, 1}, {0, 6}, {7, 1}, {7, 6}, {1, 0}, {1, 7}, {6, 0}, {6, 7}};
 
     private float parityHeuristic(OthelloBoard board) {
-        float whiteScore = 0f;
-        float blackScore = 0f;
-        for (int row = 0; row < OthelloBoard.getBoardSize(); row++) {
-            for (int col = 0; col < OthelloBoard.getBoardSize(); col++) {
+        var whiteScore = 0f;
+        var blackScore = 0f;
+        for (var row = 0; row < OthelloBoard.getBoardSize(); row++) {
+            for (var col = 0; col < OthelloBoard.getBoardSize(); col++) {
                 if (board.getSquare(row, col) == OthelloBoard.WHITE)
                     whiteScore++;
                 if (board.getSquare(row, col) == OthelloBoard.BLACK)
@@ -28,8 +28,8 @@ public class OthelloEvaluator
         float whiteCorners = 0;
         float blackCorners = 0;
         // iterate over corners and calculate the number of white and black corners
-        for (int[] corner : CORNERS) {
-            byte currentColor = board.getSquare(corner[0], corner[1]);
+        for (var corner : CORNERS) {
+            var currentColor = board.getSquare(corner[0], corner[1]);
             if (currentColor == OthelloBoard.WHITE) {
                 whiteCorners++;
             } else if (currentColor == OthelloBoard.BLACK) {
@@ -46,8 +46,8 @@ public class OthelloEvaluator
         float whiteXCSquares = 0;
         float blackXCSquares = 0;
         // iterate over xc squares and calculate the number of white and black xc squares
-        for (int[] square : XC_SQUARES) {
-            byte currentColor = board.getSquare(square[0], square[1]);
+        for (var square : XC_SQUARES) {
+            var currentColor = board.getSquare(square[0], square[1]);
             if (currentColor == OthelloBoard.WHITE) {
                 whiteXCSquares++;
             } else if (currentColor == OthelloBoard.BLACK) {

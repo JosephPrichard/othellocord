@@ -23,19 +23,19 @@ public class StatsService
     }
 
     public Stats getStats(Player player) {
-        StatsEntity statsEntity = statsDao.getOrSaveStats(player.getId());
+        var statsEntity = statsDao.getOrSaveStats(player.getId());
         return mapper.map(statsEntity);
     }
 
     public List<Stats> getTopStats() {
-        List<StatsEntity> statsEntityList = statsDao.getTopStats(25);
+        var statsEntityList = statsDao.getTopStats(25);
         return mapper.mapAll(statsEntityList);
     }
 
     public void updateStats(GameResult result) {
         // retrieve the stats for the winner by submitting both to the thread pool and waiting for a response
-        Future<StatsEntity> winnerFuture = es.submit(() -> statsDao.getOrSaveStats(result.getWinner().getId()));
-        Future<StatsEntity> loserFuture = es.submit(() -> statsDao.getOrSaveStats(result.getLoser().getId()));
+        var winnerFuture = es.submit(() -> statsDao.getOrSaveStats(result.getWinner().getId()));
+        var loserFuture = es.submit(() -> statsDao.getOrSaveStats(result.getLoser().getId()));
 
         StatsEntity winnerStats;
         StatsEntity loserStats;
@@ -55,12 +55,12 @@ public class StatsService
         }
 
         // perform elo calculations
-        float winnerEloBefore = winnerStats.getElo();
-        float loserEloBefore = loserStats.getElo();
-        float probWin = Elo.probability(loserStats.getElo(), winnerStats.getElo());
-        float probLost = Elo.probability(winnerStats.getElo(), loserStats.getElo());
-        float winnerEloAfter = Elo.ratingWon(winnerStats.getElo(), probWin);
-        float loserEloAfter = Elo.ratingLost(loserStats.getElo(), probLost);
+        var winnerEloBefore = winnerStats.getElo();
+        var loserEloBefore = loserStats.getElo();
+        var probWin = Elo.probability(loserStats.getElo(), winnerStats.getElo());
+        var probLost = Elo.probability(winnerStats.getElo(), loserStats.getElo());
+        var winnerEloAfter = Elo.ratingWon(winnerStats.getElo(), probWin);
+        var loserEloAfter = Elo.ratingLost(loserStats.getElo(), probLost);
 
         // set new values in entities
         winnerStats.setElo(winnerEloAfter);

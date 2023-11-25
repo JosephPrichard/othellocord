@@ -55,7 +55,7 @@ public class Game
     }
 
     public GameResult getResult() {
-        float diff = board.blackScore() - board.whiteScore();
+        var diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {
             return new GameResult(blackPlayer, whitePlayer);
         } else if (diff < 0) {

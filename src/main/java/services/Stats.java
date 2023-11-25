@@ -53,7 +53,7 @@ public class Stats
     }
 
     public float getWinRate() {
-        int total = won + lost + drawn;
+        var total = won + lost + drawn;
         if (total == 0) {
             return 0f;
         }

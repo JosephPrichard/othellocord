@@ -9,7 +9,7 @@ import services.Game;
 public class GameStartSender extends MessageSender
 {
     public GameStartSender setGame(Game game) {
-        String desc = "Black: " + game.getBlackPlayer().getName() + "\n " +
+        var desc = "Black: " + game.getBlackPlayer().getName() + "\n " +
             "White: " + game.getWhitePlayer().getName() + "\n " +
             "Use `!view` to view the game and use `!move` to make a move.";
         getEmbedBuilder().setTitle("Game started!").setDescription(desc);

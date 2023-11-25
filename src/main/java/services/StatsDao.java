@@ -20,10 +20,10 @@ public class StatsDao
     }
 
     public StatsEntity saveStats(Long playerId) {
-        Session session = dataSource.getSession();
-        Transaction transaction = session.beginTransaction();
+        var session = dataSource.getSession();
+        var transaction = session.beginTransaction();
 
-        StatsEntity stats = new StatsEntity();
+        var stats = new StatsEntity();
         stats.setPlayerId(playerId);
         stats.setElo(1000f);
         stats.setWon(0);
@@ -39,14 +39,14 @@ public class StatsDao
 
     @Nullable
     public StatsEntity getStats(Long playerId) {
-        Session session = dataSource.getSession();
-        StatsEntity stats = session.get(StatsEntity.class, playerId);
+        var session = dataSource.getSession();
+        var stats = session.get(StatsEntity.class, playerId);
         session.close();
         return stats;
     }
 
     public StatsEntity getOrSaveStats(Long playerId) {
-        StatsEntity statsEntity = getStats(playerId);
+        var statsEntity = getStats(playerId);
         if (statsEntity == null) {
             statsEntity = saveStats(playerId);
         }
@@ -54,22 +54,22 @@ public class StatsDao
     }
 
     public List<StatsEntity> getTopStats(int amount) {
-        Session session = dataSource.getSession();
+        var session = dataSource.getSession();
 
-        String str = "from StatsEntity order by elo desc";
-        Query<StatsEntity> query = session.createQuery(str, StatsEntity.class);
+        var str = "from StatsEntity order by elo desc";
+        var query = session.createQuery(str, StatsEntity.class);
         query.setMaxResults(amount);
 
-        List<StatsEntity> stats = query.list();
+        var stats = query.list();
         session.close();
         return stats;
     }
 
     public void updateStats(StatsEntity... stats) {
-        Session session = dataSource.getSession();
-        Transaction transaction = session.beginTransaction();
+        var session = dataSource.getSession();
+        var transaction = session.beginTransaction();
 
-        for (StatsEntity s : stats) {
+        for (var s : stats) {
             session.update(s);
         }
 
@@ -78,10 +78,10 @@ public class StatsDao
     }
 
     public void deleteStats(Long playerId) {
-        Session session = dataSource.getSession();
-        Transaction transaction = session.beginTransaction();
+        var session = dataSource.getSession();
+        var transaction = session.beginTransaction();
 
-        StatsEntity stats = session.get(StatsEntity.class, playerId);
+        var stats = session.get(StatsEntity.class, playerId);
 
         session.delete(stats);
         transaction.commit();
@@ -89,14 +89,14 @@ public class StatsDao
     }
 
     public static void main(String[] args) {
-        StatsDao statsDao = new StatsDao(new DataSource());
+        var statsDao = new StatsDao(new DataSource());
 
         statsDao.saveStats(0L);
         System.out.println(statsDao.getStats(0L));
 
         System.out.println(statsDao.getTopStats(10));
 
-        StatsEntity stats = new StatsEntity();
+        var stats = new StatsEntity();
         stats.setPlayerId(0L);
         stats.setElo(1015f);
         stats.setWon(1);

@@ -13,7 +13,7 @@ public class DataSource
     private final SessionFactory sessionFactory;
 
     public DataSource() {
-        Configuration configuration = new Configuration();
+        var configuration = new Configuration();
         configuration.configure("hibernate.cfg.xml");
         sessionFactory = configuration.buildSessionFactory();
     }

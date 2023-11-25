@@ -26,12 +26,12 @@ public class LeaderBoardCommand extends Command
 
     @Override
     protected void doCommand(CommandContext ctx) {
-        MessageReceivedEvent event = ctx.getEvent();
-        MessageChannel channel = event.getChannel();
+        var event = ctx.getEvent();
+        var channel = event.getChannel();
 
-        List<Stats> statsList = statsService.getTopStats();
+        var statsList = statsService.getTopStats();
 
-        MessageEmbed embed = new LeaderboardBuilder()
+        var embed = new LeaderboardBuilder()
             .setStats(statsList)
             .build();
 

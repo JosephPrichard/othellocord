@@ -54,8 +54,8 @@ public abstract class Command
     }
 
     protected boolean isContextValid(CommandContext ctx) {
-        int i = 0;
-        for (String param : params) {
+        var i = 0;
+        for (var param : params) {
             if (ctx.getParam(param) == null && i < minCount) {
                 return false;
             }
@@ -65,17 +65,17 @@ public abstract class Command
     }
 
     public final void onMessageEvent(MessageReceivedEvent event) {
-        CommandContext ctx = new CommandContext();
+        var ctx = new CommandContext();
 
-        String[] chunks = event.getMessage().getContentRaw().split("\\s+");
+        var chunks = event.getMessage().getContentRaw().split("\\s+");
 
         // parse the chunks from the bot.commands into the ctx variables
         ctx.setEvent(event);
         ctx.setKey(chunks[0]);
 
         // for each chunk, check the params list to get the name of the param and add it to params ctx
-        for (int i = 1; i < chunks.length && i < params.size() + 1; i++) {
-            String param = params.get(i - 1);
+        for (var i = 1; i < chunks.length && i < params.size() + 1; i++) {
+            var param = params.get(i - 1);
             if (param != null) {
                 ctx.addParam(param, chunks[i]);
             } else {
