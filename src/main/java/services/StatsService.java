@@ -9,11 +9,11 @@ import utils.Elo;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import static utils.Logger.LOGGER;
 
 public class StatsService
 {
-    private final Logger logger = Logger.getLogger("service.stats");
     private final ExecutorService es = Executors.newFixedThreadPool(8);
     private final StatsDao statsDao;
     private final StatsMapper mapper = new StatsMapper();
@@ -43,7 +43,7 @@ public class StatsService
             winnerStats = winnerFuture.get();
             loserStats = loserFuture.get();
         } catch(ExecutionException | InterruptedException e) {
-            logger.log(Level.WARNING, "Failed to retrieve the stats when performing the update stats operation");
+            LOGGER.log(Level.WARNING, "Failed to retrieve the stats when performing the update stats operation");
             return;
         }
 

@@ -4,23 +4,17 @@
 
 package discord.commands;
 
-import services.Game;
 import services.GameService;
 import services.Player;
 import discord.message.GameViewSender;
 import discord.renderers.OthelloBoardRenderer;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import othello.OthelloBoard;
-import othello.Tile;
 
-import java.awt.image.BufferedImage;
-import java.util.List;
 import java.util.logging.Logger;
+
+import static utils.Logger.LOGGER;
 
 public class ViewCommand extends Command
 {
-    private final Logger logger = Logger.getLogger("command.view");
     private final GameService gameService;
     private final OthelloBoardRenderer boardRenderer;
 
@@ -32,14 +26,11 @@ public class ViewCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        var event = ctx.getEvent();
-        var channel = event.getChannel();
-
-        var player = new Player(event.getAuthor());
+        var player = new Player(ctx.getAuthor());
 
         var game = gameService.getGame(player);
         if (game == null) {
-            channel.sendMessage("You're not currently in a game.").queue();
+            ctx.reply("You're not currently in a game.");
             return;
         }
 
@@ -47,11 +38,11 @@ public class ViewCommand extends Command
         var potentialMoves = board.findPotentialMoves();
 
         var image = boardRenderer.drawBoard(board, potentialMoves);
-        new GameViewSender()
+        var sender = new GameViewSender()
             .setGame(game)
-            .setImage(image)
-            .sendMessage(channel);
+            .setImage(image);
+        sender.sendReply(ctx);
 
-        logger.info("Player " + player + " view moves in game");
+        LOGGER.info("Player " + player + " view moves in game");
     }
 }

@@ -4,9 +4,10 @@
 
 package discord.message;
 
+import discord.commands.CommandContext;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import services.GameResult;
 import services.Player;
-import net.dv8tion.jda.api.entities.MessageChannel;
 
 public class GameOverSender extends MessageSender
 {
@@ -52,13 +53,13 @@ public class GameOverSender extends MessageSender
         return this;
     }
 
-    public void sendMessage(MessageChannel channel) {
+    public void sendReply(CommandContext ctx) {
         var desc = messageDesc;
         if (!scoreDesc.isEmpty()) {
             desc += scoreDesc;
         }
         desc += "\n" + resultDesc;
         getEmbedBuilder().setDescription(desc);
-        super.sendMessage(channel);
+        super.sendReply(ctx);
     }
 }

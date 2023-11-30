@@ -15,6 +15,8 @@ import net.dv8tion.jda.api.requests.RestAction;
 import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 
+import static utils.Logger.LOGGER;
+
 public class JDASingleton
 {
     private static JDASingleton instance = null;
@@ -26,11 +28,16 @@ public class JDASingleton
     }
 
     public static void initJDASingleton(String token) throws LoginException {
+        var bot = new OthelloBot();
         var jda = JDABuilder.createLight(token, GatewayIntent.GUILD_MESSAGES)
-            .addEventListeners(new OthelloBot())
+            .addEventListeners(bot)
             .setActivity(Activity.playing("Othello"))
             .build();
         instance = new JDASingleton(jda);
+        LOGGER.info("Updating the commands to discord");
+        jda.updateCommands()
+            .addCommands(bot.getCommandData())
+            .complete();
     }
 
     public static JDASingleton getInstance() {

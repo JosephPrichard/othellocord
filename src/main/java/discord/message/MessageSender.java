@@ -4,14 +4,13 @@
 
 package discord.message;
 
+import discord.commands.CommandContext;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageChannel;
 import utils.Image;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class MessageSender
 {
@@ -38,23 +37,37 @@ public class MessageSender
         return this;
     }
 
-    public void sendMessage(MessageChannel channel) {
+    public void sendReply(CommandContext ctx) {
+        var event = ctx.event();
         try {
             var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {
-                channel.sendMessage(message)
-                    .setEmbeds(embedBuilder.build())
-                    .addFile(is, "image.png")
-                    .queue();
-            } else {
-                channel.sendMessageEmbeds(embedBuilder.build())
-                    .addFile(is, "image.png")
-                    .queue();
+                ctx.sendMessage(message);
             }
+            event.replyEmbeds(embedBuilder.build())
+                .addFile(is, "image.png")
+                .queue();
         } catch(IOException ex) {
-            channel.sendMessage("Unexpected error: couldn't create image").queue();
+            event.reply("Unexpected error: couldn't create image").queue();
+        }
+    }
+
+    public void sendMessage(CommandContext ctx) {
+        var event = ctx.event();
+        try {
+            var is = Image.toPngIS(image);
+            embedBuilder.setImage("attachment://image.png");
+
+            if (message != null) {
+                ctx.sendMessage(message);
+            }
+            event.getChannel().sendMessageEmbeds(embedBuilder.build())
+                .addFile(is, "image.png")
+                .queue();
+        } catch(IOException ex) {
+            event.reply("Unexpected error: couldn't create image").queue();
         }
     }
 }

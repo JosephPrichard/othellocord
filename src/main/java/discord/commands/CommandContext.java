@@ -4,38 +4,51 @@
 
 package discord.commands;
 
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.Objects;
+import java.util.function.Consumer;
 
-public class CommandContext
-{
-    private MessageReceivedEvent event;
-    private String key;
-    private final Map<String, String> params = new HashMap<>();
-
-    public MessageReceivedEvent getEvent() {
-        return event;
+public record CommandContext(SlashCommandInteractionEvent event) {
+    public String subcommand() {
+        return event.getSubcommandName();
     }
 
-    public void setEvent(MessageReceivedEvent event) {
-        this.event = event;
+    public User getAuthor() {
+        return event.getUser();
     }
 
-    public String getKey() {
-        return key;
+    public OptionMapping getParam(String key) {
+        return Objects.requireNonNull(event.getOption(key));
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    @Nullable()
+    public OptionMapping getOptionalParam(String key) {
+        return event.getOption(key);
     }
 
-    public String getParam(String key) {
-        return params.get(key);
+    public void reply(String message) {
+        event.reply(message).queue();
     }
 
-    public void addParam(String key, String value) {
-        params.put(key, value);
+    public void sendMessage(String message, Consumer<Message> onSuccess) {
+        event.getChannel().sendMessage(message).queue(onSuccess);
+    }
+
+    public void sendMessage(String message) {
+        event.getChannel().sendMessage(message).queue();
+    }
+
+    public void deferReply() {
+        event.deferReply().queue();
+    }
+
+    public void replyEmbeds(MessageEmbed embed) {
+        event.replyEmbeds(embed).queue();
     }
 }

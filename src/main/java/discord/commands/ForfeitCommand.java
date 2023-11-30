@@ -6,20 +6,16 @@ package discord.commands;
 
 import services.GameService;
 import services.StatsService;
-import services.Game;
-import services.GameResult;
 import services.Player;
 import discord.message.GameOverSender;
 import discord.renderers.OthelloBoardRenderer;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
-import java.awt.image.BufferedImage;
 import java.util.logging.Logger;
+
+import static utils.Logger.LOGGER;
 
 public class ForfeitCommand extends Command
 {
-    private final Logger logger = Logger.getLogger("command.forfeit");
     private final GameService gameService;
     private final StatsService statsService;
     private final OthelloBoardRenderer boardRenderer;
@@ -37,14 +33,11 @@ public class ForfeitCommand extends Command
 
     @Override
     public void doCommand(CommandContext ctx) {
-        var event = ctx.getEvent();
-        var channel = event.getChannel();
-
-        var player = new Player(event.getAuthor());
+        var player = new Player(ctx.getAuthor());
 
         var game = gameService.getGame(player);
         if (game == null) {
-            channel.sendMessage("You're not currently in a game.").queue();
+            ctx.reply("You're not currently in a game.");
             return;
         }
 
@@ -55,14 +48,14 @@ public class ForfeitCommand extends Command
         // update elo from game result
         var result = game.getForfeitResult();
         statsService.updateStats(result);
-        // send embed response
-        new GameOverSender()
+
+        var sender = new GameOverSender()
             .setGame(result)
             .addForfeitMessage(result.getWinner())
             .setTag(result)
-            .setImage(image)
-            .sendMessage(channel);
+            .setImage(image);
+        sender.sendReply(ctx);
 
-        logger.info(player + " has forfeited");
+        LOGGER.info(player + " has forfeited");
     }
 }

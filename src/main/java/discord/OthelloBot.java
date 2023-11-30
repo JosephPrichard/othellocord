@@ -6,6 +6,10 @@ package discord;
 
 import discord.commands.*;
 import discord.commands.Command;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import services.DataSource;
 import services.StatsDao;
 import services.ChallengeService;
@@ -23,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class OthelloBot extends ListenerAdapter
 {
@@ -43,8 +48,7 @@ public class OthelloBot extends ListenerAdapter
 
         // add all bot commands to the handler map for handling events
         addCommands(
-            new ChallengeCommand(challengeService),
-            new ChallengeBotCommand(gameService, boardRenderer),
+            new ChallengeCommand(challengeService, gameService, boardRenderer),
             new AcceptCommand(gameService, challengeService, boardRenderer),
             new ForfeitCommand(gameService, statsService, boardRenderer),
             new MoveCommand(gameService, statsService, agentService, boardRenderer),
@@ -55,62 +59,32 @@ public class OthelloBot extends ListenerAdapter
         );
     }
 
+    public List<SlashCommandData> getCommandData() {
+        return commandList.stream().map(Command::getData).toList();
+    }
+
     public void addCommands(Command... commands) {
         for (var c : commands) {
-            commandMap.put("!" + c.getKey(), c);
+            commandMap.put(c.getKey(), c);
             commandList.add(c);
         }
     }
 
-    public void onHelpForCommand(MessageChannel channel, String key) {
-        key = "!" + key;
-        var command = commandMap.get(key);
+    @Override
+    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
+        var command = commandMap.get(event.getName());
         if (command != null) {
-            var text = new StringBuilder(command.getDesc() + "\n" + key);
-            for (var param : command.getParams()) {
-                text.append(" `").append(param).append("`");
-            }
-            channel.sendMessage(text.toString()).queue();
-        } else {
-            channel.sendMessage("No such command: " + key).queue();
+            command.onAutoComplete(event);
         }
-    }
-
-    public void onHelp(MessageChannel channel) {
-        var stringBuilder = new StringBuilder();
-        stringBuilder.append("Commands: ");
-        for (var command : commandList) {
-            stringBuilder.append("`!")
-                .append(command.getKey())
-                .append("` ");
-        }
-        channel.sendMessage(stringBuilder.toString()).queue();
     }
 
     @Override
-    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-        if (event.getAuthor().isBot()) {
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (event.getUser().isBot()) {
             return;
         }
-
-        var message = event.getMessage().getContentRaw();
-        // extracts the command key from the string
-        var tokens = message.split("\\s+");
-        var key = tokens[0];
-
-        // special case for help command
-        if (key.equals("!help")) {
-            if (tokens.length >= 2) {
-                onHelpForCommand(event.getChannel(), tokens[1]);
-            } else {
-                onHelp(event.getChannel());
-            }
-
-            return;
-        }
-
         // fetch command handler from bot.commands map, execute if command exists
-        var command = commandMap.get(key);
+        var command = commandMap.get(event.getName());
         if (command != null) {
             command.onMessageEvent(event);
         }

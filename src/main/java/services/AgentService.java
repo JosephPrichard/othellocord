@@ -11,9 +11,10 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
+import static utils.Logger.LOGGER;
+
 public class AgentService
 {
-    private final Logger logger = Logger.getLogger("service.agent");
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     public void findRankedMoves(AgentRequest<List<Move>> agentRequest) {
@@ -22,7 +23,7 @@ public class AgentService
             var moves = agent.findRankedMoves();
             agentRequest.getOnComplete().accept(moves);
         });
-        logger.info("Started agent ranked moves calculation of depth " + agentRequest.getDepth());
+        LOGGER.info("Started agent ranked moves calculation of depth " + agentRequest.getDepth());
     }
 
     public void findBestMove(AgentRequest<Move> agentRequest) {
@@ -31,6 +32,6 @@ public class AgentService
             var move = agent.findBestMove();
             agentRequest.getOnComplete().accept(move);
         });
-        logger.info("Started agent best move calculation of depth " + agentRequest.getDepth());
+        LOGGER.info("Started agent best move calculation of depth " + agentRequest.getDepth());
     }
 }

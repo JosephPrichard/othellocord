@@ -25,9 +25,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static utils.Logger.LOGGER;
+
 public class GameService
 {
-    private final Logger logger = Logger.getLogger("service.game");
     private final LoadingCache<Long, Optional<Game>> games;
     private final StatsService statsService;
 
@@ -43,11 +44,11 @@ public class GameService
                     if (value != null && value.isPresent()) {
                         onGameExpiry(value.get());
                     }
-                    logger.info("Game of " + key + " has been expired");
+                    LOGGER.info("Game of " + key + " has been expired");
                 } else if (cause.equals(RemovalCause.EXPLICIT)) {
-                    logger.info("Explicit removal for game of key " + key);
+                    LOGGER.info("Explicit removal for game of key " + key);
                 } else {
-                    logger.log(Level.WARNING, "Unknown removal cause for game of key " + key);
+                    LOGGER.log(Level.WARNING, "Unknown removal cause for game of key " + key);
                 }
             })
             .build(key -> Optional.empty());

@@ -14,9 +14,10 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static utils.Logger.LOGGER;
+
 public class LeaderBoardCommand extends Command
 {
-    private final Logger logger = Logger.getLogger("command.leaderboard");
     private final StatsService statsService;
 
     public LeaderBoardCommand(StatsService statsService) {
@@ -26,17 +27,10 @@ public class LeaderBoardCommand extends Command
 
     @Override
     protected void doCommand(CommandContext ctx) {
-        var event = ctx.getEvent();
-        var channel = event.getChannel();
+       var statsList = statsService.getTopStats();
+        var embed = new LeaderboardBuilder().setStats(statsList).build();
+        ctx.replyEmbeds(embed);
 
-        var statsList = statsService.getTopStats();
-
-        var embed = new LeaderboardBuilder()
-            .setStats(statsList)
-            .build();
-
-        channel.sendMessageEmbeds(embed).queue();
-
-        logger.info("Fetched leaderboard");
+        LOGGER.info("Fetched leaderboard");
     }
 }
