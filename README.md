@@ -35,12 +35,6 @@ This optimization provides both significant memory and time performance increase
 The AI keeps track of previously evaluated boards with a transposition table. The transposition table is implemented using a cache with a Deep2 replacement scheme.
 Each cache line has 2 buckets, one which is only replaced if the new board is found at a greater depth, the other is replaced if the first bucket is not.
 
-## UML Diagrams
-
-![commandia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/650df48d-0f5c-4126-a002-4ffcee972b62)
-![othellodia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/cc016c02-794e-47ae-953b-e7eb0d63084d)
-![servicedia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/4bfd3bee-7121-4a60-8cc2-a4da4f0b6982)
-
 ## Commands
 
 `/challenge @user`
@@ -83,7 +77,13 @@ Shows the top users with the highest elo in the entire database.
 
 Allows you to see your current theme or change it to a new one.
 
-## Images
+## Demo Images
 
 <img src="https://user-images.githubusercontent.com/58538077/181820016-f7f330ee-481b-4eb7-ab93-9047336fef0d.png" width="35%" height="35%">
 <img src="https://user-images.githubusercontent.com/58538077/216801119-b08ff083-74d8-49d7-96bf-40e904348004.png" width="35%" height="35%">
+
+## UML Diagrams
+
+![commandia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/650df48d-0f5c-4126-a002-4ffcee972b62)
+![othellodia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/cc016c02-794e-47ae-953b-e7eb0d63084d)
+![servicedia](https://github.com/JosephPrichard/OthelloBot/assets/58538077/4bfd3bee-7121-4a60-8cc2-a4da4f0b6982)
