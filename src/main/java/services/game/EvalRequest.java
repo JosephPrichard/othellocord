@@ -32,7 +32,7 @@ public class EvalRequest<Result>
 
     @Override
     public String toString() {
-        return "AgentRequest{" +
+        return "EvalRequest{" +
             "board=\n" + game.getBoard() +
             ", depth=" + depth +
             ", onComplete=" + onComplete +

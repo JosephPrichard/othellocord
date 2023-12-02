@@ -73,7 +73,7 @@ public class MoveCommand extends Command
             .setImage(image);
     }
 
-    private void sendAgentRequest(CommandContext ctx, Game game) {
+    private void doBotMove(CommandContext ctx, Game game) {
         // queue an agent request which will find the best move, make the move, and send back a response
         var depth = Bot.getDepthFromId(game.getCurrentPlayer().getId());
         var r = new EvalRequest<>(game, depth, (Move bestMove) -> {
@@ -106,7 +106,7 @@ public class MoveCommand extends Command
                 } else {
                     var sender = onMoved(game);
                     sender.sendReply(ctx);
-                    sendAgentRequest(ctx, game);
+                    doBotMove(ctx, game);
                 }
             } else {
                 var sender = onGameOver(game, move);
