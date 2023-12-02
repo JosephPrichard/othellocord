@@ -8,8 +8,7 @@ import commands.CommandContext;
 import services.game.GameResult;
 import services.game.Player;
 
-public class GameOverSender extends MessageSender
-{
+public class GameOverSender extends MessageSender {
     private String resultDesc = "";
     private String messageDesc = "";
     private String scoreDesc = "";

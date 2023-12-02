@@ -9,8 +9,7 @@ import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;
 
-public class LeaderBoardCommand extends Command
-{
+public class LeaderBoardCommand extends Command {
     private final StatsService statsService;
 
     public LeaderBoardCommand(StatsService statsService) {
@@ -20,7 +19,7 @@ public class LeaderBoardCommand extends Command
 
     @Override
     protected void doCommand(CommandContext ctx) {
-       var statsList = statsService.getTopStats();
+        var statsList = statsService.getTopStats();
         var embed = new LeaderboardBuilder().setStats(statsList).build();
         ctx.replyEmbeds(embed);
 

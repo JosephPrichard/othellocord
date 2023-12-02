@@ -4,6 +4,5 @@
 
 package othello.exceptions;
 
-public class BoardDeserializationException extends RuntimeException
-{
+public class BoardDeserializationException extends RuntimeException {
 }

@@ -12,8 +12,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public class MessageSender
-{
+public class MessageSender {
     private final EmbedBuilder embedBuilder;
     private BufferedImage image;
     private String message;
@@ -49,7 +48,7 @@ public class MessageSender
             event.replyEmbeds(embedBuilder.build())
                 .addFile(is, "image.png")
                 .queue();
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             event.reply("Unexpected error: couldn't create image").queue();
         }
     }
@@ -66,7 +65,7 @@ public class MessageSender
             event.getChannel().sendMessageEmbeds(embedBuilder.build())
                 .addFile(is, "image.png")
                 .queue();
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             event.reply("Unexpected error: couldn't create image").queue();
         }
     }

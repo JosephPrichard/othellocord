@@ -19,8 +19,7 @@ import utils.Bot;
 import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
-public class ChallengeCommand extends Command
-{
+public class ChallengeCommand extends Command {
     private final ChallengeScheduler challengeScheduler;
     private final GameStorage gameStorage;
     private final BoardRenderer boardRenderer;
@@ -58,13 +57,13 @@ public class ChallengeCommand extends Command
 
         try {
             var game = gameStorage.createBotGame(player, (int) level);
-            var image = boardRenderer.drawBoardMoves(game.getBoard());
+            var image = boardRenderer.drawBoardMoves(game.board());
 
             var sender = new GameStartSender()
                 .setGame(game)
                 .setImage(image);
             sender.sendReply(ctx);
-        } catch(AlreadyPlayingException ex) {
+        } catch (AlreadyPlayingException ex) {
             ctx.reply("You're already in a game");
         }
 

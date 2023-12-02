@@ -19,8 +19,7 @@ import java.util.List;
 import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
-public class AnalyzeCommand extends Command
-{
+public class AnalyzeCommand extends Command {
     private final GameStorage gameStorage;
     private final GameEvaluator gameEvaluator;
 

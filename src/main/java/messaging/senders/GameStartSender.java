@@ -6,18 +6,17 @@ package messaging.senders;
 
 import services.game.Game;
 
-public class GameStartSender extends MessageSender
-{
+public class GameStartSender extends MessageSender {
     public GameStartSender setGame(Game game) {
-        var desc = "Black: " + game.getBlackPlayer().getName() + "\n " +
-            "White: " + game.getWhitePlayer().getName() + "\n " +
+        var desc = "Black: " + game.blackPlayer().getName() + "\n " +
+            "White: " + game.whitePlayer().getName() + "\n " +
             "Use `/view` to view the game and use `/move` to make a move.";
         getEmbedBuilder().setTitle("Game started!").setDescription(desc);
         return this;
     }
 
     public GameStartSender setTag(Game game) {
-        setMessage("<@" + game.getBlackPlayer() + ">" + " <@" + game.getWhitePlayer() + ">");
+        setMessage("<@" + game.blackPlayer() + ">" + " <@" + game.whitePlayer() + ">");
         return this;
     }
 }

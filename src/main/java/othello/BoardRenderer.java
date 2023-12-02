@@ -14,8 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BoardRenderer
-{
+public class BoardRenderer {
     private static final int DISC_SIZE = 100;
     private static final int LINE_THICKNESS = 4;
     private static final int SIDE_OFFSET = 40;

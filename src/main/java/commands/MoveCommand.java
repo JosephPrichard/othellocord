@@ -25,8 +25,7 @@ import java.util.stream.Collectors;
 
 import static utils.Logger.LOGGER;
 
-public class MoveCommand extends Command
-{
+public class MoveCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsService statsService;
     private final GameEvaluator gameEvaluator;
@@ -47,7 +46,7 @@ public class MoveCommand extends Command
     }
 
     private MessageSender onMoved(Game game, Tile move) {
-        var image = boardRenderer.drawBoardMoves(game.getBoard());
+        var image = boardRenderer.drawBoardMoves(game.board());
         return new GameViewSender()
             .setGame(game, move)
             .setTag(game)
@@ -55,7 +54,7 @@ public class MoveCommand extends Command
     }
 
     private MessageSender onMoved(Game game) {
-        var image = boardRenderer.drawBoardMoves(game.getBoard());
+        var image = boardRenderer.drawBoardMoves(game.board());
         return new GameViewSender().setGame(game).setImage(image);
     }
 
@@ -64,7 +63,7 @@ public class MoveCommand extends Command
         var result = game.getResult();
         statsService.updateStats(result);
         // render board and send back message
-        var image = boardRenderer.drawBoard(game.getBoard());
+        var image = boardRenderer.drawBoard(game.board());
         return new GameOverSender()
             .setGame(result)
             .addMoveMessage(result.getWinner(), move.toString())
@@ -128,7 +127,7 @@ public class MoveCommand extends Command
         var player = new Player(event.getUser());
         var game = gameStorage.getGame(player);
         if (game != null) {
-            var moves = game.getBoard().findPotentialMoves();
+            var moves = game.board().findPotentialMoves();
             var choices = moves.stream()
                 .map((tile) -> new Choice(tile.toString(), tile.toString()))
                 .collect(Collectors.toList());

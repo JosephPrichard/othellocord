@@ -12,8 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import static utils.Logger.LOGGER;
 
-public class ChallengeScheduler
-{
+public class ChallengeScheduler {
     private final Map<Challenge, ScheduledFuture<?>> challenges;
     private final ScheduledExecutorService scheduler;
 
@@ -27,23 +26,17 @@ public class ChallengeScheduler
     }
 
     public void createChallenge(Challenge challenge, Runnable onExpiry) {
-        var challenged = challenge.challenged();
-        var challenger = challenge.challenger();
-
-        var future = scheduler.schedule(() -> {
+        Runnable scheduled = () -> {
             onExpiry.run();
-            challenges.remove(new Challenge(challenged, challenger));
-            LOGGER.info("Challenge expired " + challenged.getId() + " " + challenger.getId());
-        }, 30, TimeUnit.SECONDS);
-
-        challenges.put(new Challenge(challenged, challenger), future);
+            challenges.remove(challenge);
+            LOGGER.info("Challenge expired " + challenge.challenged().getId() + " " + challenge.challenger().getId());
+        };
+        var future = scheduler.schedule(scheduled, 30, TimeUnit.SECONDS);
+        challenges.put(challenge, future);
     }
 
     public boolean acceptChallenge(Challenge challenge) {
-        var challenged = challenge.challenged();
-        var challenger = challenge.challenger();
-
-        var future = challenges.remove(new Challenge(challenged, challenger));
+        var future = challenges.remove(challenge);
         if (future != null) {
             future.cancel(false);
             return true;

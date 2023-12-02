@@ -12,8 +12,7 @@ import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;
 
-public class ForfeitCommand extends Command
-{
+public class ForfeitCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsService statsService;
     private final BoardRenderer boardRenderer;
@@ -39,7 +38,7 @@ public class ForfeitCommand extends Command
             return;
         }
 
-        var image = boardRenderer.drawBoard(game.getBoard());
+        var image = boardRenderer.drawBoard(game.board());
 
         // remove game from storage
         gameStorage.deleteGame(game);

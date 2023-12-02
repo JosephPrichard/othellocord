@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class StatsMapper
-{
+public class StatsMapper {
     private final ModelMapper modelMapper = new ModelMapper();
     private final UserFetcher userFetcher;
 
@@ -48,9 +47,10 @@ public class StatsMapper
             }
         }
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
+
         // map each entity to dto
         List<Stats> statsList = new ArrayList<>();
-        for (var i = 0; i < futures.size(); i++){
+        for (var i = 0; i < futures.size(); i++) {
             // retrieve tag from completed future
             var user = futures.get(i).join();
             var tag = user != null ? user.getAsTag() : Bot.getBotName(entityList.get(i).getPlayerId());

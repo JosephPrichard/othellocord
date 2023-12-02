@@ -12,8 +12,7 @@ import java.util.List;
 
 import static utils.Strings.rightPad;
 
-public class AnalyzeBuilder extends EmbedBuilder
-{
+public class AnalyzeBuilder extends EmbedBuilder {
 
     public AnalyzeBuilder() {
         setColor(Color.GREEN);

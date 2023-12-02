@@ -13,8 +13,7 @@ import java.util.List;
 import static utils.Strings.leftPad;
 import static utils.Strings.rightPad;
 
-public class LeaderboardBuilder extends EmbedBuilder
-{
+public class LeaderboardBuilder extends EmbedBuilder {
 
     public LeaderboardBuilder() {
         setColor(Color.GREEN);

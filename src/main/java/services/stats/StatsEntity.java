@@ -7,9 +7,8 @@ package services.stats;
 import javax.persistence.*;
 
 @Entity
-@Table(name="Stats", indexes = { @Index(name = "idx_elo", columnList = "elo") })
-public class StatsEntity
-{
+@Table(name = "Stats", indexes = {@Index(name = "idx_elo", columnList = "elo")})
+public class StatsEntity {
     @Id
     private Long playerId;
     @Column(nullable = false)
@@ -20,6 +19,17 @@ public class StatsEntity
     private Integer lost;
     @Column(nullable = false)
     private Integer drawn;
+
+    public StatsEntity() {
+    }
+
+    public StatsEntity(Long playerId, Float elo, Integer won, Integer lost, Integer drawn) {
+        this.playerId = playerId;
+        this.elo = elo;
+        this.won = won;
+        this.lost = lost;
+        this.drawn = drawn;
+    }
 
     public long getPlayerId() {
         return playerId;

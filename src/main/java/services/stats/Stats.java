@@ -6,8 +6,7 @@ package services.stats;
 
 import services.game.Player;
 
-public class Stats
-{
+public class Stats {
     private Player player;
     private float elo;
     private int won;
@@ -59,6 +58,6 @@ public class Stats
         if (total == 0) {
             return 0f;
         }
-        return won / (float)(won + lost + drawn) * 100f;
+        return won / (float) (won + lost + drawn) * 100f;
     }
 }

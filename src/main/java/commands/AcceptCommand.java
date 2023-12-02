@@ -16,8 +16,7 @@ import services.game.exceptions.AlreadyPlayingException;
 
 import static utils.Logger.LOGGER;
 
-public class AcceptCommand extends Command
-{
+public class AcceptCommand extends Command {
     private final GameStorage gameStorage;
     private final ChallengeScheduler challengeScheduler;
     private final BoardRenderer boardRenderer;
@@ -47,14 +46,14 @@ public class AcceptCommand extends Command
 
         try {
             var game = gameStorage.createGame(player, opponent);
-            var image = boardRenderer.drawBoard(game.getBoard());
+            var image = boardRenderer.drawBoard(game.board());
 
             var sender = new GameStartSender()
                 .setGame(game)
                 .setTag(game)
                 .setImage(image);
             sender.sendReply(ctx);
-        } catch(AlreadyPlayingException ex) {
+        } catch (AlreadyPlayingException ex) {
             ctx.reply("One ore more players are already in a game.");
         }
 

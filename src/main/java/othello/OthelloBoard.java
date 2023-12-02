@@ -8,8 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class OthelloBoard
-{
+public class OthelloBoard {
     private static final int BOARD_SIZE = 8;
     private static final int HALF_SIZE = BOARD_SIZE / 2;
     public static final byte EMPTY = 0;
@@ -194,7 +193,7 @@ public class OthelloBoard
         var p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
         var clearMask = ~(1L << p) & ~(1L << (p + 1));
         // clear bits then set bits
-        if (row < HALF_SIZE ) {
+        if (row < HALF_SIZE) {
             boardA &= clearMask;
             boardA |= (long) color << p;
         } else {
@@ -240,7 +239,7 @@ public class OthelloBoard
         builder.append("  ");
         // add each column header as letter
         for (var i = 0; i < getBoardSize(); i++) {
-            builder.append((char)('a' + (char)i));
+            builder.append((char) ('a' + (char) i));
             builder.append(" ");
         }
         builder.append("\n");

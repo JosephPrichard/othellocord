@@ -12,8 +12,7 @@ import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;
 
-public class StatsCommand extends Command
-{
+public class StatsCommand extends Command {
     private final StatsService statsService;
 
     public StatsCommand(StatsService statsService) {
@@ -36,6 +35,6 @@ public class StatsCommand extends Command
             .build();
         ctx.replyEmbeds(embed);
 
-       LOGGER.info("Retrieved stats for " + stats.getPlayer());
+        LOGGER.info("Retrieved stats for " + stats.getPlayer());
     }
 }

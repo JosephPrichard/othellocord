@@ -7,14 +7,13 @@ package messaging.senders;
 import othello.Tile;
 import services.game.Game;
 
-public class GameViewSender extends MessageSender
-{
+public class GameViewSender extends MessageSender {
     public GameViewSender setGame(Game game) {
         var desc = "Black: " + game.getBlackScore() + " points \n" +
             "White: " + game.getWhiteScore() + " points \n" +
             game.getCurrentPlayer().getName() + " to move";
-       getEmbedBuilder()
-            .setTitle(game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName())
+        getEmbedBuilder()
+            .setTitle(game.blackPlayer().getName() + " vs " + game.whitePlayer().getName())
             .setDescription(desc);
         return this;
     }
@@ -23,7 +22,7 @@ public class GameViewSender extends MessageSender
         var desc = "Black: " + game.getBlackScore() + "\n" +
             "White: " + game.getWhiteScore() + "\n" +
             "Your opponent has moved: " + move;
-       getEmbedBuilder()
+        getEmbedBuilder()
             .setTitle("Your game with " + game.getOtherPlayer().getName())
             .setDescription(desc);
         return this;

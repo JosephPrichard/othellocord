@@ -6,8 +6,7 @@ package othello;
 
 import java.util.Random;
 
-public class ZHasher
-{
+public class ZHasher {
     private final int[][] table;
 
     public ZHasher() {

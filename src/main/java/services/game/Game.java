@@ -6,29 +6,9 @@ package services.game;
 
 import othello.OthelloBoard;
 
-public class Game
-{
-    private final OthelloBoard board;
-    private final Player whitePlayer;
-    private final Player blackPlayer;
+import java.util.Objects;
 
-    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
-        this.board = board;
-        this.whitePlayer = whitePlayer;
-        this.blackPlayer = blackPlayer;
-    }
-
-    public OthelloBoard getBoard() {
-        return board;
-    }
-
-    public Player getWhitePlayer() {
-        return whitePlayer;
-    }
-
-    public Player getBlackPlayer() {
-        return blackPlayer;
-    }
+public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
 
     public Player getCurrentPlayer() {
         return board.isBlackMove() ? blackPlayer : whitePlayer;
@@ -57,16 +37,29 @@ public class Game
     public GameResult getResult() {
         var diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {
-            return new GameResult(blackPlayer, whitePlayer);
+            return GameResult.WinLoss(blackPlayer, whitePlayer);
         } else if (diff < 0) {
-            return new GameResult(whitePlayer, blackPlayer);
+            return GameResult.WinLoss(whitePlayer, blackPlayer);
         } else {
-            return GameResult.Draw();
+            return GameResult.Draw(whitePlayer, blackPlayer);
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Game game = (Game) o;
+        return game.whitePlayer.equals(whitePlayer) && game.blackPlayer.equals(blackPlayer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(whitePlayer, blackPlayer);
+    }
+
     public GameResult getForfeitResult() {
-        return new GameResult(getOtherPlayer(), getCurrentPlayer());
+        return GameResult.WinLoss(getOtherPlayer(), getCurrentPlayer());
     }
 
     @Override

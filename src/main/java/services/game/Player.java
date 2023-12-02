@@ -6,14 +6,13 @@ package services.game;
 
 import net.dv8tion.jda.api.entities.User;
 import utils.Bot;
-import utils.Discord;
 
-public class Player
-{
+public class Player {
     private long id;
     private String name;
 
-    public Player() {}
+    public Player() {
+    }
 
     public Player(long id) {
         this.id = id;
@@ -24,8 +23,14 @@ public class Player
         this.name = name;
     }
 
+    public static long parseDiscordID(String id) {
+        // removes all non digit characters
+        var strippedId = id.replaceAll("\\D", "");
+        return Long.parseLong(strippedId);
+    }
+
     public Player(User user) {
-        this.id = Discord.toLongId(user.getId());
+        this.id = parseDiscordID(user.getId());
         this.name = user.getAsTag();
     }
 
@@ -35,10 +40,6 @@ public class Player
 
     public long getId() {
         return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
     }
 
     public String getName() {

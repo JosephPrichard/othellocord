@@ -6,7 +6,6 @@ package services.stats;
 
 import services.game.GameResult;
 import services.game.Player;
-import utils.Elo;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -16,13 +15,14 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 public class StatsService implements StatsMutator {
+    public static final int K = 30;
     private final StatsDao statsDao;
     private final StatsMapper mapper;
     private final ExecutorService es;
 
-    public StatsService(StatsDao statsDao, StatsMapper statsMapper, ExecutorService es) {
+    public StatsService(StatsDao statsDao, UserFetcher userFetcher, ExecutorService es) {
         this.statsDao = statsDao;
-        this.mapper = statsMapper;
+        this.mapper = new StatsMapper(userFetcher);
         this.es = es;
     }
 
@@ -36,6 +36,19 @@ public class StatsService implements StatsMutator {
         return mapper.mapAll(statsEntityList);
     }
 
+
+    public static float calcProbability(float rating1, float rating2) {
+        return 1.0f / (1.0f + ((float) Math.pow(10, (rating1 - rating2) / 400f)));
+    }
+
+    public static float calcEloWon(float rating, float probability) {
+        return rating + K * (1f - probability);
+    }
+
+    public static float calcEloLost(float rating, float probability) {
+        return rating - K * probability;
+    }
+
     public void updateStats(GameResult result) {
         // retrieve the stats for the winner by submitting both to the thread pool and waiting for a response
         var winnerFuture = es.submit(() -> statsDao.getOrSaveStats(result.getWinner().getId()));
@@ -46,7 +59,7 @@ public class StatsService implements StatsMutator {
         try {
             winnerStats = winnerFuture.get();
             loserStats = loserFuture.get();
-        } catch(ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             LOGGER.log(Level.WARNING, "Failed to retrieve the stats when performing the update stats operation");
             return;
         }
@@ -61,10 +74,10 @@ public class StatsService implements StatsMutator {
         // perform elo calculations
         var winnerEloBefore = winnerStats.getElo();
         var loserEloBefore = loserStats.getElo();
-        var probWin = Elo.probability(loserStats.getElo(), winnerStats.getElo());
-        var probLost = Elo.probability(winnerStats.getElo(), loserStats.getElo());
-        var winnerEloAfter = Elo.ratingWon(winnerStats.getElo(), probWin);
-        var loserEloAfter = Elo.ratingLost(loserStats.getElo(), probLost);
+        var probWin = calcProbability(loserStats.getElo(), winnerStats.getElo());
+        var probLost = calcProbability(winnerStats.getElo(), loserStats.getElo());
+        var winnerEloAfter = calcEloWon(winnerStats.getElo(), probWin);
+        var loserEloAfter = calcEloLost(loserStats.getElo(), probLost);
 
         // set new values in entities
         winnerStats.setElo(winnerEloAfter);

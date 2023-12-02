@@ -6,8 +6,7 @@ package othello;
 
 import othello.exceptions.BoardDeserializationException;
 
-public class BoardSerializer
-{
+public class BoardSerializer {
     public String serialize(OthelloBoard board) {
         var builder = new StringBuilder();
         // add the turn indicator
@@ -20,7 +19,7 @@ public class BoardSerializer
     }
 
     public OthelloBoard deserialize(String boardStr) {
-        boardStr = boardStr.replaceAll("\\s+","");
+        boardStr = boardStr.replaceAll("\\s+", "");
 
         if (boardStr.isEmpty()) {
             throw new BoardDeserializationException();

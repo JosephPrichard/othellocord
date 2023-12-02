@@ -12,8 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class Image
-{
+public class Image {
     public static BufferedImage readImage(String path) {
         try {
             var classLoader = Image.class.getClassLoader();
@@ -23,7 +22,7 @@ public class Image
             } else {
                 throw new IOException();
             }
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             System.out.println(path + " failed to load");
             System.exit(1);
             return null;

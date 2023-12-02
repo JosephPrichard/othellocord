@@ -12,8 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 import static utils.Logger.LOGGER;
 
-public class GameEvaluator
-{
+public class GameEvaluator {
     private final ExecutorService executorService;
 
     public GameEvaluator(ExecutorService executorService) {
@@ -22,8 +21,8 @@ public class GameEvaluator
 
     public void findRankedMoves(EvalRequest<List<Move>> evalRequest) {
         executorService.submit(() -> {
-            var agent = new OthelloAgent(evalRequest.getGame().getBoard(), evalRequest.getDepth());
-            var moves = agent.findRankedMoves();
+            var agent = new OthelloAgent(evalRequest.getDepth());
+            var moves = agent.findRankedMoves(evalRequest.getGame().board());
             evalRequest.onComplete(moves);
         });
         LOGGER.info("Started agent ranked moves calculation of depth " + evalRequest.getDepth());
@@ -31,8 +30,8 @@ public class GameEvaluator
 
     public void findBestMove(EvalRequest<Move> evalRequest) {
         executorService.submit(() -> {
-            var agent = new OthelloAgent(evalRequest.getGame().getBoard(), evalRequest.getDepth());
-            var move = agent.findBestMove();
+            var agent = new OthelloAgent(evalRequest.getDepth());
+            var move = agent.findBestMove(evalRequest.getGame().board());
             evalRequest.onComplete(move);
         });
         LOGGER.info("Started agent best move calculation of depth " + evalRequest.getDepth());

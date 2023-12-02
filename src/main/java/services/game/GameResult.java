@@ -4,52 +4,65 @@
 
 package services.game;
 
-import utils.Pair;
+public class GameResult {
+    private final Player playerOne;
+    private final Player playerTwo;
+    private final boolean isDraw;
+    private float eloOne = 0f;
+    private float eloTwo = 0f;
+    private float eloDiffOne = 0f;
+    private float eloDiffTwo = 0f;
 
-public class GameResult
-{
-    private final Pair<Player, Player> playerPair;
-    private Pair<Float, Float> eloPair;
-    private Pair<Float, Float> eloDiffPair;
-
-    public static GameResult Draw() {
-        return new GameResult();
+    public static GameResult Draw(Player playerOne, Player playerTwo) {
+        return new GameResult(playerOne, playerTwo, true);
     }
 
-    public GameResult() {
-        this.playerPair = null;
+    public static GameResult WinLoss(Player winner, Player loser) {
+        return new GameResult(winner, loser, false);
     }
 
-    public GameResult(Player winner, Player loser) {
-        this.playerPair =  new Pair<>(winner, loser);
+    public GameResult(Player playerOne, Player playerTwo, boolean isDraw) {
+        this.playerOne = playerOne;
+        this.playerTwo = playerTwo;
+        this.isDraw = isDraw;
     }
 
     public boolean isDraw() {
-        return playerPair == null;
+        return isDraw;
     }
 
     public Player getWinner() {
-        return playerPair != null ? playerPair.getLeft() : null;
+        return playerOne;
     }
 
     public Player getLoser() {
-        return playerPair != null ? playerPair.getRight() : null;
+        return playerTwo;
     }
 
     public void setElo(float eloWinner, float eloLoser) {
-        this.eloPair = new Pair<>(eloWinner, eloLoser);
+        this.eloOne = eloWinner;
+        this.eloTwo = eloLoser;
     }
 
     public float getWinnerElo() {
-        return eloPair.getLeft();
+        return eloOne;
     }
 
     public float getLoserElo() {
-        return eloPair.getRight();
+        return eloTwo;
+    }
+
+    public float getWinnerEloDiff() {
+        return eloDiffOne;
+    }
+
+    public float getLoserEloDiff() {
+        return eloDiffTwo;
     }
 
     public void setEloDiff(float diffWinner, float diffLoser) {
-        this.eloDiffPair = new Pair<>(diffWinner, diffLoser);
+        this.eloDiffOne = diffWinner;
+        this.eloDiffTwo = diffLoser;
     }
 
     private static String formatElo(float elo) {
@@ -57,19 +70,23 @@ public class GameResult
     }
 
     public String formatWinnerDiffElo() {
-        return formatElo(eloDiffPair.getLeft());
+        return formatElo(eloDiffOne);
     }
 
     public String formatLoserDiffElo() {
-        return formatElo(eloDiffPair.getRight());
+        return formatElo(eloDiffTwo);
     }
 
     @Override
     public String toString() {
         return "GameResult{" +
-            "playerPair=" + playerPair +
-            ", eloPair=" + eloPair +
-            ", eloDiffPair=" + eloDiffPair +
+            "playerOne=" + playerOne +
+            ", playerTwo=" + playerTwo +
+            ", isDraw=" + isDraw +
+            ", eloOne=" + eloOne +
+            ", eloTwo=" + eloTwo +
+            ", eloDiffOne=" + eloDiffOne +
+            ", eloDiffTwo=" + eloDiffTwo +
             '}';
     }
 }

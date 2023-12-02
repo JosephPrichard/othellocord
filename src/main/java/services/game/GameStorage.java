@@ -25,8 +25,7 @@ import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
-public class GameStorage
-{
+public class GameStorage {
     private final LoadingCache<Long, Optional<Game>> games;
     private final StatsMutator statsMutator;
 
@@ -50,11 +49,6 @@ public class GameStorage
                 }
             })
             .build(key -> Optional.empty());
-    }
-
-    public GameStorage(StatsMutator statsMutator, LoadingCache<Long, Optional<Game>> games) {
-        this.statsMutator = statsMutator;
-        this.games = games;
     }
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
@@ -94,24 +88,26 @@ public class GameStorage
         var optionalGame = games.get(player.getId());
         if (optionalGame.isPresent()) {
             var game = optionalGame.get();
-            return new Game(game.getBoard().copy(), game.getWhitePlayer(), game.getBlackPlayer());
+            // creates a new game with a copied board to ensure this class is thread safe
+            return new Game(game.board().copy(), game.whitePlayer(), game.blackPlayer());
         } else {
             return null;
         }
     }
 
     public void saveGame(Game game) {
-        if (!game.getBlackPlayer().isBot()) {
-            games.put(game.getBlackPlayer().getId(), Optional.of(game));
+        var optGame = Optional.of(game);
+        if (!game.blackPlayer().isBot()) {
+            games.put(game.blackPlayer().getId(), optGame);
         }
-        if (!game.getWhitePlayer().isBot()) {
-            games.put(game.getWhitePlayer().getId(), Optional.of(game));
+        if (!game.whitePlayer().isBot()) {
+            games.put(game.whitePlayer().getId(), optGame);
         }
     }
 
     public void deleteGame(Game game) {
-        games.invalidate(game.getWhitePlayer().getId());
-        games.invalidate(game.getBlackPlayer().getId());
+        games.invalidate(game.whitePlayer().getId());
+        games.invalidate(game.blackPlayer().getId());
     }
 
     public boolean isPlaying(Player player) {
@@ -119,7 +115,7 @@ public class GameStorage
     }
 
     public void makeMove(Game game, Tile move) {
-        game.getBoard().makeMove(move);
+        game.board().makeMove(move);
         if (!game.isGameOver()) {
             saveGame(game);
         } else {
@@ -141,7 +137,7 @@ public class GameStorage
         }
 
         // calculate the potential moves
-        var potentialMoves = game.getBoard().findPotentialMoves();
+        var potentialMoves = game.board().findPotentialMoves();
         // check if the move being requested is any of the potential moves, if so make the move
         for (var potentialMove : potentialMoves) {
             if (potentialMove.equals(move)) {
@@ -155,7 +151,7 @@ public class GameStorage
 
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
-        var forfeitResult = new GameResult(game.getOtherPlayer(), game.getCurrentPlayer());
+        var forfeitResult = GameResult.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
         statsMutator.updateStats(forfeitResult);
     }
 }

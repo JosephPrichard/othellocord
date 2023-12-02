@@ -4,8 +4,7 @@
 
 package othello;
 
-public class Move
-{
+public class Move {
     private Tile disc;
     private float heuristic;
 

@@ -11,8 +11,7 @@ import services.game.Player;
 
 import static utils.Logger.LOGGER;
 
-public class ViewCommand extends Command
-{
+public class ViewCommand extends Command {
     private final GameStorage gameStorage;
     private final BoardRenderer boardRenderer;
 
@@ -32,7 +31,7 @@ public class ViewCommand extends Command
             return;
         }
 
-        var board = game.getBoard();
+        var board = game.board();
         var potentialMoves = board.findPotentialMoves();
 
         var image = boardRenderer.drawBoard(board, potentialMoves);

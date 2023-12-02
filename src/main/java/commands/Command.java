@@ -14,8 +14,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class Command
-{
+public abstract class Command {
     private final Logger logger = Logger.getLogger("command.handler");
     private final String key;
     private final SlashCommandData data;

@@ -6,8 +6,7 @@ package services.game;
 
 import java.util.function.Consumer;
 
-public class EvalRequest<Result>
-{
+public class EvalRequest<Result> {
     private final Game game;
     private final int depth;
     private final Consumer<Result> onComplete;
@@ -33,7 +32,7 @@ public class EvalRequest<Result>
     @Override
     public String toString() {
         return "EvalRequest{" +
-            "board=\n" + game.getBoard() +
+            "board=\n" + game.board() +
             ", depth=" + depth +
             ", onComplete=" + onComplete +
             '}';

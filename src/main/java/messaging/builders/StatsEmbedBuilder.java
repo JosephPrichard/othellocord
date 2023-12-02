@@ -10,10 +10,9 @@ import services.stats.Stats;
 
 import java.awt.*;
 
-public class StatsEmbedBuilder extends EmbedBuilder
-{
+public class StatsEmbedBuilder extends EmbedBuilder {
     public StatsEmbedBuilder() {
-       setColor(Color.GREEN);
+        setColor(Color.GREEN);
     }
 
     public StatsEmbedBuilder setStats(Stats stats) {

@@ -13,8 +13,7 @@ import services.DataSource;
 import services.game.ChallengeScheduler;
 import services.game.GameEvaluator;
 import services.game.GameStorage;
-import services.stats.StatsDao;
-import services.stats.StatsMapper;
+import services.stats.StatsOrmDao;
 import services.stats.StatsService;
 
 import java.util.ArrayList;
@@ -25,8 +24,7 @@ import java.util.concurrent.Executors;
 
 import static utils.Logger.LOGGER;
 
-public class OthelloBot extends ListenerAdapter
-{
+public class OthelloBot extends ListenerAdapter {
     private final Map<String, Command> commandMap = new HashMap<>();
     private final List<Command> commandList = new ArrayList<>();
 
@@ -40,11 +38,10 @@ public class OthelloBot extends ListenerAdapter
         var ioExecutor = Executors.newCachedThreadPool();
         var scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
 
-        var statsDao = new StatsDao(ds);
+        var statsDao = new StatsOrmDao(ds);
 
-        var statsMapper = new StatsMapper(jda::retrieveUserById);
         var gameEvaluator = new GameEvaluator(cpuExecutor);
-        var statsService = new StatsService(statsDao, statsMapper, ioExecutor);
+        var statsService = new StatsService(statsDao, jda::retrieveUserById, ioExecutor);
         var gameStorage = new GameStorage(statsService);
         var challengeScheduler = new ChallengeScheduler(scheduledExecutor);
 

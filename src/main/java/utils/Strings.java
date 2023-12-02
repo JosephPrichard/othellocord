@@ -4,8 +4,7 @@
 
 package utils;
 
-public class Strings
-{
+public class Strings {
     public static String column(String str, int size, String tail) {
         var builder = new StringBuilder();
         var i = 0;

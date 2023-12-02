@@ -4,8 +4,7 @@
 
 package othello;
 
-public class OthelloEvaluator
-{
+public class OthelloEvaluator {
     public static final int[][] CORNERS = {{0, 0}, {0, 7}, {7, 0}, {7, 7}};
     public static final int[][] XC_SQUARES = {{1, 1}, {1, 6}, {6, 1}, {6, 6}, {0, 1}, {0, 6}, {7, 1}, {7, 6}, {1, 0}, {1, 7}, {6, 0}, {6, 7}};
 
