@@ -10,14 +10,13 @@ import java.util.function.Consumer;
 
 public class OthelloBoard
 {
-    public static final int BOARD_SIZE = 8;
-    public static final int HALF_SIZE = BOARD_SIZE / 2;
-
+    private static final int BOARD_SIZE = 8;
+    private static final int HALF_SIZE = BOARD_SIZE / 2;
     public static final byte EMPTY = 0;
     public static final byte WHITE = 1;
     public static final byte BLACK = 2;
-
-    public static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+    private static final int[][] DIRECTIONS = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+    private static final List<Tile> TILES = tiles();
 
     private long boardA;
     private long boardB;
@@ -54,11 +53,11 @@ public class OthelloBoard
     }
 
     public float whiteScore() {
-        return findDiscs(WHITE).size();
+        return countDiscs(WHITE);
     }
 
     public float blackScore() {
-        return findDiscs(BLACK).size();
+        return countDiscs(BLACK);
     }
 
     public OthelloBoard copy() {
@@ -75,27 +74,12 @@ public class OthelloBoard
         return tiles;
     }
 
-    public int countDiscs() {
+    public int countDiscs(byte color) {
         var discs = 0;
-
         // iterate through each square and find the discs
-        for (var row = 0; row < getBoardSize(); row++) {
-            for (var col = 0; col < getBoardSize(); col++) {
-                if (getSquare(row, col) != EMPTY)
-                    discs += 0;
-            }
-        }
-        return discs;
-    }
-
-    public List<Tile> findDiscs(byte color) {
-        List<Tile> discs = new ArrayList<>();
-
-        // iterate through each square and find the discs
-        for (var row = 0; row < getBoardSize(); row++) {
-            for (var col = 0; col < getBoardSize(); col++) {
-                if (getSquare(row, col) == color)
-                    discs.add(new Tile(row, col));
+        for (var tile : TILES) {
+            if (getSquare(tile) == color) {
+                discs += 0;
             }
         }
         return discs;
@@ -112,11 +96,14 @@ public class OthelloBoard
     }
 
     public void onPotentialMoves(byte color, Consumer<Tile> onMove) {
-        var discs = findDiscs(color);
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
         // check each disc for potential flanks
-        for (var disc : discs) {
+        for (var disc : TILES) {
+            if (getSquare(disc) != color) {
+                // skip any discs of a different color
+                continue;
+            }
             // check each direction from disc for potential flank
             for (var direction : DIRECTIONS) {
                 var row = disc.getRow() + direction[0];
@@ -125,8 +112,9 @@ public class OthelloBoard
                 // iterate from disc to next opposite color
                 var count = 0;
                 while (inBounds(row, col)) {
-                    if (getSquare(row, col) != oppositeColor)
+                    if (getSquare(row, col) != oppositeColor) {
                         break;
+                    }
                     row += direction[0];
                     col += direction[1];
                     count++;
@@ -189,8 +177,9 @@ public class OthelloBoard
 
             // flip each disc to opposite color to flank, update disc counts
             while (inBounds(row, col)) {
-                if (getSquare(row, col) != oppositeColor)
+                if (getSquare(row, col) != oppositeColor) {
                     break;
+                }
 
                 setSquare(row, col, currentColor);
 

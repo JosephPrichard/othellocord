@@ -14,53 +14,44 @@ public final class OthelloAgent
     private final Logger logger = Logger.getLogger("othello.ai");
 
     private static final float INF = Float.MAX_VALUE;
+    private static final int MIN_DEPTH = 5;
 
     private final int maxTime;
     private long stopTime = 0;
     private final int maxDepth;
 
     private final OthelloEvaluator evaluator;
-    private final OthelloBoard rootBoard;
 
     private final ZHasher hasher;
-    private final TTable tTable;
+    private final TTable table;
 
-    public OthelloAgent(OthelloBoard board, int maxDepth) {
-        this(board, maxDepth, (int) Math.pow(2, 12) + 1, 3000);
+    public OthelloAgent(int maxDepth) {
+        this(maxDepth, (int) Math.pow(2, 12) + 1, 3000);
     }
 
-    public OthelloAgent(OthelloBoard board, int maxDepth, int ttSize, int maxTime) {
-        this.rootBoard = board.copy();
+    public OthelloAgent(int maxDepth, int ttSize, int maxTime) {
         this.maxDepth = maxDepth;
         this.hasher = new ZHasher();
         this.evaluator = new OthelloEvaluator();
-        this.tTable = new TTable(ttSize);
+        this.table = new TTable(ttSize);
         this.maxTime = maxTime;
     }
 
-    public int getMaxDepth() {
-        return maxDepth;
-    }
-
-    public OthelloBoard getRootBoard() {
-        return rootBoard;
-    }
-
-    public List<Move> findRankedMoves() {
-        var moves = rootBoard.findPotentialMoves();
+    public List<Move> findRankedMoves(OthelloBoard board) {
+        var moves = board.findPotentialMoves();
         List<Move> rankedMoves = new ArrayList<>();
 
         // call the iterative deepening negamax to calculate the heuristic for each move and add it to list
         for (var move : moves) {
-            var copiedBoard = rootBoard.copy();
+            var copiedBoard = board.copy();
             copiedBoard.makeMove(move);
 
-            var heuristic = iterativeAbMinimax(copiedBoard, maxDepth - 1);
+            var heuristic = evaluate(copiedBoard, maxDepth - 1);
             rankedMoves.add(new Move(move, heuristic));
         }
 
         // sort the moves to rank them properly
-        Comparator<Move> comparator = rootBoard.isBlackMove() ?
+        Comparator<Move> comparator = board.isBlackMove() ?
             (m1, m2) -> Float.compare(m2.getHeuristic(), m1.getHeuristic()) :
             (m1, m2) -> Float.compare(m1.getHeuristic(), m2.getHeuristic());
         rankedMoves.sort(comparator);
@@ -80,23 +71,23 @@ public final class OthelloAgent
         return rankedMoves;
     }
 
-    public Move findBestMove() {
+    public Move findBestMove(OthelloBoard board) {
         var startTime = System.currentTimeMillis();
         stopTime = startTime + maxTime;
 
-        var moves = rootBoard.findPotentialMoves();
+        var moves = board.findPotentialMoves();
         Tile bestMove = null;
-        var bestHeuristic = rootBoard.isBlackMove() ? -INF : INF;
+        var bestHeuristic = board.isBlackMove() ? -INF : INF;
 
         // comparator to find the best move by heuristic
-        Comparator<Float> comparator = rootBoard.isBlackMove() ? Float::compare : (m1, m2) -> Float.compare(m2, m1);
+        Comparator<Float> comparator = board.isBlackMove() ? Float::compare : (m1, m2) -> Float.compare(m2, m1);
 
         // call the iterative deepening negamax to calculate the heuristic for each potential move and determine the best one
         for (var move : moves) {
-            var copiedBoard = rootBoard.copy();
+            var copiedBoard = board.copy();
             copiedBoard.makeMove(move);
 
-            var heuristic = iterativeAbMinimax(copiedBoard, maxDepth - 1);
+            var heuristic = evaluate(copiedBoard, maxDepth - 1);
             if (comparator.compare(heuristic, bestHeuristic) > 0) {
                 bestMove = move;
                 bestHeuristic = heuristic;
@@ -108,8 +99,8 @@ public final class OthelloAgent
 
         logger.info("Finished ai analysis, " +
             "max_depth: " + maxDepth + ", " +
-            "tt_hits: " + tTable.getHits() + ", " +
-            "tt_misses: " + tTable.getMisses() + ", " +
+            "tt_hits: " + table.getHits() + ", " +
+            "tt_misses: " + table.getMisses() + ", " +
             "time_taken: " + timeTaken + "ms"
         );
 
@@ -120,10 +111,10 @@ public final class OthelloAgent
      * Searches othello game tree with iterative deepening depth first search
      * Starts from a relative depth of 1 until a specified relative max depth
      */
-    public float iterativeAbMinimax(OthelloBoard board, int maxDepth) {
+    public float evaluate(OthelloBoard board, int maxDepth) {
         float heuristic = 0;
         for (var depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
-            heuristic = abMinimax(board.copy(), depthLimit, board.isBlackMove(), -INF, INF);
+            heuristic = evaluate(board.copy(), depthLimit, board.isBlackMove(), -INF, INF);
         }
         return heuristic;
     }
@@ -131,24 +122,25 @@ public final class OthelloAgent
     /**
      * Searches othello game tree using minimax with alpha beta pruning to evaluate how good a board is
      */
-    public float abMinimax(OthelloBoard board, int depth, boolean maximizer, float alpha, float beta) {
+    public float evaluate(OthelloBoard board, int depth, boolean maximizer, float alpha, float beta) {
+        // stop early when we reach depth floor, or we've gone over time
+        if (depth == 0 || (depth >= MIN_DEPTH && System.currentTimeMillis() > stopTime)) {
+            return evaluator.heuristic(board);
+        }
+
         var moves = board.findPotentialMoves();
 
-        // stop when we reach depth floor, cannot expand node's children, or we've gone over time
-        // depth 5 is trivial to search up to
-        var minDepth = 5;
-        if (depth == 0 || moves.isEmpty()
-            || (depth >= minDepth && System.currentTimeMillis() > stopTime)
-        ) {
+        // stop when we cannot expand node's children
+        if (moves.isEmpty()) {
             return evaluator.heuristic(board);
         }
 
         var hashKey = hasher.hash(board);
 
         // check tt table to see if we have a cache hit
-        var node = tTable.get(hashKey);
-        if (node != null && node.getDepth() >= depth) {
-            return node.getHeuristic();
+        var node = table.get(hashKey);
+        if (node != null && node.depth() >= depth) {
+            return node.heuristic();
         }
 
         // find the children for the board state
@@ -161,26 +153,26 @@ public final class OthelloAgent
         }
 
         if (maximizer) {
-            // explore best children first for move ordering, find the best moves and return them
+            // explore the best children first for move ordering, find the best moves and return them
             for (var child : children) {
-                alpha = Math.max(alpha, abMinimax(child, depth - 1, false, alpha, beta));
+                alpha = Math.max(alpha, evaluate(child, depth - 1, false, alpha, beta));
                 // prune this branch, it cannot possibly be better than any child found so far
                 if (alpha >= beta) {
                     break;
                 }
             }
-            tTable.put(new TTNode(hashKey, alpha, depth));
+            table.put(new TTNode(hashKey, alpha, depth));
             return alpha;
         } else {
-            // explore best children first for move ordering, find the best moves and return them
+            // explore the best children first for move ordering, find the best moves and return them
             for (var child : children) {
-                beta = Math.min(beta, abMinimax(child, depth - 1, true, alpha, beta));
+                beta = Math.min(beta, evaluate(child, depth - 1, true, alpha, beta));
                 // prune this branch, it cannot possibly be better than any child found so far
                 if (beta <= alpha) {
                     break;
                 }
             }
-            tTable.put(new TTNode(hashKey, beta, depth));
+            table.put(new TTNode(hashKey, beta, depth));
             return beta;
         }
     }
@@ -190,8 +182,8 @@ public final class OthelloAgent
 
         var board = new OthelloBoard();
         for (var j = 0; j < 10; j++) {
-            var ai = new OthelloAgent(board, 8);
-            var bestMove = ai.findBestMove();
+            var agent = new OthelloAgent(8);
+            var bestMove = agent.findBestMove(board);
             System.out.println(bestMove);
             board.makeMove(bestMove.getTile());
         }

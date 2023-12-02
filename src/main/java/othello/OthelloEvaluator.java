@@ -4,7 +4,6 @@
 
 package othello;
 
-// https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
 public class OthelloEvaluator
 {
     public static final int[][] CORNERS = {{0, 0}, {0, 7}, {7, 0}, {7, 7}};

@@ -8,7 +8,7 @@ import othello.exceptions.BoardDeserializationException;
 
 public class BoardSerializer
 {
-    public static String serialize(OthelloBoard board) {
+    public String serialize(OthelloBoard board) {
         var builder = new StringBuilder();
         // add the turn indicator
         builder.append(board.isBlackMove() ? "B" : "W");
@@ -19,13 +19,7 @@ public class BoardSerializer
         return builder.toString();
     }
 
-    /**
-     * Algorithm to deserialize the board string into a board in memory,
-     * assumes the serialization format is valid
-     * @param boardStr to deserialize
-     * @return board in memory
-     */
-    public static OthelloBoard deserialize(String boardStr) {
+    public OthelloBoard deserialize(String boardStr) {
         boardStr = boardStr.replaceAll("\\s+","");
 
         if (boardStr.isEmpty()) {
@@ -54,9 +48,10 @@ public class BoardSerializer
     }
 
     public static void main(String[] args) {
-        var boardStr = serialize(new OthelloBoard());
+        var serializer = new BoardSerializer();
+        var boardStr = serializer.serialize(new OthelloBoard());
         System.out.println(boardStr);
-        var board = deserialize(boardStr);
+        var board = serializer.deserialize(boardStr);
         System.out.println(board);
     }
 }

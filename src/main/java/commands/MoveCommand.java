@@ -46,7 +46,7 @@ public class MoveCommand extends Command
         this.boardRenderer = boardRenderer;
     }
 
-    public MessageSender onMoved(Game game, Tile move) {
+    private MessageSender onMoved(Game game, Tile move) {
         var image = boardRenderer.drawBoardMoves(game.getBoard());
         return new GameViewSender()
             .setGame(game, move)
@@ -54,12 +54,12 @@ public class MoveCommand extends Command
             .setImage(image);
     }
 
-    public MessageSender onMoved(Game game) {
+    private MessageSender onMoved(Game game) {
         var image = boardRenderer.drawBoardMoves(game.getBoard());
         return new GameViewSender().setGame(game).setImage(image);
     }
 
-    public MessageSender onGameOver(Game game, Tile move) {
+    private MessageSender onGameOver(Game game, Tile move) {
         // update elo the elo of the players
         var result = game.getResult();
         statsService.updateStats(result);
