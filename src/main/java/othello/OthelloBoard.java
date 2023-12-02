@@ -6,6 +6,7 @@ package othello;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class OthelloBoard
 {
@@ -64,7 +65,7 @@ public class OthelloBoard
         return new OthelloBoard(this);
     }
 
-    public List<Tile> tiles() {
+    public static List<Tile> tiles() {
         List<Tile> tiles = new ArrayList<>();
         for (var row = 0; row < getBoardSize(); row++) {
             for (var col = 0; col < getBoardSize(); col++) {
@@ -74,10 +75,6 @@ public class OthelloBoard
         return tiles;
     }
 
-    /**
-     * Counts all discs on the board
-     * @return the number of discs on the board
-     */
     public int countDiscs() {
         var discs = 0;
 
@@ -91,11 +88,6 @@ public class OthelloBoard
         return discs;
     }
 
-    /**
-     * Searches the board for all othello discs of matching color
-     * @param color to find discs for
-     * @return list containing positions of the discs
-     */
     public List<Tile> findDiscs(byte color) {
         List<Tile> discs = new ArrayList<>();
 
@@ -109,21 +101,17 @@ public class OthelloBoard
         return discs;
     }
 
-    /**
-     * Find the available moves the othello board depending on the board state
-     * @return a list containing the moves
-     */
     public List<Tile> findPotentialMoves() {
-        return findPotentialMoves(blackMove ? BLACK : WHITE);
+        List<Tile> moves = new ArrayList<>();
+        onPotentialMoves(moves::add);
+        return moves;
     }
 
-    /**
-     * Find the available moves the othello board depending on the board state
-     * @return a list containing the moves
-     */
-    public List<Tile> findPotentialMoves(byte color) {
-        List<Tile> moves = new ArrayList<>();
+    public void onPotentialMoves(Consumer<Tile> onMove) {
+        onPotentialMoves(blackMove ? BLACK : WHITE, onMove);
+    }
 
+    public void onPotentialMoves(byte color, Consumer<Tile> onMove) {
         var discs = findDiscs(color);
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
@@ -146,30 +134,23 @@ public class OthelloBoard
                 // add move to potential moves list assuming
                 // we flank at least once disc, the tile is in bounds and is empty
                 if (count > 0 && inBounds(row, col) && getSquare(row, col) == EMPTY) {
-                    moves.add(new Tile(row, col));
+                    onMove.accept(new Tile(row, col));
                 }
             }
         }
 
-        return moves;
     }
 
-    /**
-     * Find the available moves the othello board depending on the board state
-     * @return a list containing the moves
-     */
     public int countPotentialMoves(byte color) {
-        return findPotentialMoves(color).size();
+        int[] count = {0};
+        onPotentialMoves(color, (tile) -> ++count[0]);
+        return count[0];
     }
 
     public boolean isGameOver() {
         return countPotentialMoves(blackMove ? BLACK : WHITE) <= 0;
     }
 
-    /**
-     * Makes a move on a position on the othello board
-     * @param move to make move
-     */
     public void makeMove(Tile move) {
         var oppositeColor = blackMove ? WHITE : BLACK;
         var currentColor = blackMove ? BLACK : WHITE;
@@ -239,55 +220,30 @@ public class OthelloBoard
         return row < HALF_SIZE ? (byte) (mask & (boardA >> p)) : (byte) (mask & (boardB >> p));
     }
 
-    /**
-     * Sets a square to a value on the board by othello board notation
-     * @param square in othello board notation
-     * @param color to set, must be one of the constants
-     */
     public void setSquare(String square, byte color) {
         var col = square.charAt(0) - 'a';
         var row = Character.getNumericValue(square.charAt(1)) - 1;
         setSquare(row, col, color);
     }
 
-    /**
-     * Gets a square from the othello board
-     * @param position on the board
-     */
     public void setSquare(int position, byte color) {
         setSquare(position / getBoardSize(), position % getBoardSize(), color);
     }
 
-    /**
-     * Gets a square from the othello board
-     * @param square in othello board notation
-     */
     public byte getSquare(String square) {
         var col = square.charAt(0) - 'a';
         var row = Character.getNumericValue(square.charAt(1)) - 1;
         return getSquare(row, col);
     }
 
-    /**
-     * Gets a square from the othello board
-     * @param position on the board
-     */
     public byte getSquare(int position) {
         return getSquare(position / getBoardSize(), position % getBoardSize());
     }
 
-    /**
-     * Gets a square from the othello board
-     * @param tile to get for
-     */
     public byte getSquare(Tile tile) {
         return getSquare(tile.getRow(), tile.getCol());
     }
 
-    /**
-     * Converts the internal board to a parsable, readable string
-     * @return internal board as a string
-     */
     @Override
     public String toString() {
         var builder = new StringBuilder();

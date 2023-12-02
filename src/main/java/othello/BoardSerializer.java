@@ -4,8 +4,6 @@
 
 package othello;
 
-import othello.OthelloBoard;
-import othello.Tile;
 import othello.exceptions.BoardDeserializationException;
 
 public class BoardSerializer
@@ -15,7 +13,7 @@ public class BoardSerializer
         // add the turn indicator
         builder.append(board.isBlackMove() ? "B" : "W");
         // for each square add the number to the serialized string
-        for (var tile : board.tiles()) {
+        for (var tile : OthelloBoard.tiles()) {
             builder.append(board.getSquare(tile));
         }
         return builder.toString();
