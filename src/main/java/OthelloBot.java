@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import static utils.Logger.LOGGER;
 
 public class OthelloBot extends ListenerAdapter {
+
     private final Map<String, Command> commandMap = new HashMap<>();
     private final List<Command> commandList = new ArrayList<>();
 

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class OthelloBoard {
+
     private static final int BOARD_SIZE = 8;
     private static final int HALF_SIZE = BOARD_SIZE / 2;
     public static final byte EMPTY = 0;

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BoardRenderer {
+
     private static final int DISC_SIZE = 100;
     private static final int LINE_THICKNESS = 4;
     private static final int SIDE_OFFSET = 40;
@@ -31,7 +32,8 @@ public class BoardRenderer {
     private static final int DOT_SIZE = 16;
     private static final int TOP_LEFT = 5;
 
-    private static final BufferedImage whiteDiscImage = drawDisc(WHITE_FILL);;
+    private static final BufferedImage whiteDiscImage = drawDisc(WHITE_FILL);
+    ;
     private static final BufferedImage blackDiscImage = drawDisc(BLACK_FILL);
     private static final BufferedImage outlineImage = drawDisc(NO_FILL);
     private static final BufferedImage backgroundImage = drawBackground(OthelloBoard.getBoardSize());

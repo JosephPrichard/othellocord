@@ -7,5 +7,6 @@ package services.player;
 import java.util.concurrent.CompletableFuture;
 
 public interface UserFetcher {
+
     CompletableFuture<String> fetchUserTag(Long longId);
 }

@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import static utils.Logger.LOGGER;
 
 public class ChallengeScheduler implements ChallengeManager {
+
     private final Map<Challenge, ScheduledFuture<?>> challenges;
     private final ScheduledExecutorService scheduler;
 

@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 public class GameCachedStorage implements GameStorage {
+
     private final LoadingCache<Long, Optional<Game>> games;
     private final StatsMutator statsMutator;
 

@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import static utils.Logger.LOGGER;
 
 public class MoveCommand extends Command {
+
     private final GameStorage gameStorage;
     private final StatsService statsService;
     private final GameEvaluator gameEvaluator;
@@ -53,7 +54,7 @@ public class MoveCommand extends Command {
     }
 
     private MessageSender onMoved(Game game) {
-        var image = boardRenderer.drawBoardMoves(game.board());
+        var image = BoardRenderer.drawBoardMoves(game.board());
         return new GameViewSender().setGame(game).setImage(image);
     }
 
@@ -62,7 +63,7 @@ public class MoveCommand extends Command {
         var result = game.getResult();
         statsService.updateStats(result);
         // render board and send back message
-        var image = boardRenderer.drawBoard(game.board());
+        var image = BoardRenderer.drawBoard(game.board());
         return new GameOverSender()
             .setGame(result)
             .addMoveMessage(result.getWinner(), move.toString())
@@ -91,7 +92,7 @@ public class MoveCommand extends Command {
     @Override
     public void doCommand(CommandContext ctx) {
         var strMove = ctx.getParam("move").getAsString();
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         var move = new Tile(strMove);
         try {

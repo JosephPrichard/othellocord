@@ -10,22 +10,28 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import services.player.Player;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.function.Consumer;
 
 public record SlashCommandContext(SlashCommandInteractionEvent event) implements CommandContext {
+
     public String subcommand() {
         return event.getSubcommandName();
     }
 
-    public User getAuthor() {
+    public User getUser() {
         return event.getUser();
     }
 
+    public Player getPlayer() {
+        return new Player(getUser());
+    }
+
     public OptionMapping getParam(String key) {
-        return Objects.requireNonNull(event.getOption(key));
+        return Objects.requireNonNull(getOptionalParam(key));
     }
 
     @Nullable()

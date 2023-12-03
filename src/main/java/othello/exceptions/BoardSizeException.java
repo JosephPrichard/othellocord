@@ -5,4 +5,5 @@
 package othello.exceptions;
 
 public class BoardSizeException extends RuntimeException {
+
 }

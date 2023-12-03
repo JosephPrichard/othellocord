@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class StatsOrmDao implements StatsDao {
+
     private final DataSource dataSource;
 
     public StatsOrmDao(DataSource dataSource) {

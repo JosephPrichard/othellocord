@@ -7,6 +7,7 @@ package messaging.senders;
 import services.game.Game;
 
 public class GameStartSender extends MessageSender {
+
     public GameStartSender setGame(Game game) {
         var desc = "Black: " + game.blackPlayer().getName() + "\n " +
             "White: " + game.whitePlayer().getName() + "\n " +

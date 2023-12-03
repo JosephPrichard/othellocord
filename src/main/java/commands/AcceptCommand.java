@@ -18,6 +18,7 @@ import services.game.exceptions.AlreadyPlayingException;
 import static utils.Logger.LOGGER;
 
 public class AcceptCommand extends Command {
+
     private final GameStorage gameStorage;
     private final ChallengeManager challengeManager;
 
@@ -35,7 +36,7 @@ public class AcceptCommand extends Command {
     public void doCommand(CommandContext ctx) {
         var opponentUser = ctx.getParam("challenger").getAsUser();
         var opponent = new Player(opponentUser);
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         if (!challengeManager.acceptChallenge(new Challenge(player, opponent))) {
             ctx.reply("No challenge to accept.");

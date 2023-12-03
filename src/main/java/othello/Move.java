@@ -5,6 +5,7 @@
 package othello;
 
 public class Move {
+
     private Tile disc;
     private float heuristic;
 

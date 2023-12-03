@@ -21,6 +21,7 @@ import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
 public class ChallengeCommand extends Command {
+
     private final ChallengeManager challengeManager;
     private final GameStorage gameStorage;
 
@@ -52,7 +53,7 @@ public class ChallengeCommand extends Command {
             return;
         }
 
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         try {
             var game = gameStorage.createBotGame(player, (int) level);
@@ -73,7 +74,7 @@ public class ChallengeCommand extends Command {
         var opponentUser = ctx.getParam("opponent").getAsUser();
 
         var opponent = new Player(opponentUser);
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         var id = player.getId();
         Runnable onExpiry = () -> ctx.sendMessage("<@" + id + "> Challenge timed out!");

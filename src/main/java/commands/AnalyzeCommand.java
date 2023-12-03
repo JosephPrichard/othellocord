@@ -12,7 +12,6 @@ import othello.Move;
 import services.game.EvalRequest;
 import services.game.GameEvaluator;
 import services.game.GameStorage;
-import services.player.Player;
 import utils.Bot;
 
 import java.util.List;
@@ -21,6 +20,7 @@ import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
 public class AnalyzeCommand extends Command {
+
     private final GameStorage gameStorage;
     private final GameEvaluator gameEvaluator;
 
@@ -42,7 +42,7 @@ public class AnalyzeCommand extends Command {
             return;
         }
 
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         // fetch game to analyze
         var game = gameStorage.getGame(player);

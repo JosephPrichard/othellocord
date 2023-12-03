@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.User;
 import utils.Bot;
 
 public class Player {
+
     private long id;
     private String name;
 

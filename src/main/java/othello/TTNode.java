@@ -5,4 +5,5 @@
 package othello;
 
 public record TTNode(long key, float heuristic, int depth) {
+
 }

@@ -8,6 +8,7 @@ import othello.Tile;
 import services.game.Game;
 
 public class GameViewSender extends MessageSender {
+
     public GameViewSender setGame(Game game) {
         var desc = "Black: " + game.getBlackScore() + " points \n" +
             "White: " + game.getWhiteScore() + " points \n" +

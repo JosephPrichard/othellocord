@@ -7,6 +7,7 @@ package services.game;
 import services.player.Player;
 
 public class GameResult {
+
     private final Player playerOne;
     private final Player playerTwo;
     private final boolean isDraw;

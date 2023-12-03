@@ -9,6 +9,7 @@ import javax.persistence.*;
 @Entity
 @Table(name = "Stats", indexes = {@Index(name = "idx_elo", columnList = "elo")})
 public class StatsEntity {
+
     @Id
     private Long playerId;
     @Column(nullable = false)

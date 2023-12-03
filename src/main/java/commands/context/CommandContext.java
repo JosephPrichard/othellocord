@@ -9,14 +9,18 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import services.player.Player;
 
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 
 public interface CommandContext {
+
     String subcommand();
 
-    User getAuthor();
+    Player getPlayer();
+
+    User getUser();
 
     OptionMapping getParam(String key);
 

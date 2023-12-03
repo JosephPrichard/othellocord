@@ -9,6 +9,7 @@ import services.player.Player;
 import java.util.Objects;
 
 public class Stats {
+
     private Player player;
     private float elo;
     private int won;

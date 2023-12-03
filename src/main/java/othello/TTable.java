@@ -7,6 +7,7 @@ package othello;
 import javax.annotation.Nullable;
 
 public class TTable {
+
     private final TTNode[][] cache;
     private int hits = 0;
     private int misses = 0;

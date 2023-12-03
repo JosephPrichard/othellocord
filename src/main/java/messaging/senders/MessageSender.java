@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class MessageSender {
+
     private final EmbedBuilder embedBuilder;
     private BufferedImage image;
     private String message;

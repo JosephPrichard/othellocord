@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 public class StatsService implements StatsMutator {
+
     public static final int K = 30;
     private final StatsDao statsDao;
     private final ExecutorService es;
@@ -44,7 +45,7 @@ public class StatsService implements StatsMutator {
         try {
             var tag = userFetcher.fetchUserTag(statsEntity.getPlayerId()).get();
             stats.getPlayer().setName(tag);
-        } catch(ExecutionException | InterruptedException ex) {
+        } catch (ExecutionException | InterruptedException ex) {
             LOGGER.info("Failed to load the tag name for mapped player " + stats.getPlayer());
         }
         return stats;

@@ -15,7 +15,7 @@ public class Game {
     private final Player whitePlayer;
     private final Player blackPlayer;
 
-    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer)  {
+    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
         this.board = board;
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;

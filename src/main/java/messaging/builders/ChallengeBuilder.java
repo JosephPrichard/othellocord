@@ -7,6 +7,7 @@ package messaging.builders;
 import services.player.Player;
 
 public class ChallengeBuilder {
+
     private final StringBuilder messageBuilder;
     private Player challenged;
     private Player challenger;

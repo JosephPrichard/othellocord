@@ -5,6 +5,7 @@
 package othello;
 
 public class Tile {
+
     private final int row;
     private final int col;
 

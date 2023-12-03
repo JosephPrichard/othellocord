@@ -7,6 +7,7 @@ package services.game;
 import java.util.function.Consumer;
 
 public class EvalRequest<Result> {
+
     private final Game game;
     private final int depth;
     private final Consumer<Result> onComplete;

@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 public interface GameStorage {
+
     Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException;
 
     Game createBotGame(Player blackPlayer, int level) throws AlreadyPlayingException;

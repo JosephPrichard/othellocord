@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class Image {
+
     public static BufferedImage readImage(String path) {
         try {
             var classLoader = Image.class.getClassLoader();

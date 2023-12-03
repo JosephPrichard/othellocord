@@ -7,6 +7,7 @@ package utils;
 import services.player.Player;
 
 public class Bot {
+
     public static final int MAX_BOT_LEVEL = 5;
 
     public static int getDepthFromId(long id) {

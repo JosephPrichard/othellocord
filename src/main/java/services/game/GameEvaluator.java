@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import static utils.Logger.LOGGER;
 
 public class GameEvaluator {
+
     private final ExecutorService executorService;
 
     public GameEvaluator(ExecutorService executorService) {

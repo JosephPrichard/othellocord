@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public final class OthelloAgent {
+
     private final Logger logger = Logger.getLogger("othello.ai");
 
     private static final float INF = Float.MAX_VALUE;

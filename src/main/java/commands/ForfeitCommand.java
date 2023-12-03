@@ -8,12 +8,12 @@ import commands.context.CommandContext;
 import messaging.senders.GameOverSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
-import services.player.Player;
 import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;
 
 public class ForfeitCommand extends Command {
+
     private final GameStorage gameStorage;
     private final StatsService statsService;
 
@@ -28,7 +28,7 @@ public class ForfeitCommand extends Command {
 
     @Override
     public void doCommand(CommandContext ctx) {
-        var player = new Player(ctx.getAuthor());
+        var player = ctx.getPlayer();
 
         var game = gameStorage.getGame(player);
         if (game == null) {

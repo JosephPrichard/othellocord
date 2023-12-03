@@ -9,6 +9,7 @@ import services.game.GameResult;
 import services.player.Player;
 
 public class GameOverSender extends MessageSender {
+
     private String resultDesc = "";
     private String messageDesc = "";
     private String scoreDesc = "";

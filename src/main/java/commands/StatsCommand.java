@@ -14,6 +14,7 @@ import services.stats.StatsService;
 import static utils.Logger.LOGGER;
 
 public class StatsCommand extends Command {
+
     private final StatsService statsService;
 
     public StatsCommand(StatsService statsService) {
@@ -25,7 +26,7 @@ public class StatsCommand extends Command {
     @Override
     protected void doCommand(CommandContext ctx) {
         var userOpt = ctx.getOptionalParam("player");
-        var user = userOpt != null ? userOpt.getAsUser() : ctx.getAuthor();
+        var user = userOpt != null ? userOpt.getAsUser() : ctx.getUser();
 
         var player = new Player(user);
         var stats = statsService.getStats(player);

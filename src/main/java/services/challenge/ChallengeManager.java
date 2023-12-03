@@ -5,6 +5,7 @@
 package services.challenge;
 
 public interface ChallengeManager {
+
     void createChallenge(Challenge challenge, Runnable onExpiry);
 
     boolean acceptChallenge(Challenge challenge);
