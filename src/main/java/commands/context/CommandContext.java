@@ -5,9 +5,9 @@
 package commands.context;
 
 import messaging.senders.MessageSender;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import services.player.Player;
 
@@ -22,18 +22,23 @@ public interface CommandContext {
 
     User getUser();
 
+    @Nullable
     OptionMapping getParam(String key);
 
-    @Nullable()
-    OptionMapping getOptionalParam(String key);
+    @Nullable
+    Long getLongParam(String key);
+
+    @Nullable
+    Player getPlayerParam(String key);
+
+    @Nullable
+    String getStringParam(String key);
 
     void reply(String message);
 
-    void sendMessage(String message, Consumer<Message> onSuccess);
+    void reply(String message, Consumer<InteractionHook> onSuccess);
 
     void sendMessage(String message);
-
-    void deferReply();
 
     void replyEmbeds(MessageEmbed embed);
 

@@ -13,13 +13,13 @@ import java.util.List;
 import static utils.Strings.leftPad;
 import static utils.Strings.rightPad;
 
-public class LeaderboardBuilder extends EmbedBuilder {
+public class LeaderboardEmbedBuilder extends EmbedBuilder {
 
-    public LeaderboardBuilder() {
+    public LeaderboardEmbedBuilder() {
         setColor(Color.GREEN);
     }
 
-    public LeaderboardBuilder setStats(List<Stats> statsList) {
+    public LeaderboardEmbedBuilder setStats(List<Stats> statsList) {
         var desc = new StringBuilder();
         desc.append("```");
         var count = 1;

@@ -16,12 +16,12 @@ public class ViewCommand extends Command {
     private final GameStorage gameStorage;
 
     public ViewCommand(GameStorage gameStorage) {
-        super("view", "Displays the game state including all the moves that can be made this turn");
+        super("view");
         this.gameStorage = gameStorage;
     }
 
     @Override
-    public void doCommand(CommandContext ctx) {
+    public void onCommand(CommandContext ctx) {
         var player = ctx.getPlayer();
 
         var game = gameStorage.getGame(player);

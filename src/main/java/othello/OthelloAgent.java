@@ -43,10 +43,8 @@ public final class OthelloAgent {
 
         // call the iterative deepening negamax to calculate the heuristic for each move and add it to list
         for (var move : moves) {
-            var copiedBoard = board.copy();
-            copiedBoard.makeMove(move);
-
-            var heuristic = evaluate(copiedBoard, maxDepth - 1);
+            var child = board.makeMoved(move);
+            var heuristic = evaluate(child, maxDepth - 1);
             rankedMoves.add(new Move(move, heuristic));
         }
 
@@ -84,10 +82,9 @@ public final class OthelloAgent {
 
         // call the iterative deepening negamax to calculate the heuristic for each potential move and determine the best one
         for (var move : moves) {
-            var copiedBoard = board.copy();
-            copiedBoard.makeMove(move);
+            var child = board.makeMoved(move);
 
-            var heuristic = evaluate(copiedBoard, maxDepth - 1);
+            var heuristic = evaluate(child, maxDepth - 1);
             if (comparator.compare(heuristic, bestHeuristic) > 0) {
                 bestMove = move;
                 bestHeuristic = heuristic;
@@ -147,9 +144,8 @@ public final class OthelloAgent {
         List<OthelloBoard> children = new ArrayList<>();
         // create a new child board with a corresponding node for each move
         for (var move : moves) {
-            var copiedBoard = board.copy();
-            copiedBoard.makeMove(move);
-            children.add(copiedBoard);
+            var child = board.makeMoved(move);
+            children.add(child);
         }
 
         if (maximizer) {
@@ -185,7 +181,7 @@ public final class OthelloAgent {
             var agent = new OthelloAgent(8);
             var bestMove = agent.findBestMove(board);
             System.out.println(bestMove);
-            board.makeMove(bestMove.getTile());
+            board = board.makeMoved(bestMove.getTile());
         }
 
         var endTime = System.currentTimeMillis();

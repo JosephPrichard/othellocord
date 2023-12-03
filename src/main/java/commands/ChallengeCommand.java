@@ -7,17 +7,13 @@ package commands;
 import commands.context.CommandContext;
 import messaging.builders.ChallengeBuilder;
 import messaging.senders.GameStartSender;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
 import services.challenge.ChallengeManager;
 import services.game.GameStorage;
-import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
-import utils.Bot;
+import services.player.Player;
 
-import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
 public class ChallengeCommand extends Command {
@@ -26,17 +22,13 @@ public class ChallengeCommand extends Command {
     private final GameStorage gameStorage;
 
     public ChallengeCommand(ChallengeManager challengeManager, GameStorage gameStorage) {
-        super("challenge", "Challenges the bot or another user to an Othello game",
-            new SubcommandData("user", "Challenges another user to a game")
-                .addOption(OptionType.USER, "opponent", "The opponent to challenge", true),
-            new SubcommandData("bot", "Challenges the bot to a game")
-                .addOption(OptionType.INTEGER, "level", "Level of the bot between 1 and " + MAX_BOT_LEVEL, false));
+        super("challenge");
         this.challengeManager = challengeManager;
         this.gameStorage = gameStorage;
     }
 
     @Override
-    public void doCommand(CommandContext ctx) {
+    public void onCommand(CommandContext ctx) {
         switch (ctx.subcommand()) {
             case "bot" -> doBotCommand(ctx);
             case "user" -> doUserCommand(ctx);
@@ -45,10 +37,12 @@ public class ChallengeCommand extends Command {
     }
 
     public void doBotCommand(CommandContext ctx) {
-        var levelOpt = ctx.getOptionalParam("level");
-        var level = levelOpt != null ? levelOpt.getAsLong() : 3;
+        var level = ctx.getLongParam("level");
+        if (level == null) {
+            level = 3L;
+        }
 
-        if (!Bot.isValidLevel(level)) {
+        if (!Player.Bot.isValidLevel(level)) {
             ctx.reply("Invalid level. Type !help analyze for valid levels.");
             return;
         }
@@ -56,7 +50,7 @@ public class ChallengeCommand extends Command {
         var player = ctx.getPlayer();
 
         try {
-            var game = gameStorage.createBotGame(player, (int) level);
+            var game = gameStorage.createBotGame(player, level);
             var image = BoardRenderer.drawBoardMoves(game.board());
 
             var sender = new GameStartSender()
@@ -71,9 +65,8 @@ public class ChallengeCommand extends Command {
     }
 
     public void doUserCommand(CommandContext ctx) {
-        var opponentUser = ctx.getParam("opponent").getAsUser();
+        var opponent = ctx.getPlayerParam("opponent");
 
-        var opponent = new Player(opponentUser);
         var player = ctx.getPlayer();
 
         var id = player.getId();

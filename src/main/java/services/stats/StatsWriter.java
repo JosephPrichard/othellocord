@@ -6,7 +6,7 @@ package services.stats;
 
 import services.game.GameResult;
 
-public interface StatsMutator {
+public interface StatsWriter {
 
     void updateStats(GameResult result);
 }

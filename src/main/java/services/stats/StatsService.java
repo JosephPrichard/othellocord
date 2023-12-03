@@ -9,7 +9,6 @@ import org.modelmapper.ModelMapper;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
-import utils.Bot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,7 @@ import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
-public class StatsService implements StatsMutator {
+public class StatsService implements StatsWriter, StatsReader {
 
     public static final int K = 30;
     private final StatsDao statsDao;
@@ -56,7 +55,7 @@ public class StatsService implements StatsMutator {
         // fetch each tag from jda using futures, for the bots return null and map bot name instead
         List<CompletableFuture<String>> futures = new ArrayList<>();
         for (var entity : statsEntityList) {
-            var future = Bot.isBotId(entity.getPlayerId()) ?
+            var future = Player.Bot.isBotId(entity.getPlayerId()) ?
                 CompletableFuture.<String>completedFuture(null) :
                 userFetcher.fetchUserTag(entity.getPlayerId());
             futures.add(future);
@@ -69,7 +68,7 @@ public class StatsService implements StatsMutator {
             // retrieve tag from completed future
             var tag = futures.get(i).join();
             if (tag == null) {
-                tag = Bot.getBotName(statsEntityList.get(i).getPlayerId());
+                tag = Player.Bot.getBotName(statsEntityList.get(i).getPlayerId());
             }
             // map entity to dto and add to dto list
             var stats = mapper.map(statsEntityList.get(i), Stats.class);

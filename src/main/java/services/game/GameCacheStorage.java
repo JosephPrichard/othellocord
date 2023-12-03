@@ -15,8 +15,7 @@ import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import services.player.Player;
-import services.stats.StatsMutator;
-import utils.Bot;
+import services.stats.StatsWriter;
 
 import javax.annotation.Nullable;
 import javax.persistence.PersistenceException;
@@ -26,13 +25,13 @@ import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
-public class GameCachedStorage implements GameStorage {
+public class GameCacheStorage implements GameStorage {
 
     private final LoadingCache<Long, Optional<Game>> games;
-    private final StatsMutator statsMutator;
+    private final StatsWriter statsWriter;
 
-    public GameCachedStorage(StatsMutator statsMutator) {
-        this.statsMutator = statsMutator;
+    public GameCacheStorage(StatsWriter statsWriter) {
+        this.statsWriter = statsWriter;
         this.games = Caffeine.newBuilder()
             .initialCapacity(1000)
             .scheduler(Scheduler.systemScheduler())
@@ -69,8 +68,8 @@ public class GameCachedStorage implements GameStorage {
         return game;
     }
 
-    public Game createBotGame(Player blackPlayer, int level) throws AlreadyPlayingException {
-        var whitePlayer = Bot.create(level);
+    public Game createBotGame(Player blackPlayer, long level) throws AlreadyPlayingException {
+        var whitePlayer = Player.Bot.create(level);
         var game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer)) {
@@ -116,13 +115,17 @@ public class GameCachedStorage implements GameStorage {
         return games.get(player.getId()).isPresent();
     }
 
-    public void makeMove(Game game, Tile move) {
-        game.board().makeMove(move);
+    public Game makeMove(Game game, Tile move) {
+        // make the move by creating a new immutable game
+        var newBoard = game.board().makeMoved(move);
+        game = new Game(newBoard, game.whitePlayer(), game.blackPlayer());
+
         if (!game.isGameOver()) {
             saveGame(game);
         } else {
             deleteGame(game);
         }
+        return game;
     }
 
     // Responsible for making the given move on the player's game. Updates the game in the storage if
@@ -143,8 +146,7 @@ public class GameCachedStorage implements GameStorage {
         // check if the move being requested is any of the potential moves, if so make the move
         for (var potentialMove : potentialMoves) {
             if (potentialMove.equals(move)) {
-                makeMove(game, potentialMove);
-                return game;
+                return makeMove(game, potentialMove);
             }
         }
 
@@ -154,6 +156,6 @@ public class GameCachedStorage implements GameStorage {
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
         var forfeitResult = GameResult.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
-        statsMutator.updateStats(forfeitResult);
+        statsWriter.updateStats(forfeitResult);
     }
 }

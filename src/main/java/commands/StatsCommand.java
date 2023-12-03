@@ -6,30 +6,27 @@ package commands;
 
 import commands.context.CommandContext;
 import messaging.builders.StatsEmbedBuilder;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import services.player.Player;
-import services.stats.StatsService;
+import services.stats.StatsReader;
 
 import static utils.Logger.LOGGER;
 
 public class StatsCommand extends Command {
 
-    private final StatsService statsService;
+    private final StatsReader statsReader;
 
-    public StatsCommand(StatsService statsService) {
-        super("stats", "Retrieves the stats profile for a player",
-            new OptionData(OptionType.USER, "player", "Player to get stats profile for", false));
-        this.statsService = statsService;
+    public StatsCommand(StatsReader statsReader) {
+        super("stats");
+        this.statsReader = statsReader;
     }
 
     @Override
-    protected void doCommand(CommandContext ctx) {
-        var userOpt = ctx.getOptionalParam("player");
+    public void onCommand(CommandContext ctx) {
+        var userOpt = ctx.getParam("player");
         var user = userOpt != null ? userOpt.getAsUser() : ctx.getUser();
 
         var player = new Player(user);
-        var stats = statsService.getStats(player);
+        var stats = statsReader.getStats(player);
 
         var embed = new StatsEmbedBuilder()
             .setStats(stats)

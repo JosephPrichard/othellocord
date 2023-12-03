@@ -12,13 +12,13 @@ import java.util.List;
 
 import static utils.Strings.rightPad;
 
-public class AnalyzeBuilder extends EmbedBuilder {
+public class AnalyzeEmbedBuilder extends EmbedBuilder {
 
-    public AnalyzeBuilder() {
+    public AnalyzeEmbedBuilder() {
         setColor(Color.GREEN);
     }
 
-    public AnalyzeBuilder setRankedMoves(List<Move> rankedMoves) {
+    public AnalyzeEmbedBuilder setRankedMoves(List<Move> rankedMoves) {
         var desc = new StringBuilder();
         desc.append("```");
         var count = 1;

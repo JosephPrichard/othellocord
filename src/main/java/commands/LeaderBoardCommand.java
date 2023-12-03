@@ -5,24 +5,24 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.builders.LeaderboardBuilder;
-import services.stats.StatsService;
+import messaging.builders.LeaderboardEmbedBuilder;
+import services.stats.StatsReader;
 
 import static utils.Logger.LOGGER;
 
 public class LeaderBoardCommand extends Command {
 
-    private final StatsService statsService;
+    private final StatsReader statsReader;
 
-    public LeaderBoardCommand(StatsService statsService) {
-        super("leaderboard", "Retrieves the highest rated players by ELO");
-        this.statsService = statsService;
+    public LeaderBoardCommand(StatsReader statsReader) {
+        super("leaderboard");
+        this.statsReader = statsReader;
     }
 
     @Override
-    protected void doCommand(CommandContext ctx) {
-        var statsList = statsService.getTopStats();
-        var embed = new LeaderboardBuilder().setStats(statsList).build();
+    public void onCommand(CommandContext ctx) {
+        var statsList = statsReader.getTopStats();
+        var embed = new LeaderboardEmbedBuilder().setStats(statsList).build();
         ctx.replyEmbeds(embed);
         LOGGER.info("Fetched leaderboard");
     }

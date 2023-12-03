@@ -7,13 +7,10 @@ package othello;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Comparator;
 import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
 public class TestOthelloBoard {
 
     private OthelloBoard othelloBoard;
@@ -24,7 +21,7 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testGetNotation() {
+    public void whenGetNotation_success() {
         othelloBoard.setSquare("c2", OthelloBoard.WHITE);
         var color = othelloBoard.getSquare(1, 2);
 
@@ -32,7 +29,7 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testSetNotation() {
+    public void whenSetNotation_success() {
         othelloBoard.setSquare(1, 2, OthelloBoard.WHITE);
         var color = othelloBoard.getSquare("c2");
 
@@ -40,7 +37,7 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testSetThenGetSquare() {
+    public void whenSetThenGet_success() {
         othelloBoard.setSquare(2, 3, OthelloBoard.WHITE);
         var color = othelloBoard.getSquare(2, 3);
 
@@ -53,14 +50,14 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testGetEmptySquare() {
+    public void whenGet_ifEmpty_beBlank() {
         var color = othelloBoard.getSquare(2, 1);
 
         Assertions.assertEquals(OthelloBoard.EMPTY, color);
     }
 
     @Test
-    public void testFindPotentialMoves() {
+    public void whenFindPotentialMoves_success() {
         var moves = othelloBoard.findPotentialMoves();
         moves.sort(Comparator.comparing(Tile::toString));
 
@@ -74,7 +71,7 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testCountPotentialMoves() {
+    public void whenCountPotentialMoves_success() {
         var whiteCount = othelloBoard.countPotentialMoves(OthelloBoard.WHITE);
         var blackCount = othelloBoard.countPotentialMoves(OthelloBoard.BLACK);
 
@@ -83,7 +80,7 @@ public class TestOthelloBoard {
     }
 
     @Test
-    public void testCountDiscs() {
+    public void whenCountDiscs_success() {
         var whiteCount = othelloBoard.countDiscs(OthelloBoard.WHITE);
         var blackCount = othelloBoard.countDiscs(OthelloBoard.BLACK);
 

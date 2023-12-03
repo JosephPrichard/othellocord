@@ -5,18 +5,16 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.builders.AnalyzeBuilder;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import messaging.builders.AnalyzeEmbedBuilder;
 import othello.Move;
 import services.game.EvalRequest;
 import services.game.GameEvaluator;
 import services.game.GameStorage;
-import utils.Bot;
+import services.player.Player;
 
 import java.util.List;
 
-import static utils.Bot.MAX_BOT_LEVEL;
+import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
 public class AnalyzeCommand extends Command {
@@ -25,26 +23,26 @@ public class AnalyzeCommand extends Command {
     private final GameEvaluator gameEvaluator;
 
     public AnalyzeCommand(GameStorage gameStorage, GameEvaluator gameEvaluator) {
-        super("analyze", "Runs an analysis of the board",
-            new OptionData(OptionType.INTEGER, "level", "Level of the bot between 1 and " + MAX_BOT_LEVEL, false));
+        super("analyze");
         this.gameStorage = gameStorage;
         this.gameEvaluator = gameEvaluator;
     }
 
     @Override
-    protected void doCommand(CommandContext ctx) {
-        var levelOpt = ctx.getOptionalParam("level");
-        var level = levelOpt != null ? levelOpt.getAsLong() : 3;
+    public void onCommand(CommandContext ctx) {
+        var level = ctx.getLongParam("level");
+        if (level == null) {
+            level = 3L;
+        }
 
         // check if level is within range
-        if (!Bot.isValidLevel(level)) {
+        if (!Player.Bot.isValidLevel(level)) {
             ctx.reply("Invalid level, should be between 1 and " + MAX_BOT_LEVEL);
             return;
         }
 
         var player = ctx.getPlayer();
 
-        // fetch game to analyze
         var game = gameStorage.getGame(player);
         if (game == null) {
             ctx.reply("You're not currently in a game.");
@@ -52,18 +50,17 @@ public class AnalyzeCommand extends Command {
         }
 
         // send starting message, then add queue an agent request, send back the results in a message when it's done
-        var depth = Bot.getDepthFromId(level);
-        ctx.deferReply();
-        ctx.sendMessage("Analyzing... Wait a second...", m -> {
+        var depth = Player.Bot.getDepthFromId(level);
+        ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
             var r = new EvalRequest<>(game, depth, (List<Move> rankedMoves) -> {
-                var embed = new AnalyzeBuilder()
+                var embed = new AnalyzeEmbedBuilder()
                     .setRankedMoves(rankedMoves)
                     .build();
 
-                m.editMessage("<@" + player + "> ").queue();
-                m.editMessageEmbeds(embed).queue();
+                hook.editOriginal("<@" + player + "> ").queue();
+                hook.editOriginalEmbeds(embed).queue();
 
                 LOGGER.info("Finished board state analysis");
             });

@@ -30,7 +30,6 @@ public class Game {
     public OthelloBoard board() {
         return board;
     }
-
     public Player whitePlayer() {
         return whitePlayer;
     }
@@ -87,8 +86,19 @@ public class Game {
         return Objects.hash(whitePlayer, blackPlayer);
     }
 
-    public GameResult getForfeitResult() {
-        return GameResult.WinLoss(getOtherPlayer(), getCurrentPlayer());
+    public GameResult getForfeitResult(Player forfeitingPlayer) {
+        Player loser;
+        Player winner;
+        if (whitePlayer.equals(forfeitingPlayer)) {
+            loser = whitePlayer;
+            winner = blackPlayer;
+        } else if (blackPlayer.equals(forfeitingPlayer)) {
+            loser = blackPlayer;
+            winner = whitePlayer;
+        } else {
+            throw new IllegalStateException("Player not part of a game attempted to forfeit");
+        }
+        return GameResult.WinLoss(winner, loser);
     }
 
     @Override

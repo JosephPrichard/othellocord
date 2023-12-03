@@ -8,21 +8,22 @@ import commands.context.CommandContext;
 import messaging.senders.GameOverSender;
 import messaging.senders.GameViewSender;
 import messaging.senders.MessageSender;
-import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
 import othello.Move;
 import othello.Tile;
-import services.game.*;
+import services.game.EvalRequest;
+import services.game.Game;
+import services.game.GameEvaluator;
+import services.game.GameStorage;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import services.player.Player;
-import services.stats.StatsService;
-import utils.Bot;
+import services.stats.StatsWriter;
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static utils.Logger.LOGGER;
@@ -30,22 +31,21 @@ import static utils.Logger.LOGGER;
 public class MoveCommand extends Command {
 
     private final GameStorage gameStorage;
-    private final StatsService statsService;
+    private final StatsWriter statsWriter;
     private final GameEvaluator gameEvaluator;
 
     public MoveCommand(
         GameStorage gameStorage,
-        StatsService statsService,
+        StatsWriter statsWriter,
         GameEvaluator gameEvaluator
     ) {
-        super("move", "Makes a move on user's current game",
-            new OptionData(OptionType.STRING, "move", "Move to make on the board", true, true));
+        super("move");
         this.gameStorage = gameStorage;
-        this.statsService = statsService;
+        this.statsWriter = statsWriter;
         this.gameEvaluator = gameEvaluator;
     }
 
-    private MessageSender onMoved(Game game, Tile move) {
+    public MessageSender onMoved(Game game, Tile move) {
         var image = BoardRenderer.drawBoardMoves(game.board());
         return new GameViewSender()
             .setGame(game, move)
@@ -53,16 +53,17 @@ public class MoveCommand extends Command {
             .setImage(image);
     }
 
-    private MessageSender onMoved(Game game) {
+    public MessageSender onMoved(Game game) {
         var image = BoardRenderer.drawBoardMoves(game.board());
-        return new GameViewSender().setGame(game).setImage(image);
+        return new GameViewSender()
+            .setGame(game)
+            .setImage(image);
     }
 
-    private MessageSender onGameOver(Game game, Tile move) {
-        // update elo the elo of the players
+    public MessageSender onGameOver(Game game, Tile move) {
         var result = game.getResult();
-        statsService.updateStats(result);
-        // render board and send back message
+        statsWriter.updateStats(result);
+
         var image = BoardRenderer.drawBoard(game.board());
         return new GameOverSender()
             .setGame(result)
@@ -72,17 +73,17 @@ public class MoveCommand extends Command {
             .setImage(image);
     }
 
-    private void doBotMove(CommandContext ctx, Game game) {
+    public void doBotMove(CommandContext ctx, Game game) {
         // queue an agent request which will find the best move, make the move, and send back a response
-        var depth = Bot.getDepthFromId(game.getCurrentPlayer().getId());
+        var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().getId());
         var r = new EvalRequest<>(game, depth, (Move bestMove) -> {
-            gameStorage.makeMove(game, bestMove.getTile());
+            var newGame = gameStorage.makeMove(game, bestMove.getTile());
 
             MessageSender sender;
-            if (!game.isGameOver()) {
-                sender = onMoved(game, bestMove.getTile());
+            if (!newGame.isGameOver()) {
+                sender = onMoved(newGame, bestMove.getTile());
             } else {
-                sender = onGameOver(game, bestMove.getTile());
+                sender = onGameOver(newGame, bestMove.getTile());
             }
             ctx.msgWithSender(sender);
         });
@@ -90,8 +91,8 @@ public class MoveCommand extends Command {
     }
 
     @Override
-    public void doCommand(CommandContext ctx) {
-        var strMove = ctx.getParam("move").getAsString();
+    public void onCommand(CommandContext ctx) {
+        var strMove = Objects.requireNonNull(ctx.getStringParam("move"));
         var player = ctx.getPlayer();
 
         var move = new Tile(strMove);
@@ -123,15 +124,15 @@ public class MoveCommand extends Command {
     }
 
     @Override
-    public void onAutoComplete(CommandAutoCompleteInteractionEvent event) {
-        var player = new Player(event.getUser());
+    public void onAutoComplete(CommandAutoCompleteInteraction interaction) {
+        var player = new Player(interaction.getUser());
         var game = gameStorage.getGame(player);
         if (game != null) {
             var moves = game.board().findPotentialMoves();
             var choices = moves.stream()
                 .map((tile) -> new Choice(tile.toString(), tile.toString()))
                 .collect(Collectors.toList());
-            event.replyChoices(choices).queue();
+            interaction.replyChoices(choices).queue();
         }
     }
 }

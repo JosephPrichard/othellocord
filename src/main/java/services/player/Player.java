@@ -5,9 +5,41 @@
 package services.player;
 
 import net.dv8tion.jda.api.entities.User;
-import utils.Bot;
 
 public class Player {
+
+    public static class Bot {
+
+        public static final int MAX_BOT_LEVEL = 5;
+
+        public static int getDepthFromId(long id) {
+            return switch ((int) id) {
+                case 1 -> 1;
+                case 2 -> 3;
+                case 3 -> 5;
+                case 4 -> 8;
+                case 5 -> 10;
+                case 6 -> 15;
+                default -> throw new IllegalStateException("Invalid bot id: " + id);
+            };
+        }
+
+        public static boolean isValidLevel(long level) {
+            return level >= 1 && level <= MAX_BOT_LEVEL;
+        }
+
+        public static String getBotName(long id) {
+            return "OthelloBot level " + id;
+        }
+
+        public static Player create(long level) {
+            return new Player(level, getBotName(level));
+        }
+
+        public static boolean isBotId(long id) {
+            return id <= MAX_BOT_LEVEL;
+        }
+    }
 
     private long id;
     private String name;

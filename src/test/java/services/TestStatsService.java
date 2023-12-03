@@ -7,8 +7,6 @@ package services;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
@@ -20,7 +18,6 @@ import java.util.concurrent.Executors;
 
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 public class TestStatsService {
 
     private StatsDao mock_statsDao;
@@ -29,14 +26,14 @@ public class TestStatsService {
 
     @BeforeEach
     public void beforeEach() {
-        mock_statsDao = spy(StatsDao.class);
-        mock_userFetcher = spy(UserFetcher.class);
-        var es = Executors.newFixedThreadPool(1);
+        mock_statsDao = mock(StatsDao.class);
+        mock_userFetcher = mock(UserFetcher.class);
+        var es = Executors.newSingleThreadExecutor();
         statsService = new StatsService(mock_statsDao, mock_userFetcher, es);
     }
 
     @Test
-    public void testGetStats() {
+    public void whenGetStats_success() {
         var player = new Player(1000);
 
         when(mock_statsDao.getOrSaveStats(1000L))
@@ -50,7 +47,7 @@ public class TestStatsService {
     }
 
     @Test
-    public void testGetTopStats() {
+    public void whenGetTopStats_success() {
         when(mock_statsDao.getTopStats(anyInt()))
             .thenReturn(List.of(
                 new StatsEntity(1000L),
@@ -74,7 +71,7 @@ public class TestStatsService {
     }
 
     @Test
-    public void testUpdateStats() {
+    public void whenUpdateStats_correctResult() {
         var winner = new Player(1000, "Player1");
         var loser = new Player(1001, "Player2");
         var result = GameResult.WinLoss(winner, loser);
@@ -97,7 +94,7 @@ public class TestStatsService {
     }
 
     @Test
-    public void testUpdateStatsDraw() {
+    public void whenUpdateStats_ifDraw_correctResult() {
         var winner = new Player(1000, "Player1");
         var loser = new Player(1001, "Player2");
         var result = GameResult.Draw(winner, loser);

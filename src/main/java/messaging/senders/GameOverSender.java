@@ -4,7 +4,7 @@
 
 package messaging.senders;
 
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import services.game.GameResult;
 import services.player.Player;
 
@@ -53,13 +53,13 @@ public class GameOverSender extends MessageSender {
     }
 
     @Override()
-    public void sendReply(SlashCommandInteractionEvent event) {
+    public void sendReply(SlashCommandInteraction interaction) {
         var desc = messageDesc;
         if (!scoreDesc.isEmpty()) {
             desc += scoreDesc;
         }
         desc += "\n" + resultDesc;
         getEmbedBuilder().setDescription(desc);
-        super.sendReply(event);
+        super.sendReply(interaction);
     }
 }

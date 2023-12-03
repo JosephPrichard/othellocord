@@ -12,24 +12,24 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import othello.Tile;
 import services.game.Game;
-import services.game.GameCachedStorage;
+import services.game.GameCacheStorage;
 import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
-import services.stats.StatsMutator;
+import services.stats.StatsWriter;
 
 @ExtendWith(MockitoExtension.class)
 public class TestGameStorage {
 
     @Mock
-    private StatsMutator statsMutator;
+    private StatsWriter statsWriter;
     @InjectMocks
-    private GameCachedStorage gameStorage;
+    private GameCacheStorage gameStorage;
 
     @Test
-    public void testDuplicateCreate() {
+    public void whenDuplicateCreate_fail() {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
 
@@ -40,7 +40,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testSaveThenDelete() {
+    public void whenSaveThenDelete_success() {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
 
@@ -53,7 +53,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testGetGame() throws AlreadyPlayingException {
+    public void whenGetGame_success() throws AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameStorage.createGame(blackPlayer, whitePlayer);
@@ -65,7 +65,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testGetNoGame() {
+    public void whenGetInvalidGame_returnNull() {
         var player = new Player(1000, "Player1");
 
         var game = gameStorage.getGame(player);
@@ -74,7 +74,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testMakeMoveInvalidMove() throws AlreadyPlayingException {
+    public void whenMove_ifInvalid_fail() throws AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameStorage.createGame(blackPlayer, whitePlayer);
@@ -84,7 +84,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testMakeMoveTurn() throws AlreadyPlayingException {
+    public void whenMove_ifAlreadyPlaying_fail() throws AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameStorage.createGame(blackPlayer, whitePlayer);
@@ -94,7 +94,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testMakeMoveNotPlaying() {
+    public void whenMove_ifNotPlaying_fail() {
         var player = new Player(1000, "Player1");
 
         Assertions.assertThrows(NotPlayingException.class, () ->
@@ -102,7 +102,7 @@ public class TestGameStorage {
     }
 
     @Test
-    public void testMakeMove() throws AlreadyPlayingException, TurnException, NotPlayingException, InvalidMoveException {
+    public void whenMove_success() throws AlreadyPlayingException, TurnException, NotPlayingException, InvalidMoveException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         var game = gameStorage.createGame(blackPlayer, whitePlayer);
@@ -110,5 +110,7 @@ public class TestGameStorage {
         var movedGame = gameStorage.makeMove(blackPlayer, new Tile("d3"));
 
         Assertions.assertEquals(game, movedGame);
+        Assertions.assertNotEquals(game.board(), movedGame.board());
+        Assertions.assertNotEquals(game.board(), movedGame.board().makeMoved("d3"));
     }
 }

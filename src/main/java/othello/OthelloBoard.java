@@ -6,6 +6,7 @@ package othello;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class OthelloBoard {
@@ -140,7 +141,17 @@ public class OthelloBoard {
         return countPotentialMoves(blackMove ? BLACK : WHITE) <= 0;
     }
 
-    public void makeMove(Tile move) {
+    public OthelloBoard makeMoved(String move) {
+        return makeMoved(new Tile(move));
+    }
+
+    public OthelloBoard makeMoved(Tile move) {
+        var copiedBoard = copy();
+        copiedBoard.makeMove(move);
+        return copiedBoard;
+    }
+
+    private void makeMove(Tile move) {
         var oppositeColor = blackMove ? WHITE : BLACK;
         var currentColor = blackMove ? BLACK : WHITE;
 
@@ -234,6 +245,19 @@ public class OthelloBoard {
 
     public byte getSquare(Tile tile) {
         return getSquare(tile.getRow(), tile.getCol());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OthelloBoard that = (OthelloBoard) o;
+        return boardA == that.boardA && boardB == that.boardB && blackMove == that.blackMove;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(boardA, boardB, blackMove);
     }
 
     @Override

@@ -8,8 +8,8 @@ import services.player.Player;
 
 public class GameResult {
 
-    private final Player playerOne;
-    private final Player playerTwo;
+    private final Player winner;
+    private final Player loser;
     private final boolean isDraw;
     private float eloOne = 0f;
     private float eloTwo = 0f;
@@ -24,9 +24,9 @@ public class GameResult {
         return new GameResult(winner, loser, false);
     }
 
-    public GameResult(Player playerOne, Player playerTwo, boolean isDraw) {
-        this.playerOne = playerOne;
-        this.playerTwo = playerTwo;
+    public GameResult(Player winner, Player loser, boolean isDraw) {
+        this.winner = winner;
+        this.loser = loser;
         this.isDraw = isDraw;
     }
 
@@ -35,11 +35,11 @@ public class GameResult {
     }
 
     public Player getWinner() {
-        return playerOne;
+        return winner;
     }
 
     public Player getLoser() {
-        return playerTwo;
+        return loser;
     }
 
     public void setElo(float eloWinner, float eloLoser) {
@@ -83,8 +83,8 @@ public class GameResult {
     @Override
     public String toString() {
         return "GameResult{" +
-            "playerOne=" + playerOne +
-            ", playerTwo=" + playerTwo +
+            "winner=" + winner +
+            ", loser=" + loser +
             ", isDraw=" + isDraw +
             ", eloOne=" + eloOne +
             ", eloTwo=" + eloTwo +

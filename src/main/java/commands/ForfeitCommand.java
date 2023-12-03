@@ -8,26 +8,26 @@ import commands.context.CommandContext;
 import messaging.senders.GameOverSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
-import services.stats.StatsService;
+import services.stats.StatsWriter;
 
 import static utils.Logger.LOGGER;
 
 public class ForfeitCommand extends Command {
 
     private final GameStorage gameStorage;
-    private final StatsService statsService;
+    private final StatsWriter statsWriter;
 
     public ForfeitCommand(
         GameStorage gameStorage,
-        StatsService statsService
+        StatsWriter statsWriter
     ) {
-        super("forfeit", "Forfeits the user's current game");
+        super("forfeit");
         this.gameStorage = gameStorage;
-        this.statsService = statsService;
+        this.statsWriter = statsWriter;
     }
 
     @Override
-    public void doCommand(CommandContext ctx) {
+    public void onCommand(CommandContext ctx) {
         var player = ctx.getPlayer();
 
         var game = gameStorage.getGame(player);
@@ -38,11 +38,10 @@ public class ForfeitCommand extends Command {
 
         var image = BoardRenderer.drawBoard(game.board());
 
-        // remove game from storage
         gameStorage.deleteGame(game);
-        // update elo from game result
-        var result = game.getForfeitResult();
-        statsService.updateStats(result);
+
+        var result = game.getForfeitResult(player);
+        statsWriter.updateStats(result);
 
         var sender = new GameOverSender()
             .setGame(result)

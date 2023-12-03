@@ -6,14 +6,13 @@ package commands;
 
 import commands.context.CommandContext;
 import messaging.senders.GameStartSender;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
 import services.challenge.ChallengeManager;
 import services.game.GameStorage;
-import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
+
+import java.util.Objects;
 
 import static utils.Logger.LOGGER;
 
@@ -26,16 +25,14 @@ public class AcceptCommand extends Command {
         GameStorage gameStorage,
         ChallengeManager challengeManager
     ) {
-        super("accept", "Accepts a challenge from another discord user",
-            new OptionData(OptionType.USER, "challenger", "User who made the challenge", true));
+        super("accept");
         this.gameStorage = gameStorage;
         this.challengeManager = challengeManager;
     }
 
     @Override
-    public void doCommand(CommandContext ctx) {
-        var opponentUser = ctx.getParam("challenger").getAsUser();
-        var opponent = new Player(opponentUser);
+    public void onCommand(CommandContext ctx) {
+        var opponent = Objects.requireNonNull(ctx.getPlayerParam("challenger"));
         var player = ctx.getPlayer();
 
         if (!challengeManager.acceptChallenge(new Challenge(player, opponent))) {

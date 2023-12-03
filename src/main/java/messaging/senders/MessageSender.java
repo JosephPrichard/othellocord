@@ -5,14 +5,14 @@
 package messaging.senders;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import utils.Image;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public class MessageSender {
+public abstract class MessageSender {
 
     private final EmbedBuilder embedBuilder;
     private BufferedImage image;
@@ -37,7 +37,7 @@ public class MessageSender {
         return this;
     }
 
-    public void sendReply(SlashCommandInteractionEvent event) {
+    public void sendReply(SlashCommandInteraction event) {
         try {
             var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
@@ -55,7 +55,7 @@ public class MessageSender {
         }
     }
 
-    public void sendMessage(SlashCommandInteractionEvent event) {
+    public void sendMessage(SlashCommandInteraction event) {
         try {
             var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
