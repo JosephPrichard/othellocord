@@ -2,8 +2,9 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package commands;
+package commands.context;
 
+import messaging.senders.MessageSender;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
@@ -14,7 +15,7 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public record CommandContext(SlashCommandInteractionEvent event) {
+public record SlashCommandContext(SlashCommandInteractionEvent event) implements CommandContext {
     public String subcommand() {
         return event.getSubcommandName();
     }
@@ -50,5 +51,13 @@ public record CommandContext(SlashCommandInteractionEvent event) {
 
     public void replyEmbeds(MessageEmbed embed) {
         event.replyEmbeds(embed).queue();
+    }
+
+    public void replyWithSender(MessageSender sender) {
+        sender.sendReply(event);
+    }
+
+    public void msgWithSender(MessageSender sender) {
+        sender.sendMessage(event);
     }
 }

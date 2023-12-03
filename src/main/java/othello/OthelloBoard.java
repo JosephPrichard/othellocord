@@ -77,8 +77,9 @@ public class OthelloBoard {
         var discs = 0;
         // iterate through each square and find the discs
         for (var tile : TILES) {
-            if (getSquare(tile) == color) {
-                discs += 0;
+            var c = getSquare(tile);
+            if (c == color) {
+                discs++;
             }
         }
         return discs;
@@ -209,9 +210,12 @@ public class OthelloBoard {
     }
 
     public void setSquare(String square, byte color) {
-        var col = square.charAt(0) - 'a';
-        var row = Character.getNumericValue(square.charAt(1)) - 1;
-        setSquare(row, col, color);
+        var tile = new Tile(square);
+        setSquare(tile, color);
+    }
+
+    public void setSquare(Tile tile, byte color) {
+        setSquare(tile.getRow(), tile.getCol(), color);
     }
 
     public void setSquare(int position, byte color) {
@@ -219,9 +223,8 @@ public class OthelloBoard {
     }
 
     public byte getSquare(String square) {
-        var col = square.charAt(0) - 'a';
-        var row = Character.getNumericValue(square.charAt(1)) - 1;
-        return getSquare(row, col);
+        var tile = new Tile(square);
+        return getSquare(tile);
     }
 
     public byte getSquare(int position) {

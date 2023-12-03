@@ -4,13 +4,14 @@
 
 package commands;
 
+import commands.context.CommandContext;
 import messaging.builders.ChallengeBuilder;
 import messaging.senders.GameStartSender;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
-import services.challenge.ChallengeScheduler;
+import services.challenge.ChallengeManager;
 import services.game.GameStorage;
 import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
@@ -20,19 +21,17 @@ import static utils.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
 public class ChallengeCommand extends Command {
-    private final ChallengeScheduler challengeScheduler;
+    private final ChallengeManager challengeManager;
     private final GameStorage gameStorage;
-    private final BoardRenderer boardRenderer;
 
-    public ChallengeCommand(ChallengeScheduler challengeScheduler, GameStorage gameStorage, BoardRenderer boardRenderer) {
+    public ChallengeCommand(ChallengeManager challengeManager, GameStorage gameStorage) {
         super("challenge", "Challenges the bot or another user to an Othello game",
             new SubcommandData("user", "Challenges another user to a game")
                 .addOption(OptionType.USER, "opponent", "The opponent to challenge", true),
             new SubcommandData("bot", "Challenges the bot to a game")
                 .addOption(OptionType.INTEGER, "level", "Level of the bot between 1 and " + MAX_BOT_LEVEL, false));
-        this.challengeScheduler = challengeScheduler;
+        this.challengeManager = challengeManager;
         this.gameStorage = gameStorage;
-        this.boardRenderer = boardRenderer;
     }
 
     @Override
@@ -57,12 +56,12 @@ public class ChallengeCommand extends Command {
 
         try {
             var game = gameStorage.createBotGame(player, (int) level);
-            var image = boardRenderer.drawBoardMoves(game.board());
+            var image = BoardRenderer.drawBoardMoves(game.board());
 
             var sender = new GameStartSender()
                 .setGame(game)
                 .setImage(image);
-            sender.sendReply(ctx);
+            ctx.replyWithSender(sender);
         } catch (AlreadyPlayingException ex) {
             ctx.reply("You're already in a game");
         }
@@ -78,7 +77,7 @@ public class ChallengeCommand extends Command {
 
         var id = player.getId();
         Runnable onExpiry = () -> ctx.sendMessage("<@" + id + "> Challenge timed out!");
-        challengeScheduler.createChallenge(new Challenge(opponent, player), onExpiry);
+        challengeManager.createChallenge(new Challenge(opponent, player), onExpiry);
 
         var message = new ChallengeBuilder()
             .setChallenged(opponent)

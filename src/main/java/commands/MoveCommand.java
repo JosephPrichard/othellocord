@@ -4,6 +4,7 @@
 
 package commands;
 
+import commands.context.CommandContext;
 import messaging.senders.GameOverSender;
 import messaging.senders.GameViewSender;
 import messaging.senders.MessageSender;
@@ -30,24 +31,21 @@ public class MoveCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsService statsService;
     private final GameEvaluator gameEvaluator;
-    private final BoardRenderer boardRenderer;
 
     public MoveCommand(
         GameStorage gameStorage,
         StatsService statsService,
-        GameEvaluator gameEvaluator,
-        BoardRenderer boardRenderer
+        GameEvaluator gameEvaluator
     ) {
         super("move", "Makes a move on user's current game",
             new OptionData(OptionType.STRING, "move", "Move to make on the board", true, true));
         this.gameStorage = gameStorage;
         this.statsService = statsService;
         this.gameEvaluator = gameEvaluator;
-        this.boardRenderer = boardRenderer;
     }
 
     private MessageSender onMoved(Game game, Tile move) {
-        var image = boardRenderer.drawBoardMoves(game.board());
+        var image = BoardRenderer.drawBoardMoves(game.board());
         return new GameViewSender()
             .setGame(game, move)
             .setTag(game)
@@ -85,7 +83,7 @@ public class MoveCommand extends Command {
             } else {
                 sender = onGameOver(game, bestMove.getTile());
             }
-            sender.sendMessage(ctx);
+            ctx.msgWithSender(sender);
         });
         gameEvaluator.findBestMove(r);
     }
@@ -102,15 +100,15 @@ public class MoveCommand extends Command {
             if (!game.isGameOver()) {
                 if (!game.isAgainstBot()) {
                     var sender = onMoved(game, move);
-                    sender.sendReply(ctx);
+                    ctx.replyWithSender(sender);
                 } else {
                     var sender = onMoved(game);
-                    sender.sendReply(ctx);
+                    ctx.replyWithSender(sender);
                     doBotMove(ctx, game);
                 }
             } else {
                 var sender = onGameOver(game, move);
-                sender.sendReply(ctx);
+                ctx.replyWithSender(sender);
             }
 
             LOGGER.info("Player " + player + " made move on game");

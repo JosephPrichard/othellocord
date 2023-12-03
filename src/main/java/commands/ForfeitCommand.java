@@ -4,6 +4,7 @@
 
 package commands;
 
+import commands.context.CommandContext;
 import messaging.senders.GameOverSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
@@ -15,17 +16,14 @@ import static utils.Logger.LOGGER;
 public class ForfeitCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsService statsService;
-    private final BoardRenderer boardRenderer;
 
     public ForfeitCommand(
         GameStorage gameStorage,
-        StatsService statsService,
-        BoardRenderer boardRenderer
+        StatsService statsService
     ) {
         super("forfeit", "Forfeits the user's current game");
         this.gameStorage = gameStorage;
         this.statsService = statsService;
-        this.boardRenderer = boardRenderer;
     }
 
     @Override
@@ -38,7 +36,7 @@ public class ForfeitCommand extends Command {
             return;
         }
 
-        var image = boardRenderer.drawBoard(game.board());
+        var image = BoardRenderer.drawBoard(game.board());
 
         // remove game from storage
         gameStorage.deleteGame(game);
@@ -51,7 +49,7 @@ public class ForfeitCommand extends Command {
             .addForfeitMessage(result.getWinner())
             .setTag(result)
             .setImage(image);
-        sender.sendReply(ctx);
+        ctx.replyWithSender(sender);
 
         LOGGER.info(player + " has forfeited");
     }

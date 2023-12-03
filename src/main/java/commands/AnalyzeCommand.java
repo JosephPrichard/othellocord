@@ -4,6 +4,7 @@
 
 package commands;
 
+import commands.context.CommandContext;
 import messaging.builders.AnalyzeBuilder;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;

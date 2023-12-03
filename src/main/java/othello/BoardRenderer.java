@@ -31,17 +31,10 @@ public class BoardRenderer {
     private static final int DOT_SIZE = 16;
     private static final int TOP_LEFT = 5;
 
-    private final BufferedImage whiteDiscImage;
-    private final BufferedImage blackDiscImage;
-    private final BufferedImage outlineImage;
-    private final BufferedImage backgroundImage;
-
-    public BoardRenderer() {
-        whiteDiscImage = drawDisc(WHITE_FILL);
-        blackDiscImage = drawDisc(BLACK_FILL);
-        outlineImage = drawDisc(NO_FILL);
-        backgroundImage = drawBackground(OthelloBoard.getBoardSize());
-    }
+    private static final BufferedImage whiteDiscImage = drawDisc(WHITE_FILL);;
+    private static final BufferedImage blackDiscImage = drawDisc(BLACK_FILL);
+    private static final BufferedImage outlineImage = drawDisc(NO_FILL);
+    private static final BufferedImage backgroundImage = drawBackground(OthelloBoard.getBoardSize());
 
     private static BufferedImage drawBackground(int boardSize) {
         var image = drawColoredBackground(boardSize);
@@ -131,15 +124,15 @@ public class BoardRenderer {
         return image;
     }
 
-    public BufferedImage drawBoard(OthelloBoard board) {
+    public static BufferedImage drawBoard(OthelloBoard board) {
         return drawBoard(board, new ArrayList<>());
     }
 
-    public BufferedImage drawBoardMoves(OthelloBoard board) {
+    public static BufferedImage drawBoardMoves(OthelloBoard board) {
         return drawBoard(board, board.findPotentialMoves());
     }
 
-    public BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
+    public static BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
         var boardImage = new BufferedImage(
             backgroundImage.getWidth(),
             backgroundImage.getHeight(),
@@ -162,9 +155,9 @@ public class BoardRenderer {
         return boardImage;
     }
 
-    private void drawDiscs(Graphics boardGraphics, OthelloBoard board) {
+    private static void drawDiscs(Graphics boardGraphics, OthelloBoard board) {
         // draw discs onto board, either empty, black, or white
-        for (var tile : board.tiles()) {
+        for (var tile : OthelloBoard.tiles()) {
             var x = SIDE_OFFSET + LINE_THICKNESS + tile.getCol() * TILE_SIZE;
             var y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
             // determine which bitmap belongs in the disc slot
@@ -181,11 +174,9 @@ public class BoardRenderer {
     public static void main(String[] args) throws IOException {
         var board = new OthelloBoard();
 
-        var renderer = new BoardRenderer();
-
         var moves = board.findPotentialMoves();
 
-        var image = renderer.drawBoard(board, moves);
+        var image = drawBoard(board, moves);
 
         var outputFile = new File("test_board.png");
         ImageIO.write(image, "png", outputFile);

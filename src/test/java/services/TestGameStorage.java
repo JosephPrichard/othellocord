@@ -10,10 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import othello.OthelloBoard;
 import othello.Tile;
 import services.game.Game;
-import services.game.GameStorage;
+import services.game.GameCachedStorage;
 import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
 import services.game.exceptions.InvalidMoveException;
@@ -27,7 +26,7 @@ public class TestGameStorage {
     @Mock
     private StatsMutator statsMutator;
     @InjectMocks
-    private GameStorage gameStorage;
+    private GameCachedStorage gameStorage;
 
     @Test
     public void testDuplicateCreate() {

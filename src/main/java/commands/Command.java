@@ -4,6 +4,8 @@
 
 package commands;
 
+import commands.context.CommandContext;
+import commands.context.SlashCommandContext;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -47,7 +49,7 @@ public abstract class Command {
     abstract protected void doCommand(CommandContext ctx);
 
     public final void onMessageEvent(SlashCommandInteractionEvent event) {
-        var ctx = new CommandContext(event);
+        var ctx = new SlashCommandContext(event);
         try {
             doCommand(ctx);
         } catch (Exception ex) {

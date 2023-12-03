@@ -4,6 +4,7 @@
 
 package commands;
 
+import commands.context.CommandContext;
 import messaging.senders.GameViewSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
@@ -13,12 +14,10 @@ import static utils.Logger.LOGGER;
 
 public class ViewCommand extends Command {
     private final GameStorage gameStorage;
-    private final BoardRenderer boardRenderer;
 
-    public ViewCommand(GameStorage gameStorage, BoardRenderer boardRenderer) {
+    public ViewCommand(GameStorage gameStorage) {
         super("view", "Displays the game state including all the moves that can be made this turn");
         this.gameStorage = gameStorage;
-        this.boardRenderer = boardRenderer;
     }
 
     @Override
@@ -34,11 +33,11 @@ public class ViewCommand extends Command {
         var board = game.board();
         var potentialMoves = board.findPotentialMoves();
 
-        var image = boardRenderer.drawBoard(board, potentialMoves);
+        var image = BoardRenderer.drawBoard(board, potentialMoves);
         var sender = new GameViewSender()
             .setGame(game)
             .setImage(image);
-        sender.sendReply(ctx);
+        ctx.replyWithSender(sender);
 
         LOGGER.info("Player " + player + " view moves in game");
     }

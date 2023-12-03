@@ -9,11 +9,10 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
-import othello.BoardRenderer;
 import services.DataSource;
 import services.challenge.ChallengeScheduler;
 import services.game.GameEvaluator;
-import services.game.GameStorage;
+import services.game.GameCachedStorage;
 import services.stats.StatsOrmDao;
 import services.stats.StatsService;
 import services.player.UserFetcher;
@@ -49,18 +48,16 @@ public class OthelloBot extends ListenerAdapter {
 
         var gameEvaluator = new GameEvaluator(cpuExecutor);
         var statsService = new StatsService(statsDao, userFetcher, ioExecutor);
-        var gameStorage = new GameStorage(statsService);
+        var gameStorage = new GameCachedStorage(statsService);
         var challengeScheduler = new ChallengeScheduler(scheduledExecutor);
-
-        var boardRenderer = new BoardRenderer();
 
         // add all bot commands to the handler map for handling events
         addCommands(
-            new ChallengeCommand(challengeScheduler, gameStorage, boardRenderer),
-            new AcceptCommand(gameStorage, challengeScheduler, boardRenderer),
-            new ForfeitCommand(gameStorage, statsService, boardRenderer),
-            new MoveCommand(gameStorage, statsService, gameEvaluator, boardRenderer),
-            new ViewCommand(gameStorage, boardRenderer),
+            new ChallengeCommand(challengeScheduler, gameStorage),
+            new AcceptCommand(gameStorage, challengeScheduler),
+            new ForfeitCommand(gameStorage, statsService),
+            new MoveCommand(gameStorage, statsService, gameEvaluator),
+            new ViewCommand(gameStorage),
             new AnalyzeCommand(gameStorage, gameEvaluator),
             new StatsCommand(statsService),
             new LeaderBoardCommand(statsService)

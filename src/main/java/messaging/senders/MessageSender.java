@@ -4,8 +4,8 @@
 
 package messaging.senders;
 
-import commands.CommandContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import utils.Image;
 
 import java.awt.*;
@@ -36,14 +36,15 @@ public class MessageSender {
         return this;
     }
 
-    public void sendReply(CommandContext ctx) {
-        var event = ctx.event();
+    public void sendReply(SlashCommandInteractionEvent event) {
         try {
             var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {
-                ctx.sendMessage(message);
+                event.getChannel()
+                    .sendMessage(message)
+                    .queue();
             }
             event.replyEmbeds(embedBuilder.build())
                 .addFile(is, "image.png")
@@ -53,14 +54,15 @@ public class MessageSender {
         }
     }
 
-    public void sendMessage(CommandContext ctx) {
-        var event = ctx.event();
+    public void sendMessage(SlashCommandInteractionEvent event) {
         try {
             var is = Image.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {
-                ctx.sendMessage(message);
+                event.getChannel()
+                    .sendMessage(message)
+                    .queue();
             }
             event.getChannel().sendMessageEmbeds(embedBuilder.build())
                 .addFile(is, "image.png")
