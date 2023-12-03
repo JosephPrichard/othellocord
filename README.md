@@ -39,7 +39,7 @@ Each cache line has 2 buckets, one which is only replaced if the new board is fo
 
 `/challenge @user`
 
-Challenges another user to an othello game. Another player can accept the challenge with the `!accept` command.
+Challenges another user to an othello game. Another player can accept the challenge with the `/accept` command.
 
 `/challengebot level`
 
