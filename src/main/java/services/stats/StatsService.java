@@ -4,10 +4,16 @@
 
 package services.stats;
 
+import org.modelmapper.Converter;
+import org.modelmapper.ModelMapper;
 import services.game.GameResult;
-import services.game.Player;
+import services.player.Player;
+import services.player.UserFetcher;
+import utils.Bot;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -17,25 +23,60 @@ import static utils.Logger.LOGGER;
 public class StatsService implements StatsMutator {
     public static final int K = 30;
     private final StatsDao statsDao;
-    private final StatsMapper mapper;
     private final ExecutorService es;
+    private final UserFetcher userFetcher;
+    private final ModelMapper mapper = new ModelMapper();
 
     public StatsService(StatsDao statsDao, UserFetcher userFetcher, ExecutorService es) {
         this.statsDao = statsDao;
-        this.mapper = new StatsMapper(userFetcher);
+        this.userFetcher = userFetcher;
         this.es = es;
+        mapper.typeMap(StatsEntity.class, Stats.class).addMappings(mapper -> {
+            Converter<Long, Player> playerConverter = (ctx) -> new Player(ctx.getSource());
+            mapper.using(playerConverter).map(StatsEntity::getPlayerId, Stats::setPlayer);
+        });
+        mapper.validate();
     }
 
     public Stats getStats(Player player) {
         var statsEntity = statsDao.getOrSaveStats(player.getId());
-        return mapper.map(statsEntity);
+        var stats = mapper.map(statsEntity, Stats.class);
+        try {
+            var tag = userFetcher.fetchUserTag(statsEntity.getPlayerId()).get();
+            stats.getPlayer().setName(tag);
+        } catch(ExecutionException | InterruptedException ex) {
+            LOGGER.info("Failed to load the tag name for mapped player " + stats.getPlayer());
+        }
+        return stats;
     }
 
     public List<Stats> getTopStats() {
         var statsEntityList = statsDao.getTopStats(25);
-        return mapper.mapAll(statsEntityList);
-    }
+        // fetch each tag from jda using futures, for the bots return null and map bot name instead
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+        for (var entity : statsEntityList) {
+            var future = Bot.isBotId(entity.getPlayerId()) ?
+                CompletableFuture.<String>completedFuture(null) :
+                userFetcher.fetchUserTag(entity.getPlayerId());
+            futures.add(future);
+        }
+        CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
 
+        // map each entity to dto
+        List<Stats> statsList = new ArrayList<>();
+        for (var i = 0; i < futures.size(); i++) {
+            // retrieve tag from completed future
+            var tag = futures.get(i).join();
+            if (tag == null) {
+                tag = Bot.getBotName(statsEntityList.get(i).getPlayerId());
+            }
+            // map entity to dto and add to dto list
+            var stats = mapper.map(statsEntityList.get(i), Stats.class);
+            stats.getPlayer().setName(tag);
+            statsList.add(stats);
+        }
+        return statsList;
+    }
 
     public static float calcProbability(float rating1, float rating2) {
         return 1.0f / (1.0f + ((float) Math.pow(10, (rating1 - rating2) / 400f)));

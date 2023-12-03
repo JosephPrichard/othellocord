@@ -4,7 +4,7 @@
 
 package messaging.builders;
 
-import services.game.Player;
+import services.player.Player;
 
 public class ChallengeBuilder {
     private final StringBuilder messageBuilder;

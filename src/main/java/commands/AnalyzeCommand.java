@@ -11,7 +11,7 @@ import othello.Move;
 import services.game.EvalRequest;
 import services.game.GameEvaluator;
 import services.game.GameStorage;
-import services.game.Player;
+import services.player.Player;
 import utils.Bot;
 
 import java.util.List;

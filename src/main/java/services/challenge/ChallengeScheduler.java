@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.game;
+package services.challenge;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

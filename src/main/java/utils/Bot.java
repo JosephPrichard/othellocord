@@ -4,7 +4,7 @@
 
 package utils;
 
-import services.game.Player;
+import services.player.Player;
 
 public class Bot {
     public static final int MAX_BOT_LEVEL = 5;

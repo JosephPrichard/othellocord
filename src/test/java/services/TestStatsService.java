@@ -10,13 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import services.game.GameResult;
-import services.game.Player;
-import services.stats.StatsDao;
-import services.stats.StatsEntity;
-import services.stats.StatsService;
-import services.stats.UserFetcher;
+import services.player.Player;
+import services.player.UserFetcher;
+import services.stats.*;
 
-import java.util.concurrent.ExecutorService;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
 import static org.mockito.Mockito.*;
@@ -24,17 +23,54 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TestStatsService {
 
-    private StatsDao statsDao;
-    private UserFetcher userFetcher;
-    private ExecutorService es;
+    private StatsDao mock_statsDao;
+    private UserFetcher mock_userFetcher;
     private StatsService statsService;
 
     @BeforeEach
     public void beforeEach() {
-        statsDao = spy(StatsDao.class);
-        userFetcher = mock(UserFetcher.class);
-        es = Executors.newFixedThreadPool(1);
-        statsService = new StatsService(statsDao, userFetcher, es);
+        mock_statsDao = spy(StatsDao.class);
+        mock_userFetcher = spy(UserFetcher.class);
+        var es = Executors.newFixedThreadPool(1);
+        statsService = new StatsService(mock_statsDao, mock_userFetcher, es);
+    }
+
+    @Test
+    public void testGetStats() {
+        var player = new Player(1000);
+
+        when(mock_statsDao.getOrSaveStats(1000L))
+            .thenReturn(new StatsEntity(1000L));
+        when(mock_userFetcher.fetchUserTag(1000L))
+            .thenReturn(CompletableFuture.completedFuture("Player1"));
+
+        var stats = statsService.getStats(player);
+
+        Assertions.assertEquals(new Stats(new Player(1000, "Player1")), stats);
+    }
+
+    @Test
+    public void testGetTopStats() {
+        when(mock_statsDao.getTopStats(anyInt()))
+            .thenReturn(List.of(
+                new StatsEntity(1000L),
+                new StatsEntity(1001L),
+                new StatsEntity(1002L)
+            ));
+        when(mock_userFetcher.fetchUserTag(1000L))
+            .thenReturn(CompletableFuture.completedFuture("Player1"));
+        when(mock_userFetcher.fetchUserTag(1001L))
+            .thenReturn(CompletableFuture.completedFuture("Player2"));
+        when(mock_userFetcher.fetchUserTag(1002L))
+            .thenReturn(CompletableFuture.completedFuture("Player3"));
+
+        var statsList = statsService.getTopStats();
+
+        Assertions.assertEquals(List.of(
+            new Stats(new Player(1000L, "Player1")),
+            new Stats(new Player(1001L, "Player2")),
+            new Stats(new Player(1002L, "Player3"))
+        ), statsList);
     }
 
     @Test
@@ -43,14 +79,14 @@ public class TestStatsService {
         var loser = new Player(1001, "Player2");
         var result = GameResult.WinLoss(winner, loser);
 
-        when(statsDao.getOrSaveStats(1000L))
+        when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));
-        when(statsDao.getOrSaveStats(1001L))
+        when(mock_statsDao.getOrSaveStats(1001L))
             .thenReturn(new StatsEntity(1001L, 1015f, 1, 1, 1));
 
         statsService.updateStats(result);
 
-        verify(statsDao).updateStats(
+        verify(mock_statsDao).updateStats(
             argThat((arg) -> arg.getWon() == 2 && arg.getLost() == 1),
             argThat((arg) -> arg.getWon() == 1 && arg.getLost() == 2));
 
@@ -66,9 +102,9 @@ public class TestStatsService {
         var loser = new Player(1001, "Player2");
         var result = GameResult.Draw(winner, loser);
 
-        when(statsDao.getOrSaveStats(1000L))
+        when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));
-        when(statsDao.getOrSaveStats(1001L))
+        when(mock_statsDao.getOrSaveStats(1001L))
             .thenReturn(new StatsEntity(1001L, 1015f, 1, 1, 1));
 
         statsService.updateStats(result);

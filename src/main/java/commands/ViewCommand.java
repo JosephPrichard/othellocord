@@ -7,7 +7,7 @@ package commands;
 import messaging.senders.GameViewSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
-import services.game.Player;
+import services.player.Player;
 
 import static utils.Logger.LOGGER;
 

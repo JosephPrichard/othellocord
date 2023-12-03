@@ -5,10 +5,39 @@
 package services.game;
 
 import othello.OthelloBoard;
+import services.player.Player;
 
 import java.util.Objects;
 
-public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
+public class Game {
+
+    private final OthelloBoard board;
+    private final Player whitePlayer;
+    private final Player blackPlayer;
+
+    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer)  {
+        this.board = board;
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+    }
+
+    public Game(Player whitePlayer, Player blackPlayer) {
+        this.board = new OthelloBoard();
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+    }
+
+    public OthelloBoard board() {
+        return board;
+    }
+
+    public Player whitePlayer() {
+        return whitePlayer;
+    }
+
+    public Player blackPlayer() {
+        return blackPlayer;
+    }
 
     public Player getCurrentPlayer() {
         return board.isBlackMove() ? blackPlayer : whitePlayer;

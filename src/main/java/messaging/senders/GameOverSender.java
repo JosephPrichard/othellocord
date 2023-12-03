@@ -6,7 +6,7 @@ package messaging.senders;
 
 import commands.CommandContext;
 import services.game.GameResult;
-import services.game.Player;
+import services.player.Player;
 
 public class GameOverSender extends MessageSender {
     private String resultDesc = "";
@@ -51,6 +51,7 @@ public class GameOverSender extends MessageSender {
         return this;
     }
 
+    @Override()
     public void sendReply(CommandContext ctx) {
         var desc = messageDesc;
         if (!scoreDesc.isEmpty()) {

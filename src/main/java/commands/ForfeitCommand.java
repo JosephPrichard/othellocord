@@ -7,7 +7,7 @@ package commands;
 import messaging.senders.GameOverSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
-import services.game.Player;
+import services.player.Player;
 import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;

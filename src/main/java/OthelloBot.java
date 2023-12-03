@@ -4,17 +4,19 @@
 
 import commands.*;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import othello.BoardRenderer;
 import services.DataSource;
-import services.game.ChallengeScheduler;
+import services.challenge.ChallengeScheduler;
 import services.game.GameEvaluator;
 import services.game.GameStorage;
 import services.stats.StatsOrmDao;
 import services.stats.StatsService;
+import services.player.UserFetcher;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,10 +40,15 @@ public class OthelloBot extends ListenerAdapter {
         var ioExecutor = Executors.newCachedThreadPool();
         var scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
 
+        UserFetcher userFetcher = (id) -> jda
+            .retrieveUserById(id)
+            .submit()
+            .thenApply(User::getAsTag);
+
         var statsDao = new StatsOrmDao(ds);
 
         var gameEvaluator = new GameEvaluator(cpuExecutor);
-        var statsService = new StatsService(statsDao, jda::retrieveUserById, ioExecutor);
+        var statsService = new StatsService(statsDao, userFetcher, ioExecutor);
         var gameStorage = new GameStorage(statsService);
         var challengeScheduler = new ChallengeScheduler(scheduledExecutor);
 

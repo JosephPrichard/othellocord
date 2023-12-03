@@ -23,6 +23,10 @@ public class StatsEntity {
     public StatsEntity() {
     }
 
+    public StatsEntity(Long playerId) {
+        this(playerId, 0f, 0, 0, 0);
+    }
+
     public StatsEntity(Long playerId, Float elo, Integer won, Integer lost, Integer drawn) {
         this.playerId = playerId;
         this.elo = elo;

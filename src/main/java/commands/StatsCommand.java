@@ -7,7 +7,7 @@ package commands;
 import messaging.builders.StatsEmbedBuilder;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import services.game.Player;
+import services.player.Player;
 import services.stats.StatsService;
 
 import static utils.Logger.LOGGER;

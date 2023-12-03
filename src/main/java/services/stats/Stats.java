@@ -4,7 +4,9 @@
 
 package services.stats;
 
-import services.game.Player;
+import services.player.Player;
+
+import java.util.Objects;
 
 public class Stats {
     private Player player;
@@ -12,6 +14,21 @@ public class Stats {
     private int won;
     private int lost;
     private int drawn;
+
+    public Stats() {
+    }
+
+    public Stats(Player player, float elo, int won, int lost, int drawn) {
+        this.player = player;
+        this.elo = elo;
+        this.won = won;
+        this.lost = lost;
+        this.drawn = drawn;
+    }
+
+    public Stats(Player player) {
+        this(player, 0f, 0, 0, 0);
+    }
 
     public Player getPlayer() {
         return player;
@@ -51,6 +68,24 @@ public class Stats {
 
     public void setDrawn(int drawn) {
         this.drawn = drawn;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Stats stats = (Stats) o;
+        return Float.compare(elo, stats.elo) == 0
+            && won == stats.won
+            && lost == stats.lost
+            && drawn == stats.drawn
+            && player.equals(stats.player)
+            && player.getName().equals(stats.player.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(player, elo, won, lost, drawn);
     }
 
     public float getWinRate() {

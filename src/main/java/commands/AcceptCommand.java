@@ -8,10 +8,10 @@ import messaging.senders.GameStartSender;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import othello.BoardRenderer;
-import services.game.Challenge;
-import services.game.ChallengeScheduler;
+import services.challenge.Challenge;
+import services.challenge.ChallengeScheduler;
 import services.game.GameStorage;
-import services.game.Player;
+import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
 
 import static utils.Logger.LOGGER;

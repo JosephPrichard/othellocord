@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.game;
+package services.player;
 
 import net.dv8tion.jda.api.entities.User;
 import utils.Bot;
