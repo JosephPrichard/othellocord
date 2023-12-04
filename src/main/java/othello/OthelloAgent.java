@@ -50,16 +50,16 @@ public final class OthelloAgent {
 
         // sort the moves to rank them properly
         Comparator<Move> comparator = board.isBlackMove() ?
-            (m1, m2) -> Float.compare(m2.getHeuristic(), m1.getHeuristic()) :
-            (m1, m2) -> Float.compare(m1.getHeuristic(), m2.getHeuristic());
+            (m1, m2) -> Float.compare(m2.heuristic(), m1.heuristic()) :
+            (m1, m2) -> Float.compare(m1.heuristic(), m2.heuristic());
         rankedMoves.sort(comparator);
 
         // remove duplicate moves (this is possible, has minimal effect on speed of algo due to transposition tables)
         var isDup = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
         for (var iterator = rankedMoves.iterator(); iterator.hasNext(); ) {
             var move = iterator.next();
-            var r = move.getTile().getRow();
-            var c = move.getTile().getCol();
+            var r = move.tile().row();
+            var c = move.tile().col();
             if (isDup[r][c]) {
                 iterator.remove();
             }
@@ -178,10 +178,10 @@ public final class OthelloAgent {
 
         var board = new OthelloBoard();
         for (var j = 0; j < 10; j++) {
-            var agent = new OthelloAgent(8);
+            var agent = new OthelloAgent(10);
             var bestMove = agent.findBestMove(board);
             System.out.println(bestMove);
-            board = board.makeMoved(bestMove.getTile());
+            board = board.makeMoved(bestMove.tile());
         }
 
         var endTime = System.currentTimeMillis();

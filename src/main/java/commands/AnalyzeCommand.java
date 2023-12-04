@@ -7,8 +7,8 @@ package commands;
 import commands.context.CommandContext;
 import messaging.builders.AnalyzeEmbedBuilder;
 import othello.Move;
-import services.game.EvalRequest;
-import services.game.GameEvaluator;
+import services.agent.AgentDispatcher;
+import services.agent.AgentEvent;
 import services.game.GameStorage;
 import services.player.Player;
 
@@ -20,12 +20,12 @@ import static utils.Logger.LOGGER;
 public class AnalyzeCommand extends Command {
 
     private final GameStorage gameStorage;
-    private final GameEvaluator gameEvaluator;
+    private final AgentDispatcher agentDispatcher;
 
-    public AnalyzeCommand(GameStorage gameStorage, GameEvaluator gameEvaluator) {
+    public AnalyzeCommand(GameStorage gameStorage, AgentDispatcher agentDispatcher) {
         super("analyze");
         this.gameStorage = gameStorage;
-        this.gameEvaluator = gameEvaluator;
+        this.agentDispatcher = agentDispatcher;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class AnalyzeCommand extends Command {
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
-            var r = new EvalRequest<>(game, depth, (List<Move> rankedMoves) -> {
+            var event = new AgentEvent<>(game, depth, (List<Move> rankedMoves) -> {
                 var embed = new AnalyzeEmbedBuilder()
                     .setRankedMoves(rankedMoves)
                     .build();
@@ -64,7 +64,7 @@ public class AnalyzeCommand extends Command {
 
                 LOGGER.info("Finished board state analysis");
             });
-            gameEvaluator.findRankedMoves(r);
+            agentDispatcher.dispatchFindMovesEvent(event);
         });
     }
 }

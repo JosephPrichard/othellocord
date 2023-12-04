@@ -69,7 +69,7 @@ public class ChallengeCommand extends Command {
 
         var player = ctx.getPlayer();
 
-        var id = player.getId();
+        var id = player.id();
         Runnable onExpiry = () -> ctx.sendMessage("<@" + id + "> Challenge timed out!");
         challengeManager.createChallenge(new Challenge(opponent, player), onExpiry);
 

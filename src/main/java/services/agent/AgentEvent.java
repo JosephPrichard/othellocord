@@ -2,37 +2,30 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package services.game;
+package services.agent;
+
+import services.game.Game;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class EvalRequest<Result> {
+public record AgentEvent<Result>(Game game, int depth, Consumer<Result> onComplete) {
 
-    private final Game game;
-    private final int depth;
-    private final Consumer<Result> onComplete;
-
-    public EvalRequest(Game game, int depth, Consumer<Result> onComplete) {
-        this.game = game;
-        this.depth = depth;
-        this.onComplete = onComplete;
+    public AgentEvent(Game game, int depth) {
+        // no-op eval request
+        this(game, depth, (r) -> {
+        });
     }
 
-    // no-op eval request
-    public EvalRequest(Game game, int depth) {
-        this(game, depth, (r) -> {});
-    }
-
-    public Game getGame() {
+    public Game game() {
         return game;
     }
 
-    public int getDepth() {
+    public int depth() {
         return depth;
     }
 
-    public void onComplete(Result r) {
+    public void applyOnComplete(Result r) {
         this.onComplete.accept(r);
     }
 
@@ -40,7 +33,7 @@ public class EvalRequest<Result> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        EvalRequest<?> that = (EvalRequest<?>) o;
+        AgentEvent<?> that = (AgentEvent<?>) o;
         return depth == that.depth && Objects.equals(game, that.game);
     }
 

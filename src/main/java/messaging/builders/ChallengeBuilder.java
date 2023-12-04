@@ -28,13 +28,13 @@ public class ChallengeBuilder {
 
     public String build() {
         messageBuilder.append("<@")
-            .append(challenged.getId())
+            .append(challenged.id())
             .append(">, ")
-            .append(challenger.getName())
+            .append(challenger.name())
             .append(" has challenged you to a game of reversi. ")
             .append("Type !accept ")
             .append("<@")
-            .append(challenger.getId())
+            .append(challenger.id())
             .append(">, ")
             .append("or ignore to decline.");
 

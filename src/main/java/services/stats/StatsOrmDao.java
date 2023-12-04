@@ -9,6 +9,7 @@ import services.DataSource;
 import javax.annotation.Nullable;
 import java.util.List;
 
+// implementation that uses hibernate orm to persist stats entities to a database
 public class StatsOrmDao implements StatsDao {
 
     private final DataSource dataSource;

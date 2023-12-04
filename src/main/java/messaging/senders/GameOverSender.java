@@ -7,6 +7,7 @@ package messaging.senders;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import services.game.GameResult;
 import services.player.Player;
+import services.stats.StatsResult;
 
 public class GameOverSender extends MessageSender {
 
@@ -14,19 +15,19 @@ public class GameOverSender extends MessageSender {
     private String messageDesc = "";
     private String scoreDesc = "";
 
-    public GameOverSender setGame(GameResult result) {
-        resultDesc = result.getWinner().getName() +
-            "'s new rating is " + result.getWinnerElo() +
-            " (" + result.formatWinnerDiffElo() + ") \n" +
-            result.getLoser().getName() +
-            "'s new rating is " + result.getLoserElo() +
-            " (" + result.formatLoserDiffElo() + ") \n";
+    public GameOverSender setResults(GameResult gameRes, StatsResult statsRes) {
+        resultDesc = gameRes.winner().name() +
+            "'s new rating is " + statsRes.winnerElo() +
+            " (" + statsRes.formatWinnerEloDiff() + ") \n" +
+            gameRes.loser().name() +
+            "'s new rating is " + statsRes.loserElo() +
+            " (" + statsRes.formatLoserEloDiff() + ") \n";
         getEmbedBuilder().setTitle("Game has ended");
         return this;
     }
 
     public GameOverSender addForfeitMessage(Player winner) {
-        messageDesc = winner.getName() + " won by forfeit \n";
+        messageDesc = winner.name() + " won by forfeit \n";
         return this;
     }
 
@@ -36,17 +37,17 @@ public class GameOverSender extends MessageSender {
     }
 
     public GameOverSender addMoveMessage(Player winner, String move) {
-        messageDesc = winner.getName() + " won with " + move + "\n";
+        messageDesc = winner.name() + " won with " + move + "\n";
         return this;
     }
 
     public GameOverSender setTag(GameResult result) {
         var tag = "";
-        if (!result.getWinner().isBot()) {
-            tag += "<@" + result.getWinner() + "> ";
+        if (!result.winner().isBot()) {
+            tag += "<@" + result.winner() + "> ";
         }
-        if (!result.getLoser().isBot()) {
-            tag += "<@" + result.getLoser() + "> ";
+        if (!result.loser().isBot()) {
+            tag += "<@" + result.loser() + "> ";
         }
         setMessage(tag);
         return this;

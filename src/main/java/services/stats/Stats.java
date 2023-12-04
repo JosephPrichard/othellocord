@@ -10,14 +10,11 @@ import java.util.Objects;
 
 public class Stats {
 
-    private Player player;
-    private float elo;
-    private int won;
-    private int lost;
-    private int drawn;
-
-    public Stats() {
-    }
+    private final Player player;
+    private final float elo;
+    private final int won;
+    private final int lost;
+    private final int drawn;
 
     public Stats(Player player, float elo, int won, int lost, int drawn) {
         this.player = player;
@@ -31,44 +28,29 @@ public class Stats {
         this(player, 0f, 0, 0, 0);
     }
 
-    public Player getPlayer() {
-        return player;
+    public Stats(StatsEntity statsEntity, String playerName) {
+        this(new Player(statsEntity.getPlayerId(), playerName), statsEntity.getElo(),
+            statsEntity.getWon(), statsEntity.getLost(), statsEntity.getDrawn());
     }
 
-    public void setPlayer(Player player) {
-        this.player = player;
+    public Player getPlayer() {
+        return player;
     }
 
     public float getElo() {
         return elo;
     }
 
-    public void setElo(float elo) {
-        this.elo = elo;
-    }
-
     public int getWon() {
         return won;
-    }
-
-    public void setWon(int won) {
-        this.won = won;
     }
 
     public int getLost() {
         return lost;
     }
 
-    public void setLost(int lost) {
-        this.lost = lost;
-    }
-
     public int getDrawn() {
         return drawn;
-    }
-
-    public void setDrawn(int drawn) {
-        this.drawn = drawn;
     }
 
     @Override
@@ -81,7 +63,7 @@ public class Stats {
             && lost == stats.lost
             && drawn == stats.drawn
             && player.equals(stats.player)
-            && player.getName().equals(stats.player.getName());
+            && player.name().equals(stats.player.name());
     }
 
     @Override
@@ -95,5 +77,16 @@ public class Stats {
             return 0f;
         }
         return won / (float) (won + lost + drawn) * 100f;
+    }
+
+    @Override
+    public String toString() {
+        return "Stats{" +
+            "player=" + player +
+            ", elo=" + elo +
+            ", won=" + won +
+            ", lost=" + lost +
+            ", drawn=" + drawn +
+            '}';
     }
 }

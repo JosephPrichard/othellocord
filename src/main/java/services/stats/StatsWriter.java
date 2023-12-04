@@ -6,7 +6,8 @@ package services.stats;
 
 import services.game.GameResult;
 
+// writes stats to an external service
 public interface StatsWriter {
 
-    void updateStats(GameResult result);
+    StatsResult writeStats(GameResult result);
 }

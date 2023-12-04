@@ -6,7 +6,7 @@ package messaging.senders;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
-import utils.Image;
+import utils.ImageUtils;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -39,7 +39,7 @@ public abstract class MessageSender {
 
     public void sendReply(SlashCommandInteraction event) {
         try {
-            var is = Image.toPngIS(image);
+            var is = ImageUtils.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {
@@ -57,7 +57,7 @@ public abstract class MessageSender {
 
     public void sendMessage(SlashCommandInteraction event) {
         try {
-            var is = Image.toPngIS(image);
+            var is = ImageUtils.toPngIS(image);
             embedBuilder.setImage("attachment://image.png");
 
             if (message != null) {

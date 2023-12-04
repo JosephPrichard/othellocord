@@ -12,11 +12,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class Image {
+public class ImageUtils {
 
     public static BufferedImage readImage(String path) {
         try {
-            var classLoader = Image.class.getClassLoader();
+            var classLoader = ImageUtils.class.getClassLoader();
             var is = classLoader.getResourceAsStream(path);
             if (is != null) {
                 return ImageIO.read(is);

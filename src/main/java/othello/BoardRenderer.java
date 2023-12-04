@@ -4,7 +4,7 @@
 
 package othello;
 
-import utils.Image;
+import utils.ImageUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -32,11 +32,10 @@ public class BoardRenderer {
     private static final int DOT_SIZE = 16;
     private static final int TOP_LEFT = 5;
 
-    private static final BufferedImage whiteDiscImage = drawDisc(WHITE_FILL);
-    ;
-    private static final BufferedImage blackDiscImage = drawDisc(BLACK_FILL);
-    private static final BufferedImage outlineImage = drawDisc(NO_FILL);
-    private static final BufferedImage backgroundImage = drawBackground(OthelloBoard.getBoardSize());
+    private static final BufferedImage WHITE_DISC_IMAGE = drawDisc(WHITE_FILL);
+    private static final BufferedImage BLACK_DISC_IMAGE = drawDisc(BLACK_FILL);
+    private static final BufferedImage OUTLINE_IMAGE = drawDisc(NO_FILL);
+    private static final BufferedImage BACKGROUND_IMAGE = drawBackground(OthelloBoard.getBoardSize());
 
     private static BufferedImage drawBackground(int boardSize) {
         var image = drawColoredBackground(boardSize);
@@ -101,14 +100,14 @@ public class BoardRenderer {
         for (var i = 0; i < boardSize; i++) {
             var text = Character.toString(i + 'A');
             var rect = new Rectangle(SIDE_OFFSET + i * TILE_SIZE, 0, TILE_SIZE, SIDE_OFFSET);
-            Image.drawCenteredString(g, text, rect, font);
+            ImageUtils.drawCenteredString(g, text, rect, font);
         }
 
         // draw numbers on vertical sidebar
         for (var i = 0; i < boardSize; i++) {
             var text = Integer.toString(i + 1);
             var rect = new Rectangle(0, SIDE_OFFSET + i * TILE_SIZE, SIDE_OFFSET, TILE_SIZE);
-            Image.drawCenteredString(g, text, rect, font);
+            ImageUtils.drawCenteredString(g, text, rect, font);
         }
     }
 
@@ -136,21 +135,21 @@ public class BoardRenderer {
 
     public static BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
         var boardImage = new BufferedImage(
-            backgroundImage.getWidth(),
-            backgroundImage.getHeight(),
-            backgroundImage.getType()
+            BACKGROUND_IMAGE.getWidth(),
+            BACKGROUND_IMAGE.getHeight(),
+            BACKGROUND_IMAGE.getType()
         );
         var g = boardImage.getGraphics();
 
         // draw background image and discs onto board
-        g.drawImage(backgroundImage, 0, 0, null);
+        g.drawImage(BACKGROUND_IMAGE, 0, 0, null);
         drawDiscs(g, board);
 
         // draw each move image onto the board
         for (var move : moves) {
-            var x = SIDE_OFFSET + LINE_THICKNESS + move.getCol() * TILE_SIZE;
-            var y = SIDE_OFFSET + LINE_THICKNESS + move.getRow() * TILE_SIZE;
-            g.drawImage(outlineImage, x, y, null);
+            var x = SIDE_OFFSET + LINE_THICKNESS + move.col() * TILE_SIZE;
+            var y = SIDE_OFFSET + LINE_THICKNESS + move.row() * TILE_SIZE;
+            g.drawImage(OUTLINE_IMAGE, x, y, null);
         }
 
         g.dispose();
@@ -160,14 +159,14 @@ public class BoardRenderer {
     private static void drawDiscs(Graphics boardGraphics, OthelloBoard board) {
         // draw discs onto board, either empty, black, or white
         for (var tile : OthelloBoard.tiles()) {
-            var x = SIDE_OFFSET + LINE_THICKNESS + tile.getCol() * TILE_SIZE;
-            var y = SIDE_OFFSET + LINE_THICKNESS + tile.getRow() * TILE_SIZE;
-            // determine which bitmap belongs in the disc slot
+            var x = SIDE_OFFSET + LINE_THICKNESS + tile.col() * TILE_SIZE;
+            var y = SIDE_OFFSET + LINE_THICKNESS + tile.row() * TILE_SIZE;
+            // determine which bitmap belongs in the tile slot
             int color = board.getSquare(tile);
             if (color == OthelloBoard.BLACK) {
-                boardGraphics.drawImage(blackDiscImage, x, y, null);
+                boardGraphics.drawImage(BLACK_DISC_IMAGE, x, y, null);
             } else if (color == OthelloBoard.WHITE) {
-                boardGraphics.drawImage(whiteDiscImage, x, y, null);
+                boardGraphics.drawImage(WHITE_DISC_IMAGE, x, y, null);
             }
         }
     }

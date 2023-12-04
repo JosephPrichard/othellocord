@@ -62,10 +62,10 @@ public class TestOthelloBoard {
         moves.sort(Comparator.comparing(Tile::toString));
 
         var expected = List.of(
-            new Tile("c4"),
-            new Tile("d3"),
-            new Tile("e6"),
-            new Tile("f5")
+            Tile.fromNotation("c4"),
+            Tile.fromNotation("d3"),
+            Tile.fromNotation("e6"),
+            Tile.fromNotation("f5")
         );
         Assertions.assertEquals(expected, moves);
     }

@@ -4,6 +4,7 @@
 
 package services.challenge;
 
+// responsible for managing stored challenges and events
 public interface ChallengeManager {
 
     void createChallenge(Challenge challenge, Runnable onExpiry);

@@ -5,18 +5,23 @@
 package commands;
 
 import commands.context.CommandContext;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import othello.Tile;
-import services.game.EvalRequest;
+import services.agent.AgentEvent;
 import services.game.Game;
-import services.game.GameEvaluator;
+import services.agent.AgentDispatcher;
 import services.game.GameStorage;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import services.player.Player;
 import services.stats.StatsWriter;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -25,19 +30,20 @@ public class TestMoveCommand {
 
     private GameStorage mock_gameStorage;
     private StatsWriter mock_statsWriter;
-    private GameEvaluator mock_gameEvaluator;
+    private AgentDispatcher mock_agentDispatcher;
+    private final ExecutorService ioTaskExecutor = Executors.newSingleThreadExecutor();
     private MoveCommand spy_moveCommand;
 
     @BeforeEach
     public void beforeEach() {
         mock_gameStorage = mock(GameStorage.class);
         mock_statsWriter = mock(StatsWriter.class);
-        mock_gameEvaluator = mock(GameEvaluator.class);
-        spy_moveCommand = spy(new MoveCommand(mock_gameStorage, mock_statsWriter, mock_gameEvaluator));
+        mock_agentDispatcher = mock(AgentDispatcher.class);
+        spy_moveCommand = spy(new MoveCommand(mock_gameStorage, mock_statsWriter, mock_agentDispatcher, ioTaskExecutor));
     }
 
     @Test
-    public void whenCommand_ifPlayer_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifPlayer_success() throws TurnException, NotPlayingException, InvalidMoveException, InterruptedException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -52,12 +58,12 @@ public class TestMoveCommand {
 
         spy_moveCommand.onCommand(mock_cmdCtx);
 
-        verify(mock_gameStorage).makeMove(callingPlayer, new Tile("c4"));
-        verify(spy_moveCommand).onMoved(game, new Tile("c4"));
+        verify(mock_gameStorage).makeMove(callingPlayer,Tile.fromNotation("c4"));
+        verify(spy_moveCommand).onMoved(game, Tile.fromNotation("c4"));
     }
 
     @Test
-    public void whenCommand_ifBot_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifBot_success() throws TurnException, NotPlayingException, InvalidMoveException, InterruptedException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -75,33 +81,42 @@ public class TestMoveCommand {
 
         spy_moveCommand.onCommand(mock_cmdCtx);
 
-        verify(mock_gameStorage).makeMove(callingPlayer, new Tile("c4"));
+        verify(mock_gameStorage).makeMove(callingPlayer, Tile.fromNotation("c4"));
         verify(spy_moveCommand).onMoved(spy_game);
         verify(spy_moveCommand).doBotMove(mock_cmdCtx, spy_game);
-        verify(mock_gameEvaluator).findBestMove(
-            argThat((req) -> req.equals(new EvalRequest<>(spy_game, 1)))
+        verify(mock_agentDispatcher).dispatchFindMoveEvent(
+            argThat((req) -> req.equals(new AgentEvent<>(spy_game, 1)))
         );
     }
 
     @Test
-    public void whenCommand_ifGameOver_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifGameOver_success() throws TurnException, NotPlayingException, InvalidMoveException, InterruptedException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
 
-        var callingPlayer = new Player(1000L);
-        var otherPlayer = Player.Bot.create(1001L);
-        when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
+        var whitePlayer = new Player(1000L);
+        var blackPlayer = new Player(1001L);
+        when(mock_cmdCtx.getPlayer()).thenReturn(whitePlayer);
 
-        var spy_game = spy(new Game(otherPlayer, callingPlayer));
+        var spy_game = spy(new Game(blackPlayer, whitePlayer));
         when(spy_game.isGameOver()).thenReturn(true);
+        when(spy_game.getWhiteScore()).thenReturn(19);
+        when(spy_game.getBlackScore()).thenReturn(21);
 
         when(mock_gameStorage.makeMove((Player) any(), any()))
             .thenReturn(spy_game);
 
         spy_moveCommand.onCommand(mock_cmdCtx);
 
-        verify(spy_moveCommand).onGameOver(spy_game, new Tile("c4"));
-        verify(mock_statsWriter).updateStats(any());
+        // wait for all io tasks to finish before we verify
+        ioTaskExecutor.shutdown();
+        Assertions.assertTrue((ioTaskExecutor.awaitTermination(1, TimeUnit.SECONDS)));
+
+        verify(spy_moveCommand).onGameOver(spy_game, Tile.fromNotation("c4"));
+        verify(mock_statsWriter).writeStats(
+            argThat((arg) -> arg.loser().equals(whitePlayer)
+                && arg.winner().equals(blackPlayer)
+            ));
     }
 }

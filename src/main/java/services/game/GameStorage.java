@@ -13,6 +13,7 @@ import services.player.Player;
 
 import javax.annotation.Nullable;
 
+// performs crud operations on games stored within memory
 public interface GameStorage {
 
     Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException;

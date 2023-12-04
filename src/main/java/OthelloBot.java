@@ -5,7 +5,6 @@
 import commands.*;
 import commands.context.SlashCommandContext;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -15,17 +14,17 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import services.DataSource;
+import services.agent.AgentThreadDispatcher;
 import services.challenge.ChallengeScheduler;
-import services.game.AgentEvaluator;
 import services.game.GameCacheStorage;
 import services.player.UserFetcher;
 import services.stats.StatsOrmDao;
 import services.stats.StatsService;
+import utils.Threading;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
@@ -38,35 +37,24 @@ public class OthelloBot extends ListenerAdapter {
     public void initListeners(JDA jda) {
         var ds = new DataSource();
 
-        var cores = Runtime.getRuntime().availableProcessors();
-        LOGGER.info("Starting the cpu bounded executor service with " + cores + " cores");
-
-        var cpuExecutor = Executors.newFixedThreadPool(cores);
-        var ioExecutor = Executors.newCachedThreadPool();
-        var scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-
-        UserFetcher userFetcher = (id) -> jda
-            .retrieveUserById(id)
-            .submit()
-            .thenApply(User::getAsTag);
-
         var statsDao = new StatsOrmDao(ds);
 
-        var agentEvaluator = new AgentEvaluator(cpuExecutor);
-        var statsService = new StatsService(statsDao, userFetcher, ioExecutor);
+        var userFetcher = UserFetcher.discordFetcher(jda);
+        var agentEvaluator = new AgentThreadDispatcher(Threading.CPU_BND_EXECUTOR);
+        var statsService = new StatsService(statsDao, userFetcher);
         var gameStorage = new GameCacheStorage(statsService);
-        var challengeScheduler = new ChallengeScheduler(scheduledExecutor);
+        var challengeScheduler = new ChallengeScheduler();
 
         // add all bot commands to the handler map for handling events
         addCommands(
             new ChallengeCommand(challengeScheduler, gameStorage),
             new AcceptCommand(gameStorage, challengeScheduler),
-            new ForfeitCommand(gameStorage, statsService),
-            new MoveCommand(gameStorage, statsService, agentEvaluator),
+            new ForfeitCommand(gameStorage, statsService, Threading.IO_TASK_EXECUTOR),
+            new MoveCommand(gameStorage, statsService, agentEvaluator, Threading.IO_TASK_EXECUTOR),
             new ViewCommand(gameStorage),
             new AnalyzeCommand(gameStorage, agentEvaluator),
-            new StatsCommand(statsService),
-            new LeaderBoardCommand(statsService)
+            new StatsCommand(statsService, Threading.IO_TASK_EXECUTOR),
+            new LeaderBoardCommand(statsService, Threading.IO_TASK_EXECUTOR)
         );
     }
 
@@ -88,7 +76,7 @@ public class OthelloBot extends ListenerAdapter {
 
             Commands.slash("view", "Displays the game state including all the moves that can be made this turn"),
 
-            Commands.slash("analyze",  "Runs an analysis of the board")
+            Commands.slash("analyze", "Runs an analysis of the board")
                 .addOptions(new OptionData(OptionType.INTEGER, "level", "Level of the bot between 1 and " + MAX_BOT_LEVEL, false)),
 
             Commands.slash("stats", "Retrieves the stats profile for a player")

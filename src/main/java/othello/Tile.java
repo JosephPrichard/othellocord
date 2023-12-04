@@ -4,32 +4,24 @@
 
 package othello;
 
-public class Tile {
+public record Tile(int row, int col) {
 
-    private final int row;
-    private final int col;
-
-    public Tile(int row, int col) {
-        this.row = row;
-        this.col = col;
-    }
-
-    public Tile(String square) {
+    public static Tile fromNotation(String square) {
         square = square.toLowerCase();
         if (square.length() != 2) {
-            this.row = -1;
-            this.col = -1;
+            return new Tile(-1, -1);
         } else {
-            this.col = square.charAt(0) - 'a';
-            this.row = Character.getNumericValue(square.charAt(1)) - 1;
+            var row = Character.getNumericValue(square.charAt(1)) - 1;
+            var col = square.charAt(0) - 'a';
+            return new Tile(row, col);
         }
     }
 
-    public int getRow() {
+    public int row() {
         return row;
     }
 
-    public int getCol() {
+    public int col() {
         return col;
     }
 

@@ -80,7 +80,7 @@ public class TestGameStorage {
         gameStorage.createGame(blackPlayer, whitePlayer);
 
         Assertions.assertThrows(InvalidMoveException.class, () ->
-            gameStorage.makeMove(blackPlayer, new Tile("a1")));
+            gameStorage.makeMove(blackPlayer, Tile.fromNotation("a1")));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class TestGameStorage {
         gameStorage.createGame(blackPlayer, whitePlayer);
 
         Assertions.assertThrows(TurnException.class, () ->
-            gameStorage.makeMove(whitePlayer, new Tile("d3")));
+            gameStorage.makeMove(whitePlayer, Tile.fromNotation("d3")));
     }
 
     @Test
@@ -98,7 +98,7 @@ public class TestGameStorage {
         var player = new Player(1000, "Player1");
 
         Assertions.assertThrows(NotPlayingException.class, () ->
-            gameStorage.makeMove(player, new Tile("d3")));
+            gameStorage.makeMove(player,  Tile.fromNotation("d3")));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class TestGameStorage {
         var blackPlayer = new Player(1001, "Player2");
         var game = gameStorage.createGame(blackPlayer, whitePlayer);
 
-        var movedGame = gameStorage.makeMove(blackPlayer, new Tile("d3"));
+        var movedGame = gameStorage.makeMove(blackPlayer, Tile.fromNotation("d3"));
 
         Assertions.assertEquals(game, movedGame);
         Assertions.assertNotEquals(game.board(), movedGame.board());

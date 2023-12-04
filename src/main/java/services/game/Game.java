@@ -9,27 +9,20 @@ import services.player.Player;
 
 import java.util.Objects;
 
-public class Game {
-
-    private final OthelloBoard board;
-    private final Player whitePlayer;
-    private final Player blackPlayer;
-
-    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
-        this.board = board;
-        this.whitePlayer = whitePlayer;
-        this.blackPlayer = blackPlayer;
-    }
+public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
 
     public Game(Player whitePlayer, Player blackPlayer) {
-        this.board = new OthelloBoard();
-        this.whitePlayer = whitePlayer;
-        this.blackPlayer = blackPlayer;
+        this(new OthelloBoard(), whitePlayer, blackPlayer);
+    }
+
+    public Game(Game game) {
+        this(game.board.copy(), game.whitePlayer, game.blackPlayer);
     }
 
     public OthelloBoard board() {
         return board;
     }
+
     public Player whitePlayer() {
         return whitePlayer;
     }
@@ -62,7 +55,7 @@ public class Game {
         return board.isGameOver();
     }
 
-    public GameResult getResult() {
+    public GameResult createResult() {
         var diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {
             return GameResult.WinLoss(blackPlayer, whitePlayer);
@@ -73,20 +66,7 @@ public class Game {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Game game = (Game) o;
-        return game.whitePlayer.equals(whitePlayer) && game.blackPlayer.equals(blackPlayer);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(whitePlayer, blackPlayer);
-    }
-
-    public GameResult getForfeitResult(Player forfeitingPlayer) {
+    public GameResult createForfeitResult(Player forfeitingPlayer) {
         Player loser;
         Player winner;
         if (whitePlayer.equals(forfeitingPlayer)) {
@@ -99,6 +79,20 @@ public class Game {
             throw new IllegalStateException("Player not part of a game attempted to forfeit");
         }
         return GameResult.WinLoss(winner, loser);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Game game = (Game) o;
+        return game.whitePlayer.equals(whitePlayer) && game.blackPlayer.equals(blackPlayer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(whitePlayer, blackPlayer);
     }
 
     @Override

@@ -13,9 +13,9 @@ import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
 import othello.Move;
 import othello.Tile;
-import services.game.EvalRequest;
+import services.agent.AgentDispatcher;
+import services.agent.AgentEvent;
 import services.game.Game;
-import services.game.GameEvaluator;
 import services.game.GameStorage;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
@@ -24,6 +24,7 @@ import services.player.Player;
 import services.stats.StatsWriter;
 
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import static utils.Logger.LOGGER;
@@ -32,17 +33,20 @@ public class MoveCommand extends Command {
 
     private final GameStorage gameStorage;
     private final StatsWriter statsWriter;
-    private final GameEvaluator gameEvaluator;
+    private final AgentDispatcher agentDispatcher;
+    private final ExecutorService ioTaskExecutor;
 
     public MoveCommand(
         GameStorage gameStorage,
         StatsWriter statsWriter,
-        GameEvaluator gameEvaluator
+        AgentDispatcher agentDispatcher,
+        ExecutorService ioTaskExecutor
     ) {
         super("move");
         this.gameStorage = gameStorage;
         this.statsWriter = statsWriter;
-        this.gameEvaluator = gameEvaluator;
+        this.agentDispatcher = agentDispatcher;
+        this.ioTaskExecutor = ioTaskExecutor;
     }
 
     public MessageSender onMoved(Game game, Tile move) {
@@ -61,13 +65,13 @@ public class MoveCommand extends Command {
     }
 
     public MessageSender onGameOver(Game game, Tile move) {
-        var result = game.getResult();
-        statsWriter.updateStats(result);
+        var result = game.createResult();
+        var statsResult = statsWriter.writeStats(result);
 
         var image = BoardRenderer.drawBoard(game.board());
         return new GameOverSender()
-            .setGame(result)
-            .addMoveMessage(result.getWinner(), move.toString())
+            .setResults(result, statsResult)
+            .addMoveMessage(result.winner(), move.toString())
             .addScoreMessage(game.getWhiteScore(), game.getBlackScore())
             .setTag(result)
             .setImage(image);
@@ -75,19 +79,18 @@ public class MoveCommand extends Command {
 
     public void doBotMove(CommandContext ctx, Game game) {
         // queue an agent request which will find the best move, make the move, and send back a response
-        var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().getId());
-        var r = new EvalRequest<>(game, depth, (Move bestMove) -> {
-            var newGame = gameStorage.makeMove(game, bestMove.getTile());
-
+        var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().id());
+        var event = new AgentEvent<>(game, depth, (Move bestMove) -> {
+            var newGame = gameStorage.makeMove(game, bestMove.tile());
             MessageSender sender;
             if (!newGame.isGameOver()) {
-                sender = onMoved(newGame, bestMove.getTile());
+                sender = onMoved(newGame, bestMove.tile());
             } else {
-                sender = onGameOver(newGame, bestMove.getTile());
+                sender = onGameOver(newGame, bestMove.tile());
             }
             ctx.msgWithSender(sender);
         });
-        gameEvaluator.findBestMove(r);
+        agentDispatcher.dispatchFindMoveEvent(event);
     }
 
     @Override
@@ -95,7 +98,7 @@ public class MoveCommand extends Command {
         var strMove = Objects.requireNonNull(ctx.getStringParam("move"));
         var player = ctx.getPlayer();
 
-        var move = new Tile(strMove);
+        var move = Tile.fromNotation(strMove);
         try {
             var game = gameStorage.makeMove(player, move);
 
@@ -109,8 +112,11 @@ public class MoveCommand extends Command {
                     doBotMove(ctx, game);
                 }
             } else {
-                var sender = onGameOver(game, move);
-                ctx.replyWithSender(sender);
+                ioTaskExecutor.submit(() -> {
+                    // handling the game over event involves writing stats to an external service
+                    var sender = onGameOver(game, move);
+                    ctx.replyWithSender(sender);
+                });
             }
 
             LOGGER.info("Player " + player + " made move on game");

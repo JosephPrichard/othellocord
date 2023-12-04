@@ -6,7 +6,7 @@ package services.player;
 
 import net.dv8tion.jda.api.entities.User;
 
-public class Player {
+public record Player(long id, String name) {
 
     public static class Bot {
 
@@ -28,32 +28,17 @@ public class Player {
             return level >= 1 && level <= MAX_BOT_LEVEL;
         }
 
-        public static String getBotName(long id) {
+        public static String name(long id) {
             return "OthelloBot level " + id;
         }
 
         public static Player create(long level) {
-            return new Player(level, getBotName(level));
+            return new Player(level, name(level));
         }
 
         public static boolean isBotId(long id) {
             return id <= MAX_BOT_LEVEL;
         }
-    }
-
-    private long id;
-    private String name;
-
-    public Player() {
-    }
-
-    public Player(long id) {
-        this.id = id;
-    }
-
-    public Player(long id, String name) {
-        this.id = id;
-        this.name = name;
     }
 
     public static long parseDiscordID(String id) {
@@ -62,25 +47,24 @@ public class Player {
         return Long.parseLong(strippedId);
     }
 
+    public Player(long id) {
+        this(id, "");
+    }
+
     public Player(User user) {
-        this.id = parseDiscordID(user.getId());
-        this.name = user.getAsTag();
+        this(parseDiscordID(user.getId()), user.getAsTag());
     }
 
     public boolean isBot() {
         return Bot.isBotId(id);
     }
 
-    public long getId() {
+    public long id() {
         return id;
     }
 
-    public String getName() {
+    public String name() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     @Override
@@ -88,7 +72,7 @@ public class Player {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         var player = (Player) o;
-        return id == player.getId();
+        return id == player.id();
     }
 
     @Override

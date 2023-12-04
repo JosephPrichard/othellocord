@@ -17,7 +17,7 @@ public class StatsEmbedBuilder extends EmbedBuilder {
     }
 
     public StatsEmbedBuilder setStats(Stats stats) {
-        setTitle(stats.getPlayer().getName() + "'s stats")
+        setTitle(stats.getPlayer().name() + "'s stats")
             .addField("Rating", Float.toString(stats.getElo()), false)
             .addField("Win Rate", stats.getWinRate() + "%", false)
             .addField("Won", Integer.toString(stats.getWon()), true)

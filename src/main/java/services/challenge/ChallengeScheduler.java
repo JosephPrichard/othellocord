@@ -5,20 +5,18 @@
 package services.challenge;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static utils.Logger.LOGGER;
 
+// implementation that manages challenges by scheduling them using a scheduled executor service
 public class ChallengeScheduler implements ChallengeManager {
 
     private final Map<Challenge, ScheduledFuture<?>> challenges;
     private final ScheduledExecutorService scheduler;
 
-    public ChallengeScheduler(ScheduledExecutorService scheduler) {
-        this(new ConcurrentHashMap<>(), scheduler);
+    public ChallengeScheduler() {
+        this(new ConcurrentHashMap<>(), Executors.newSingleThreadScheduledExecutor());
     }
 
     public ChallengeScheduler(Map<Challenge, ScheduledFuture<?>> challenges, ScheduledExecutorService scheduler) {
@@ -30,7 +28,7 @@ public class ChallengeScheduler implements ChallengeManager {
         Runnable scheduled = () -> {
             onExpiry.run();
             challenges.remove(challenge);
-            LOGGER.info("Challenge expired " + challenge.challenged().getId() + " " + challenge.challenger().getId());
+            LOGGER.info("Challenge expired " + challenge.challenged().id() + " " + challenge.challenger().id());
         };
         var future = scheduler.schedule(scheduled, 30, TimeUnit.SECONDS);
         challenges.put(challenge, future);

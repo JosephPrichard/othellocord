@@ -8,7 +8,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import othello.OthelloBoard;
 import othello.Tile;
 import services.game.exceptions.AlreadyPlayingException;
 import services.game.exceptions.InvalidMoveException;
@@ -25,6 +24,7 @@ import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
+// implementation of an in memory game storage using a loading cache
 public class GameCacheStorage implements GameStorage {
 
     private final LoadingCache<Long, Optional<Game>> games;
@@ -53,7 +53,7 @@ public class GameCacheStorage implements GameStorage {
     }
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
-        var game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
+        var game = new Game(whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
@@ -70,7 +70,7 @@ public class GameCacheStorage implements GameStorage {
 
     public Game createBotGame(Player blackPlayer, long level) throws AlreadyPlayingException {
         var whitePlayer = Player.Bot.create(level);
-        var game = new Game(new OthelloBoard(), whitePlayer, blackPlayer);
+        var game = new Game(whitePlayer, blackPlayer);
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();
@@ -86,33 +86,26 @@ public class GameCacheStorage implements GameStorage {
 
     @Nullable
     public Game getGame(Player player) {
-        var optionalGame = games.get(player.getId());
-        if (optionalGame.isPresent()) {
-            var game = optionalGame.get();
-            // creates a new game with a copied board to ensure this class is thread safe
-            return new Game(game.board().copy(), game.whitePlayer(), game.blackPlayer());
-        } else {
-            return null;
-        }
+        return games.get(player.id()).orElse(null);
     }
 
     public void saveGame(Game game) {
         var optGame = Optional.of(game);
         if (!game.blackPlayer().isBot()) {
-            games.put(game.blackPlayer().getId(), optGame);
+            games.put(game.blackPlayer().id(), optGame);
         }
         if (!game.whitePlayer().isBot()) {
-            games.put(game.whitePlayer().getId(), optGame);
+            games.put(game.whitePlayer().id(), optGame);
         }
     }
 
     public void deleteGame(Game game) {
-        games.invalidate(game.whitePlayer().getId());
-        games.invalidate(game.blackPlayer().getId());
+        games.invalidate(game.whitePlayer().id());
+        games.invalidate(game.blackPlayer().id());
     }
 
     public boolean isPlaying(Player player) {
-        return games.get(player.getId()).isPresent();
+        return games.get(player.id()).isPresent();
     }
 
     public Game makeMove(Game game, Tile move) {
@@ -156,6 +149,6 @@ public class GameCacheStorage implements GameStorage {
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
         var forfeitResult = GameResult.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
-        statsWriter.updateStats(forfeitResult);
+        statsWriter.writeStats(forfeitResult);
     }
 }

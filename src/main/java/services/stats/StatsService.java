@@ -4,78 +4,72 @@
 
 package services.stats;
 
-import org.modelmapper.Converter;
-import org.modelmapper.ModelMapper;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
+import services.player.exceptions.UnknownUserException;
+import utils.StreamUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
+// implementation that delegates persistence to a data access object and performs calculations, mapping, and flow control
+// depends on blocking io dao class and therefore also uses blocking io
 public class StatsService implements StatsWriter, StatsReader {
 
     public static final int K = 30;
     private final StatsDao statsDao;
-    private final ExecutorService es;
     private final UserFetcher userFetcher;
-    private final ModelMapper mapper = new ModelMapper();
 
-    public StatsService(StatsDao statsDao, UserFetcher userFetcher, ExecutorService es) {
+    public StatsService(StatsDao statsDao, UserFetcher userFetcher) {
         this.statsDao = statsDao;
         this.userFetcher = userFetcher;
-        this.es = es;
-        mapper.typeMap(StatsEntity.class, Stats.class).addMappings(mapper -> {
-            Converter<Long, Player> playerConverter = (ctx) -> new Player(ctx.getSource());
-            mapper.using(playerConverter).map(StatsEntity::getPlayerId, Stats::setPlayer);
-        });
-        mapper.validate();
     }
 
-    public Stats getStats(Player player) {
-        var statsEntity = statsDao.getOrSaveStats(player.getId());
-        var stats = mapper.map(statsEntity, Stats.class);
+    public Stats readStats(Player player) {
+        var statsEntity = statsDao.getOrSaveStats(player.id());
         try {
+            // we assume the tag can be loaded, so we throw an exception if it cannot be read
             var tag = userFetcher.fetchUserTag(statsEntity.getPlayerId()).get();
-            stats.getPlayer().setName(tag);
-        } catch (ExecutionException | InterruptedException ex) {
-            LOGGER.info("Failed to load the tag name for mapped player " + stats.getPlayer());
+            return new Stats(statsEntity, tag);
+        } catch (ExecutionException | InterruptedException | UnknownUserException ex) {
+            LOGGER.info("Failed to load the tag name for stats" + player);
+            return new Stats(statsEntity, "Unknown Player");
         }
-        return stats;
     }
 
-    public List<Stats> getTopStats() {
+    public List<Stats> readTopStats() {
         var statsEntityList = statsDao.getTopStats(25);
-        // fetch each tag from jda using futures, for the bots return null and map bot name instead
-        List<CompletableFuture<String>> futures = new ArrayList<>();
-        for (var entity : statsEntityList) {
-            var future = Player.Bot.isBotId(entity.getPlayerId()) ?
+
+        // fetch each tag and wait til each fetch operation is complete
+        var futures = statsEntityList
+            .stream()
+            .map((entity) -> Player.Bot.isBotId(entity.getPlayerId()) ?
                 CompletableFuture.<String>completedFuture(null) :
-                userFetcher.fetchUserTag(entity.getPlayerId());
-            futures.add(future);
-        }
+                userFetcher.fetchUserTag(entity.getPlayerId())
+            )
+            .toList();
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
 
         // map each entity to dto
-        List<Stats> statsList = new ArrayList<>();
-        for (var i = 0; i < futures.size(); i++) {
-            // retrieve tag from completed future
-            var tag = futures.get(i).join();
-            if (tag == null) {
-                tag = Player.Bot.getBotName(statsEntityList.get(i).getPlayerId());
-            }
-            // map entity to dto and add to dto list
-            var stats = mapper.map(statsEntityList.get(i), Stats.class);
-            stats.getPlayer().setName(tag);
-            statsList.add(stats);
-        }
-        return statsList;
+        return StreamUtils
+            .zip(statsEntityList, futures)
+            .map((pair) -> {
+                var statsEntity = pair.left();
+                var future = pair.right();
+
+                var tag = future.join();
+                if (tag == null) {
+                    tag = Player.Bot.name(statsEntity.getPlayerId());
+                }
+
+                return new Stats(statsEntity, tag);
+            })
+            .toList();
     }
 
     public static float calcProbability(float rating1, float rating2) {
@@ -90,26 +84,13 @@ public class StatsService implements StatsWriter, StatsReader {
         return rating - K * probability;
     }
 
-    public void updateStats(GameResult result) {
-        // retrieve the stats for the winner by submitting both to the thread pool and waiting for a response
-        var winnerFuture = es.submit(() -> statsDao.getOrSaveStats(result.getWinner().getId()));
-        var loserFuture = es.submit(() -> statsDao.getOrSaveStats(result.getLoser().getId()));
+    public StatsResult writeStats(GameResult result) {
+        StatsEntity winnerStats = statsDao.getOrSaveStats(result.winner().id());
+        StatsEntity loserStats = statsDao.getOrSaveStats(result.loser().id());
 
-        StatsEntity winnerStats;
-        StatsEntity loserStats;
-        try {
-            winnerStats = winnerFuture.get();
-            loserStats = loserFuture.get();
-        } catch (ExecutionException | InterruptedException e) {
-            LOGGER.log(Level.WARNING, "Failed to retrieve the stats when performing the update stats operation");
-            return;
-        }
-
-        if (result.isDraw() || result.getWinner().equals(result.getLoser())) {
+        if (result.isDraw() || result.winner().equals(result.loser())) {
             // draw games don't need to update the elo, nor do games against self
-            result.setElo(winnerStats.getElo(), loserStats.getElo());
-            result.setEloDiff(0, 0);
-            return;
+            return new StatsResult(winnerStats.getElo(), loserStats.getElo(), 0, 0);
         }
 
         // perform elo calculations
@@ -119,6 +100,8 @@ public class StatsService implements StatsWriter, StatsReader {
         var probLost = calcProbability(winnerStats.getElo(), loserStats.getElo());
         var winnerEloAfter = calcEloWon(winnerStats.getElo(), probWin);
         var loserEloAfter = calcEloLost(loserStats.getElo(), probLost);
+        var winnerEloDiff = winnerEloAfter - winnerEloBefore;
+        var loserEloDiff = loserEloAfter - loserEloBefore;
 
         // set new values in entities
         winnerStats.setElo(winnerEloAfter);
@@ -129,8 +112,6 @@ public class StatsService implements StatsWriter, StatsReader {
         // update stats in dao
         statsDao.updateStats(winnerStats, loserStats);
 
-        // set the changed values for the result object
-        result.setElo(winnerStats.getElo(), loserStats.getElo());
-        result.setEloDiff(winnerEloAfter - winnerEloBefore, loserEloAfter - loserEloBefore);
+        return new StatsResult(winnerStats.getElo(), loserStats.getElo(), winnerEloDiff, loserEloDiff);
     }
 }

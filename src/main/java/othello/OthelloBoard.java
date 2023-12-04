@@ -100,18 +100,18 @@ public class OthelloBoard {
     public void onPotentialMoves(byte color, Consumer<Tile> onMove) {
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
-        // check each disc for potential flanks
+        // check each tile for potential flanks
         for (var disc : TILES) {
             if (getSquare(disc) != color) {
                 // skip any discs of a different color
                 continue;
             }
-            // check each direction from disc for potential flank
+            // check each direction from tile for potential flank
             for (var direction : DIRECTIONS) {
-                var row = disc.getRow() + direction[0];
-                var col = disc.getCol() + direction[1];
+                var row = disc.row() + direction[0];
+                var col = disc.col() + direction[1];
 
-                // iterate from disc to next opposite color
+                // iterate from tile to next opposite color
                 var count = 0;
                 while (inBounds(row, col)) {
                     if (getSquare(row, col) != oppositeColor) {
@@ -122,7 +122,7 @@ public class OthelloBoard {
                     count++;
                 }
                 // add move to potential moves list assuming
-                // we flank at least once disc, the tile is in bounds and is empty
+                // we flank at least once tile, the tile is in bounds and is empty
                 if (count > 0 && inBounds(row, col) && getSquare(row, col) == EMPTY) {
                     onMove.accept(new Tile(row, col));
                 }
@@ -142,7 +142,7 @@ public class OthelloBoard {
     }
 
     public OthelloBoard makeMoved(String move) {
-        return makeMoved(new Tile(move));
+        return makeMoved(Tile.fromNotation(move));
     }
 
     public OthelloBoard makeMoved(Tile move) {
@@ -156,19 +156,19 @@ public class OthelloBoard {
         var currentColor = blackMove ? BLACK : WHITE;
 
         blackMove = !blackMove;
-        setSquare(move.getRow(), move.getCol(), currentColor);
+        setSquare(move.row(), move.col(), currentColor);
 
-        // check each direction of new disc position
+        // check each direction of new tile position
         for (var direction : DIRECTIONS) {
-            var initialRow = move.getRow() + direction[0];
-            var initialCol = move.getCol() + direction[1];
+            var initialRow = move.row() + direction[0];
+            var initialCol = move.col() + direction[1];
 
             var row = initialRow;
             var col = initialCol;
 
             var flank = false;
 
-            // iterate from disc until first potential flank
+            // iterate from tile until first potential flank
             while (inBounds(row, col)) {
                 if (getSquare(row, col) == currentColor) {
                     flank = true;
@@ -187,7 +187,7 @@ public class OthelloBoard {
             row = initialRow;
             col = initialCol;
 
-            // flip each disc to opposite color to flank, update disc counts
+            // flip each tile to opposite color to flank, update tile counts
             while (inBounds(row, col)) {
                 if (getSquare(row, col) != oppositeColor) {
                     break;
@@ -222,12 +222,12 @@ public class OthelloBoard {
     }
 
     public void setSquare(String square, byte color) {
-        var tile = new Tile(square);
+        var tile = Tile.fromNotation(square);
         setSquare(tile, color);
     }
 
     public void setSquare(Tile tile, byte color) {
-        setSquare(tile.getRow(), tile.getCol(), color);
+        setSquare(tile.row(), tile.col(), color);
     }
 
     public void setSquare(int position, byte color) {
@@ -235,7 +235,7 @@ public class OthelloBoard {
     }
 
     public byte getSquare(String square) {
-        var tile = new Tile(square);
+        var tile = Tile.fromNotation(square);
         return getSquare(tile);
     }
 
@@ -244,7 +244,7 @@ public class OthelloBoard {
     }
 
     public byte getSquare(Tile tile) {
-        return getSquare(tile.getRow(), tile.getCol());
+        return getSquare(tile.row(), tile.col());
     }
 
     @Override
