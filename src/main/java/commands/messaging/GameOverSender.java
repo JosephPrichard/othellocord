@@ -2,8 +2,9 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package messaging.senders;
+package commands.messaging;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import services.game.GameResult;
 import services.player.Player;
@@ -15,6 +16,10 @@ public class GameOverSender extends MessageSender {
     private String messageDesc = "";
     private String scoreDesc = "";
 
+    public GameOverSender() {
+        super(new EmbedBuilder());
+    }
+
     public GameOverSender setResults(GameResult gameRes, StatsResult statsRes) {
         resultDesc = gameRes.winner().name() +
             "'s new rating is " + statsRes.winnerElo() +
@@ -22,7 +27,7 @@ public class GameOverSender extends MessageSender {
             gameRes.loser().name() +
             "'s new rating is " + statsRes.loserElo() +
             " (" + statsRes.formatLoserEloDiff() + ") \n";
-        getEmbedBuilder().setTitle("Game has ended");
+        embed.setTitle("Game has ended");
         return this;
     }
 
@@ -42,14 +47,12 @@ public class GameOverSender extends MessageSender {
     }
 
     public GameOverSender setTag(GameResult result) {
-        var tag = "";
         if (!result.winner().isBot()) {
-            tag += "<@" + result.winner() + "> ";
+            message = "<@" + result.winner() + "> ";
         }
         if (!result.loser().isBot()) {
-            tag += "<@" + result.loser() + "> ";
+            message = "<@" + result.loser() + "> ";
         }
-        setMessage(tag);
         return this;
     }
 
@@ -60,7 +63,7 @@ public class GameOverSender extends MessageSender {
             desc += scoreDesc;
         }
         desc += "\n" + resultDesc;
-        getEmbedBuilder().setDescription(desc);
+        embed.setDescription(desc);
         super.sendReply(interaction);
     }
 }

@@ -5,7 +5,7 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.senders.GameViewSender;
+import commands.messaging.MessageSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
 
@@ -34,9 +34,7 @@ public class ViewCommand extends Command {
         var potentialMoves = board.findPotentialMoves();
 
         var image = BoardRenderer.drawBoard(board, potentialMoves);
-        var sender = new GameViewSender()
-            .setGame(game)
-            .setImage(image);
+        var sender = MessageSender.createGameViewSender(game, image);
         ctx.replyWithSender(sender);
 
         LOGGER.info("Player " + player + " view moves in game");

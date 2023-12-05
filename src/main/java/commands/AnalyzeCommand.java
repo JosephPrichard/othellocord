@@ -5,17 +5,20 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.builders.AnalyzeEmbedBuilder;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import othello.Move;
 import services.agent.AgentDispatcher;
 import services.agent.AgentEvent;
 import services.game.GameStorage;
 import services.player.Player;
 
+import java.awt.*;
 import java.util.List;
 
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
+import static utils.StringUtils.rightPad;
 
 public class AnalyzeCommand extends Command {
 
@@ -26,6 +29,28 @@ public class AnalyzeCommand extends Command {
         super("analyze");
         this.gameStorage = gameStorage;
         this.agentDispatcher = agentDispatcher;
+    }
+
+    public MessageEmbed buildAnalyzeEmbed(List<Move> rankedMoves) {
+        var embed = new EmbedBuilder();
+
+        var desc = new StringBuilder();
+        desc.append("```");
+        var count = 1;
+        for (var move : rankedMoves) {
+            desc.append(rightPad(count + ")", 5))
+                .append(rightPad(move.tile().toString(), 5))
+                .append(move.heuristic()).append(" ")
+                .append("\n");
+            count++;
+        }
+        desc.append("```");
+
+        embed.setTitle("Move Analysis")
+            .setColor(Color.GREEN)
+            .setDescription(desc)
+            .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
+        return embed.build();
     }
 
     @Override
@@ -55,9 +80,7 @@ public class AnalyzeCommand extends Command {
             LOGGER.info("Starting board state analysis");
 
             var event = new AgentEvent<>(game, depth, (List<Move> rankedMoves) -> {
-                var embed = new AnalyzeEmbedBuilder()
-                    .setRankedMoves(rankedMoves)
-                    .build();
+                var embed = buildAnalyzeEmbed(rankedMoves);
 
                 hook.editOriginal("<@" + player + "> ").queue();
                 hook.editOriginalEmbeds(embed).queue();

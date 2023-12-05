@@ -5,23 +5,37 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.builders.StatsEmbedBuilder;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
 import services.player.Player;
+import services.stats.Stats;
 import services.stats.StatsReader;
 
-import java.util.concurrent.ExecutorService;
+import java.awt.*;
 
 import static utils.Logger.LOGGER;
 
 public class StatsCommand extends Command {
 
     private final StatsReader statsReader;
-    private final ExecutorService ioTaskExecutor;
 
-    public StatsCommand(StatsReader statsReader, ExecutorService ioTaskExecutor) {
+    public StatsCommand(StatsReader statsReader) {
         super("stats");
         this.statsReader = statsReader;
-        this.ioTaskExecutor = ioTaskExecutor;
+    }
+
+    public MessageEmbed buildStatsEmbed(Stats stats, User author) {
+        var embed = new EmbedBuilder();
+        embed.setColor(Color.GREEN)
+            .setTitle(stats.getPlayer().name() + "'s stats")
+            .addField("Rating", Float.toString(stats.getElo()), false)
+            .addField("Win Rate", stats.getWinRate() + "%", false)
+            .addField("Won", Integer.toString(stats.getWon()), true)
+            .addField("Lost", Integer.toString(stats.getLost()), true)
+            .addField("Drawn", Integer.toString(stats.getDrawn()), true)
+            .setThumbnail(author.getAvatarUrl());
+        return embed.build();
     }
 
     @Override
@@ -31,17 +45,11 @@ public class StatsCommand extends Command {
 
         var player = new Player(user);
 
-        ioTaskExecutor.submit(() -> {
-            // getting stats involves reading from an external service
-            var stats = statsReader.readStats(player);
+        var stats = statsReader.readStats(player);
 
-            var embed = new StatsEmbedBuilder()
-                .setStats(stats)
-                .setAuthor(user)
-                .build();
-            ctx.replyEmbeds(embed);
+        var embed = buildStatsEmbed(stats, user);
+        ctx.replyEmbeds(embed);
 
-            LOGGER.info("Retrieved stats for " + stats.getPlayer());
-        });
+        LOGGER.info("Retrieved stats for " + stats.getPlayer());
     }
 }

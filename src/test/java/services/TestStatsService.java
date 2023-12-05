@@ -11,7 +11,10 @@ import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
 import services.player.exceptions.UnknownUserException;
-import services.stats.*;
+import services.stats.Stats;
+import services.stats.StatsDao;
+import services.stats.StatsEntity;
+import services.stats.StatsService;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

@@ -25,14 +25,21 @@ import utils.Threading;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
+import static utils.Threading.createThreadFactory;
 
 public class OthelloBot extends ListenerAdapter {
 
     private final Map<String, Command> commandMap = new HashMap<>();
+    private final ExecutorService cpuBndExecutor = Executors.newFixedThreadPool(Threading.CORES / 2,
+        createThreadFactory("CPU-Bnd-Pool"));
+    private final ExecutorService taskExecutor = Executors.newCachedThreadPool(
+        createThreadFactory("Task-Pool"));
 
     public void initListeners(JDA jda) {
         var ds = new DataSource();
@@ -40,7 +47,7 @@ public class OthelloBot extends ListenerAdapter {
         var statsDao = new StatsOrmDao(ds);
 
         var userFetcher = UserFetcher.discordFetcher(jda);
-        var agentEvaluator = new AgentThreadDispatcher(Threading.CPU_BND_EXECUTOR);
+        var agentDispatcher = new AgentThreadDispatcher(cpuBndExecutor);
         var statsService = new StatsService(statsDao, userFetcher);
         var gameStorage = new GameCacheStorage(statsService);
         var challengeScheduler = new ChallengeScheduler();
@@ -49,12 +56,12 @@ public class OthelloBot extends ListenerAdapter {
         addCommands(
             new ChallengeCommand(challengeScheduler, gameStorage),
             new AcceptCommand(gameStorage, challengeScheduler),
-            new ForfeitCommand(gameStorage, statsService, Threading.IO_TASK_EXECUTOR),
-            new MoveCommand(gameStorage, statsService, agentEvaluator, Threading.IO_TASK_EXECUTOR),
+            new ForfeitCommand(gameStorage, statsService),
+            new MoveCommand(gameStorage, statsService, agentDispatcher),
             new ViewCommand(gameStorage),
-            new AnalyzeCommand(gameStorage, agentEvaluator),
-            new StatsCommand(statsService, Threading.IO_TASK_EXECUTOR),
-            new LeaderBoardCommand(statsService, Threading.IO_TASK_EXECUTOR)
+            new AnalyzeCommand(gameStorage, agentDispatcher),
+            new StatsCommand(statsService),
+            new LeaderBoardCommand(statsService)
         );
     }
 
@@ -108,13 +115,16 @@ public class OthelloBot extends ListenerAdapter {
         // fetch command handler from bot.commands map, execute if command exists
         var command = commandMap.get(event.getName());
         if (command != null) {
-            var ctx = new SlashCommandContext(event);
-            try {
-                command.onCommand(ctx);
-            } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Fatal error during command", ex);
-                ctx.reply("An unexpected error has occurred.");
-            }
+            // start the command call on a separate task executor - it will contain blocking io and/or cpu bounded image work
+            taskExecutor.submit(() -> {
+                var ctx = new SlashCommandContext(event);
+                try {
+                    command.onCommand(ctx);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Fatal error during command", ex);
+                    ctx.reply("An unexpected error has occurred.");
+                }
+            });
         }
     }
 }

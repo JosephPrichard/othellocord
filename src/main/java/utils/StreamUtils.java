@@ -27,7 +27,7 @@ public class StreamUtils {
                     return true;
                 }
             },
-        false
+            false
         );
     }
 }

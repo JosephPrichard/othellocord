@@ -13,11 +13,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import othello.Tile;
 import services.game.Game;
 import services.game.GameCacheStorage;
-import services.player.Player;
 import services.game.exceptions.AlreadyPlayingException;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
+import services.player.Player;
 import services.stats.StatsWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,7 +98,7 @@ public class TestGameStorage {
         var player = new Player(1000, "Player1");
 
         Assertions.assertThrows(NotPlayingException.class, () ->
-            gameStorage.makeMove(player,  Tile.fromNotation("d3")));
+            gameStorage.makeMove(player, Tile.fromNotation("d3")));
     }
 
     @Test

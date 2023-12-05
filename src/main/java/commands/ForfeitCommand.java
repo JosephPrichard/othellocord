@@ -5,12 +5,10 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.senders.GameOverSender;
+import commands.messaging.GameOverSender;
 import othello.BoardRenderer;
 import services.game.GameStorage;
 import services.stats.StatsWriter;
-
-import java.util.concurrent.ExecutorService;
 
 import static utils.Logger.LOGGER;
 
@@ -18,17 +16,14 @@ public class ForfeitCommand extends Command {
 
     private final GameStorage gameStorage;
     private final StatsWriter statsWriter;
-    private final ExecutorService ioTaskExecutor;
 
     public ForfeitCommand(
         GameStorage gameStorage,
-        StatsWriter statsWriter,
-        ExecutorService ioTaskExecutor
+        StatsWriter statsWriter
     ) {
         super("forfeit");
         this.gameStorage = gameStorage;
         this.statsWriter = statsWriter;
-        this.ioTaskExecutor = ioTaskExecutor;
     }
 
     @Override
@@ -45,17 +40,15 @@ public class ForfeitCommand extends Command {
         gameStorage.deleteGame(game);
         var result = game.createForfeitResult(player);
 
-        ioTaskExecutor.submit(() -> {
-            var statsResult = statsWriter.writeStats(result);
+        var statsResult = statsWriter.writeStats(result);
 
-            var sender = new GameOverSender()
-                .setResults(result, statsResult)
-                .addForfeitMessage(result.winner())
-                .setTag(result)
-                .setImage(image);
-            ctx.replyWithSender(sender);
+        var sender = new GameOverSender()
+            .setResults(result, statsResult)
+            .addForfeitMessage(result.winner())
+            .setTag(result)
+            .setImage(image);
+        ctx.replyWithSender(sender);
 
-            LOGGER.info(player + " has forfeited");
-        });
+        LOGGER.info(player + " has forfeited");
     }
 }

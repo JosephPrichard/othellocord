@@ -10,7 +10,6 @@ import services.player.UserFetcher;
 import services.player.exceptions.UnknownUserException;
 import utils.StreamUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;

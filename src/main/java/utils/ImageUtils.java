@@ -52,7 +52,7 @@ public class ImageUtils {
         g.drawString(text, x, y);
     }
 
-    public static InputStream toPngIS(BufferedImage image) throws IOException {
+    public static InputStream toPngInputStream(BufferedImage image) throws IOException {
         var os = new ByteArrayOutputStream();
         ImageIO.write(image, "png", os);
         return new ByteArrayInputStream(os.toByteArray());

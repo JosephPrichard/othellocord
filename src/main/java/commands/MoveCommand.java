@@ -5,9 +5,8 @@
 package commands;
 
 import commands.context.CommandContext;
-import messaging.senders.GameOverSender;
-import messaging.senders.GameViewSender;
-import messaging.senders.MessageSender;
+import commands.messaging.GameOverSender;
+import commands.messaging.MessageSender;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
@@ -24,7 +23,6 @@ import services.player.Player;
 import services.stats.StatsWriter;
 
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import static utils.Logger.LOGGER;
@@ -34,34 +32,26 @@ public class MoveCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsWriter statsWriter;
     private final AgentDispatcher agentDispatcher;
-    private final ExecutorService ioTaskExecutor;
 
     public MoveCommand(
         GameStorage gameStorage,
         StatsWriter statsWriter,
-        AgentDispatcher agentDispatcher,
-        ExecutorService ioTaskExecutor
+        AgentDispatcher agentDispatcher
     ) {
         super("move");
         this.gameStorage = gameStorage;
         this.statsWriter = statsWriter;
         this.agentDispatcher = agentDispatcher;
-        this.ioTaskExecutor = ioTaskExecutor;
     }
 
-    public MessageSender onMoved(Game game, Tile move) {
+    public MessageSender buildMoveSender(Game game, Tile move) {
         var image = BoardRenderer.drawBoardMoves(game.board());
-        return new GameViewSender()
-            .setGame(game, move)
-            .setTag(game)
-            .setImage(image);
+        return MessageSender.createGameViewSender(game, move, image);
     }
 
-    public MessageSender onMoved(Game game) {
+    public MessageSender buildMoveSender(Game game) {
         var image = BoardRenderer.drawBoardMoves(game.board());
-        return new GameViewSender()
-            .setGame(game)
-            .setImage(image);
+        return MessageSender.createGameViewSender(game, image);
     }
 
     public MessageSender onGameOver(Game game, Tile move) {
@@ -82,12 +72,10 @@ public class MoveCommand extends Command {
         var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().id());
         var event = new AgentEvent<>(game, depth, (Move bestMove) -> {
             var newGame = gameStorage.makeMove(game, bestMove.tile());
-            MessageSender sender;
-            if (!newGame.isGameOver()) {
-                sender = onMoved(newGame, bestMove.tile());
-            } else {
-                sender = onGameOver(newGame, bestMove.tile());
-            }
+
+            var sender = newGame.isGameOver() ?
+                onGameOver(newGame, bestMove.tile()) :
+                buildMoveSender(newGame, bestMove.tile());
             ctx.msgWithSender(sender);
         });
         agentDispatcher.dispatchFindMoveEvent(event);
@@ -104,19 +92,16 @@ public class MoveCommand extends Command {
 
             if (!game.isGameOver()) {
                 if (!game.isAgainstBot()) {
-                    var sender = onMoved(game, move);
+                    var sender = buildMoveSender(game, move);
                     ctx.replyWithSender(sender);
                 } else {
-                    var sender = onMoved(game);
+                    var sender = buildMoveSender(game);
                     ctx.replyWithSender(sender);
                     doBotMove(ctx, game);
                 }
             } else {
-                ioTaskExecutor.submit(() -> {
-                    // handling the game over event involves writing stats to an external service
-                    var sender = onGameOver(game, move);
-                    ctx.replyWithSender(sender);
-                });
+                var sender = onGameOver(game, move);
+                ctx.replyWithSender(sender);
             }
 
             LOGGER.info("Player " + player + " made move on game");
