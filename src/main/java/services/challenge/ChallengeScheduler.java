@@ -30,7 +30,7 @@ public class ChallengeScheduler implements ChallengeManager {
             challenges.remove(challenge);
             LOGGER.info("Challenge expired " + challenge.challenged().id() + " " + challenge.challenger().id());
         };
-        var future = scheduler.schedule(scheduled, 30, TimeUnit.SECONDS);
+        var future = scheduler.schedule(scheduled, 60, TimeUnit.SECONDS);
         challenges.put(challenge, future);
     }
 

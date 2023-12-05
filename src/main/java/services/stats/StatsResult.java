@@ -21,4 +21,14 @@ public record StatsResult(float winnerElo, float loserElo, float winnerEloDiff, 
     public String formatLoserEloDiff() {
         return formatElo(loserEloDiff);
     }
+
+    @Override
+    public String toString() {
+        return "StatsResult{" +
+            "winnerElo=" + winnerElo +
+            ", loserElo=" + loserElo +
+            ", winnerEloDiff=" + winnerEloDiff +
+            ", loserEloDiff=" + loserEloDiff +
+            '}';
+    }
 }

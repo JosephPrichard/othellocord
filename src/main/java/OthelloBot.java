@@ -46,7 +46,7 @@ public class OthelloBot extends ListenerAdapter {
 
         var statsDao = new StatsOrmDao(ds);
 
-        var userFetcher = UserFetcher.discordFetcher(jda);
+        var userFetcher = UserFetcher.usingDiscord(jda);
         var agentDispatcher = new AgentThreadDispatcher(cpuBndExecutor);
         var statsService = new StatsService(statsDao, userFetcher);
         var gameStorage = new GameCacheStorage(statsService);

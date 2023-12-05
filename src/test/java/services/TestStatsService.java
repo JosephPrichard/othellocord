@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
-import services.player.exceptions.UnknownUserException;
 import services.stats.Stats;
 import services.stats.StatsDao;
 import services.stats.StatsEntity;
@@ -40,27 +39,12 @@ public class TestStatsService {
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L));
-        when(mock_userFetcher.fetchUserTag(1000L))
+        when(mock_userFetcher.fetchUsername(1000L))
             .thenReturn(CompletableFuture.completedFuture("Player1"));
 
         var stats = statsService.readStats(player);
 
         Assertions.assertEquals(new Stats(new Player(1000, "Player1")), stats);
-    }
-
-
-    @Test
-    public void whenReadStats_fail() {
-        var player = new Player(1000);
-
-        when(mock_statsDao.getOrSaveStats(1000L))
-            .thenReturn(new StatsEntity(1000L));
-        when(mock_userFetcher.fetchUserTag(1000L))
-            .thenThrow(new UnknownUserException());
-
-        var stats = statsService.readStats(player);
-
-        Assertions.assertEquals(new Stats(new Player(1000, "Unknown Player")), stats);
     }
 
     @Test
@@ -71,11 +55,11 @@ public class TestStatsService {
                 new StatsEntity(1001L),
                 new StatsEntity(1002L)
             ));
-        when(mock_userFetcher.fetchUserTag(1000L))
+        when(mock_userFetcher.fetchUsername(1000L))
             .thenReturn(CompletableFuture.completedFuture("Player1"));
-        when(mock_userFetcher.fetchUserTag(1001L))
+        when(mock_userFetcher.fetchUsername(1001L))
             .thenReturn(CompletableFuture.completedFuture("Player2"));
-        when(mock_userFetcher.fetchUserTag(1002L))
+        when(mock_userFetcher.fetchUsername(1002L))
             .thenReturn(CompletableFuture.completedFuture("Player3"));
 
         var statsList = statsService.readTopStats();

@@ -44,8 +44,8 @@ public record AgentEvent<Result>(Game game, int depth, Consumer<Result> onComple
 
     @Override
     public String toString() {
-        return "EvalRequest{" +
-            "board=\n" + game.board() +
+        return "AgentEvent{" +
+            "game=" + game +
             ", depth=" + depth +
             ", onComplete=" + onComplete +
             '}';

@@ -58,7 +58,7 @@ public class TestMoveCommand {
     }
 
     @Test
-    public void whenCommand_ifBot_success() throws TurnException, NotPlayingException, InvalidMoveException, InterruptedException {
+    public void whenCommand_ifBot_success() throws TurnException, NotPlayingException, InvalidMoveException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -85,7 +85,7 @@ public class TestMoveCommand {
     }
 
     @Test
-    public void whenCommand_ifGameOver_success() throws TurnException, NotPlayingException, InvalidMoveException, InterruptedException {
+    public void whenCommand_ifGameOver_success() throws TurnException, NotPlayingException, InvalidMoveException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");

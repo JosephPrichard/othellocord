@@ -70,7 +70,7 @@ public class MoveCommand extends Command {
     public void doBotMove(CommandContext ctx, Game game) {
         // queue an agent request which will find the best move, make the move, and send back a response
         var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().id());
-        var event = new AgentEvent<>(game, depth, (Move bestMove) -> {
+        AgentEvent<Move> event = new AgentEvent<>(game, depth, (bestMove) -> {
             var newGame = gameStorage.makeMove(game, bestMove.tile());
 
             var sender = newGame.isGameOver() ?

@@ -7,12 +7,13 @@ package services.stats;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
-import services.player.exceptions.UnknownUserException;
 import utils.StreamUtils;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 
 import static utils.Logger.LOGGER;
 
@@ -31,14 +32,9 @@ public class StatsService implements StatsWriter, StatsReader {
 
     public Stats readStats(Player player) {
         var statsEntity = statsDao.getOrSaveStats(player.id());
-        try {
-            // we assume the tag can be loaded, so we throw an exception if it cannot be read
-            var tag = userFetcher.fetchUserTag(statsEntity.getPlayerId()).get();
-            return new Stats(statsEntity, tag);
-        } catch (ExecutionException | InterruptedException | UnknownUserException ex) {
-            LOGGER.info("Failed to load the tag name for stats" + player);
-            return new Stats(statsEntity, "Unknown Player");
-        }
+        // we assume the tag can be loaded, so we throw an exception if it cannot be read
+        var tag = userFetcher.fetchUsername(statsEntity.getPlayerId()).join();
+        return new Stats(statsEntity, tag);
     }
 
     public List<Stats> readTopStats() {
@@ -49,12 +45,11 @@ public class StatsService implements StatsWriter, StatsReader {
             .stream()
             .map((entity) -> Player.Bot.isBotId(entity.getPlayerId()) ?
                 CompletableFuture.<String>completedFuture(null) :
-                userFetcher.fetchUserTag(entity.getPlayerId())
+                userFetcher.fetchUsername(entity.getPlayerId())
             )
             .toList();
         CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
 
-        // map each entity to dto
         return StreamUtils
             .zip(statsEntityList, futures)
             .map((pair) -> {

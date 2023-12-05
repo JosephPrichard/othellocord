@@ -79,7 +79,7 @@ public class AnalyzeCommand extends Command {
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
-            var event = new AgentEvent<>(game, depth, (List<Move> rankedMoves) -> {
+            AgentEvent<List<Move>> event = new AgentEvent<>(game, depth, (rankedMoves) -> {
                 var embed = buildAnalyzeEmbed(rankedMoves);
 
                 hook.editOriginal("<@" + player + "> ").queue();

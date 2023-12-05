@@ -52,7 +52,7 @@ public record Player(long id, String name) {
     }
 
     public Player(User user) {
-        this(parseDiscordID(user.getId()), user.getAsTag());
+        this(parseDiscordID(user.getId()), user.getName());
     }
 
     public boolean isBot() {
