@@ -34,7 +34,7 @@ public record AgentEvent<Result>(Game game, int depth, Consumer<Result> onComple
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AgentEvent<?> that = (AgentEvent<?>) o;
-        return depth == that.depth && Objects.equals(game, that.game);
+        return depth == that.depth && game.equals(that.game);
     }
 
     @Override

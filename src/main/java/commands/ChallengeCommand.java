@@ -19,13 +19,13 @@ import static utils.Logger.LOGGER;
 
 public class ChallengeCommand extends Command {
 
-    private final ChallengeManager challengeManager;
     private final GameStorage gameStorage;
+    private final ChallengeManager challengeManager;
 
-    public ChallengeCommand(ChallengeManager challengeManager, GameStorage gameStorage) {
+    public ChallengeCommand(GameStorage gameStorage, ChallengeManager challengeManager) {
         super("challenge");
-        this.challengeManager = challengeManager;
         this.gameStorage = gameStorage;
+        this.challengeManager = challengeManager;
     }
 
     public String buildChallengeStr(Player challenged, Player challenger) {

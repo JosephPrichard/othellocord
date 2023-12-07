@@ -31,14 +31,6 @@ public record Tile(int row, int col) {
         return c + r;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        var tile = (Tile) o;
-        return row == tile.row && col == tile.col;
-    }
-
     public boolean equalsNotation(String notation) {
         var cNotLower = (char) (col + 'a');
         var cNotUpper = (char) (col + 'A');

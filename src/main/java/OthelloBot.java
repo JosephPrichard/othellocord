@@ -54,7 +54,7 @@ public class OthelloBot extends ListenerAdapter {
 
         // add all bot commands to the handler map for handling events
         addCommands(
-            new ChallengeCommand(challengeScheduler, gameStorage),
+            new ChallengeCommand(gameStorage, challengeScheduler),
             new AcceptCommand(gameStorage, challengeScheduler),
             new ForfeitCommand(gameStorage, statsService),
             new MoveCommand(gameStorage, statsService, agentDispatcher),

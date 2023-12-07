@@ -15,7 +15,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-// allows for delaying sending embeds with images as replies to events or/and messages to channels
+// allows for building complex messages that send embeds, images, and messages as replies or directly to channels
 public class MessageSender {
 
     protected final EmbedBuilder embed;
