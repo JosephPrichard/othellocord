@@ -43,7 +43,7 @@ Challenges another user to an othello game. Another player can accept the challe
 
 `/challengebot level`
 
-Challenges the bot to an othello game. The bot can be level 1-15, level 1 searching until depth 1 and level 15 searching until depth 15 (for the bot to work past level 10 you need very good hardware)
+Challenges the bot to an othello game. The bot can be level 1-6, each level using a different depth (for the bot to work on level 6 you need very good hardware)
 
 `/accept @user`
 
@@ -73,11 +73,7 @@ Fetches the stats for the current user. Displays rating, winrate, wins, losses, 
 
 Shows the top users with the highest elo in the entire database.
 
-`/theme`
-
-Allows you to see your current theme or change it to a new one.
-
 ## Demo Images
 
-<img src="https://user-images.githubusercontent.com/58538077/181820016-f7f330ee-481b-4eb7-ab93-9047336fef0d.png" width="35%" height="35%">
-<img src="https://user-images.githubusercontent.com/58538077/216801119-b08ff083-74d8-49d7-96bf-40e904348004.png" width="35%" height="35%">
+<img src="https://github.com/JosephPrichard/OthelloBot/assets/58538077/0096a164-cfb9-44a1-be89-30896e93f0ff" width="45%" height="45%">
+<img src="https://github.com/JosephPrichard/OthelloBot/assets/58538077/c53ecbc3-800b-4767-8553-498f9c529874" width="45%" height="45%">

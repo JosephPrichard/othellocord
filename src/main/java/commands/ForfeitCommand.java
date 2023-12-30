@@ -17,10 +17,7 @@ public class ForfeitCommand extends Command {
     private final GameStorage gameStorage;
     private final StatsWriter statsWriter;
 
-    public ForfeitCommand(
-        GameStorage gameStorage,
-        StatsWriter statsWriter
-    ) {
+    public ForfeitCommand(GameStorage gameStorage, StatsWriter statsWriter) {
         super("forfeit");
         this.gameStorage = gameStorage;
         this.statsWriter = statsWriter;

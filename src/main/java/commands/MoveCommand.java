@@ -33,11 +33,7 @@ public class MoveCommand extends Command {
     private final StatsWriter statsWriter;
     private final AgentDispatcher agentDispatcher;
 
-    public MoveCommand(
-        GameStorage gameStorage,
-        StatsWriter statsWriter,
-        AgentDispatcher agentDispatcher
-    ) {
+    public MoveCommand(GameStorage gameStorage, StatsWriter statsWriter, AgentDispatcher agentDispatcher) {
         super("move");
         this.gameStorage = gameStorage;
         this.statsWriter = statsWriter;

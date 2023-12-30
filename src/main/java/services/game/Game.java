@@ -55,6 +55,10 @@ public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
         return board.isGameOver();
     }
 
+    public boolean isBlackMove() {
+        return board.isBlackMove();
+    }
+
     public GameResult createResult() {
         var diff = board.blackScore() - board.whiteScore();
         if (diff > 0) {

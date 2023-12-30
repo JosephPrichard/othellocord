@@ -11,17 +11,12 @@ import utils.StreamUtils;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-
-import static utils.Logger.LOGGER;
 
 // implementation that delegates persistence to a data access object and performs calculations, mapping, and flow control
 // depends on blocking io dao class and therefore also uses blocking io
 public class StatsService implements StatsWriter, StatsReader {
 
-    public static final int K = 30;
+    public static final int ELO_K = 30;
     private final StatsDao statsDao;
     private final UserFetcher userFetcher;
 
@@ -71,11 +66,11 @@ public class StatsService implements StatsWriter, StatsReader {
     }
 
     public static float calcEloWon(float rating, float probability) {
-        return rating + K * (1f - probability);
+        return rating + ELO_K * (1f - probability);
     }
 
     public static float calcEloLost(float rating, float probability) {
-        return rating - K * probability;
+        return rating - ELO_K * probability;
     }
 
     public StatsResult writeStats(GameResult result) {

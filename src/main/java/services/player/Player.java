@@ -10,7 +10,7 @@ public record Player(long id, String name) {
 
     public static class Bot {
 
-        public static final int MAX_BOT_LEVEL = 5;
+        public static final int MAX_BOT_LEVEL = 6;
 
         public static int getDepthFromId(long id) {
             return switch ((int) id) {

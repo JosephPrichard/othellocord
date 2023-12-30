@@ -5,8 +5,10 @@
 package commands;
 
 import commands.context.CommandContext;
+import commands.messaging.MessageSender;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import othello.BoardRenderer;
 import othello.Move;
 import services.agent.AgentDispatcher;
 import services.agent.AgentEvent;
@@ -76,14 +78,16 @@ public class AnalyzeCommand extends Command {
 
         // send starting message, then add queue an agent request, send back the results in a message when it's done
         var depth = Player.Bot.getDepthFromId(level);
+        final var finalLevel = level;
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
             AgentEvent<List<Move>> event = new AgentEvent<>(game, depth, (rankedMoves) -> {
-                var embed = buildAnalyzeEmbed(rankedMoves);
+                var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
+                var sender = MessageSender.createGameAnalyzeSender(game, image, finalLevel);
 
-                hook.editOriginal("<@" + player + "> ").queue();
-                hook.editOriginalEmbeds(embed).queue();
+                sender.setTag(player);
+                sender.editMessageUsingHook(hook);
 
                 LOGGER.info("Finished board state analysis");
             });

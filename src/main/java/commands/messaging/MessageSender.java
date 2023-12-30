@@ -5,6 +5,7 @@
 package commands.messaging;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import othello.Tile;
 import services.game.Game;
@@ -33,14 +34,18 @@ public class MessageSender {
         return new MessageSender(embed).setImage(image);
     }
 
+    public static String getScoreText(Game game) {
+        return "Black: " + game.getBlackScore() + " points \n" +
+            "White: " + game.getWhiteScore() + " points \n";
+    }
+
     public static MessageSender createGameViewSender(Game game, Tile move, BufferedImage image) {
-        var desc = "Black: " + game.getBlackScore() + "\n" +
-            "White: " + game.getWhiteScore() + "\n" +
-            "Your opponent has moved: " + move;
+        var desc = getScoreText(game) + "Your opponent has moved: " + move;
 
         var embed = new EmbedBuilder()
             .setTitle("Your game with " + game.getOtherPlayer().name())
-            .setDescription(desc);
+            .setDescription(desc)
+            .setFooter(game.isBlackMove() ? "Black to move" : "White to move");;
 
         return new MessageSender(embed)
             .setTag(game.getCurrentPlayer())
@@ -48,13 +53,25 @@ public class MessageSender {
     }
 
     public static MessageSender createGameViewSender(Game game, BufferedImage image) {
-        var desc = "Black: " + game.getBlackScore() + " points \n" +
-            "White: " + game.getWhiteScore() + " points \n" +
-            game.getCurrentPlayer().name() + " to move";
+        var desc = getScoreText(game) + game.getCurrentPlayer().name() + " to move";
 
         var embed = new EmbedBuilder()
             .setTitle(game.blackPlayer().name() + " vs " + game.whitePlayer().name())
-            .setDescription(desc);
+            .setDescription(desc)
+            .setFooter(game.isBlackMove() ? "Black to move" : "White to move");
+
+        return new MessageSender(embed)
+            .setTag(game.getCurrentPlayer())
+            .setImage(image);
+    }
+
+    public static MessageSender createGameAnalyzeSender(Game game, BufferedImage image, long level) {
+        var desc = getScoreText(game);
+
+        var embed = new EmbedBuilder()
+        .setTitle("Game Analysis using bot level " + level)
+        .setDescription(desc)
+        .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
 
         return new MessageSender(embed)
             .setTag(game.getCurrentPlayer())
@@ -111,6 +128,22 @@ public class MessageSender {
                 .queue();
         } catch (IOException ex) {
             event.reply("Unexpected error: couldn't create image").queue();
+        }
+    }
+
+    public void editMessageUsingHook(InteractionHook hook) {
+        try {
+            var is = ImageUtils.toPngInputStream(image);
+            embed.setImage("attachment://image.png");
+
+            hook.editOriginalEmbeds(embed.build())
+                .addFile(is, "image.png")
+                .queue();
+            if (message != null) {
+                hook.editOriginal(message).queue();
+            }
+        } catch (IOException ex) {
+            hook.editOriginal("Unexpected error: couldn't create image").queue();
         }
     }
 }

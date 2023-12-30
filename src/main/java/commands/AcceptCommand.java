@@ -21,10 +21,7 @@ public class AcceptCommand extends Command {
     private final GameStorage gameStorage;
     private final ChallengeManager challengeManager;
 
-    public AcceptCommand(
-        GameStorage gameStorage,
-        ChallengeManager challengeManager
-    ) {
+    public AcceptCommand(GameStorage gameStorage, ChallengeManager challengeManager) {
         super("accept");
         this.gameStorage = gameStorage;
         this.challengeManager = challengeManager;
@@ -47,7 +44,7 @@ public class AcceptCommand extends Command {
             var sender = MessageSender.createGameStartSender(game, image);
             ctx.replyWithSender(sender);
         } catch (AlreadyPlayingException ex) {
-            ctx.reply("One ore more players are already in a game.");
+            ctx.reply("One or more players are already in a game.");
         }
 
         LOGGER.info("Player " + player + " accepted challenge from " + opponent);
