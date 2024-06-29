@@ -101,7 +101,7 @@ public class BoardRenderer {
             if (color == OthelloBoard.BLACK) {
                 g.drawImage(BLACK_DISC_IMAGE, x, y, null);
             } else if (color == OthelloBoard.WHITE) {
-                g .drawImage(WHITE_DISC_IMAGE, x, y, null);
+                g.drawImage(WHITE_DISC_IMAGE, x, y, null);
             }
         }
 
@@ -212,7 +212,7 @@ public class BoardRenderer {
     public static void main(String[] args) throws IOException {
         var board = new OthelloBoard();
 
-        var image = drawBoardAnalysis(board, new OthelloAgent(5).findRankedMoves(board));
+        var image = drawBoardAnalysis(board, new OthelloAgent().findRankedMoves(board, 5));
 
         var outputFile = new File("test_board.png");
         ImageIO.write(image, "png", outputFile);

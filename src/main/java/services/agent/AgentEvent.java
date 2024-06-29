@@ -4,25 +4,17 @@
 
 package services.agent;
 
-import services.game.Game;
+import othello.OthelloBoard;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public record AgentEvent<Result>(Game game, int depth, Consumer<Result> onComplete) {
+public record AgentEvent<Result>(OthelloBoard board, int depth, Consumer<Result> onComplete) {
 
-    public AgentEvent(Game game, int depth) {
+    public AgentEvent(OthelloBoard board, int depth) {
         // no-op eval request
-        this(game, depth, (r) -> {
+        this(board, depth, (r) -> {
         });
-    }
-
-    public Game game() {
-        return game;
-    }
-
-    public int depth() {
-        return depth;
     }
 
     public void applyOnComplete(Result r) {
@@ -34,18 +26,18 @@ public record AgentEvent<Result>(Game game, int depth, Consumer<Result> onComple
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AgentEvent<?> that = (AgentEvent<?>) o;
-        return depth == that.depth && game.equals(that.game);
+        return depth == that.depth && board.equals(that.board);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(game, depth);
+        return Objects.hash(board, depth);
     }
 
     @Override
     public String toString() {
         return "AgentEvent{" +
-            "game=" + game +
+            "board=" + board +
             ", depth=" + depth +
             ", onComplete=" + onComplete +
             '}';

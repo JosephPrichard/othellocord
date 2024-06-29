@@ -14,7 +14,7 @@ import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import services.player.Player;
-import services.stats.StatsWriter;
+import services.stats.IStatsService;
 
 import javax.annotation.Nullable;
 import javax.persistence.PersistenceException;
@@ -25,13 +25,13 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 // implementation of an in memory game storage using a loading cache
-public class GameCacheStorage implements GameStorage {
+public class GameService implements IGameService {
 
     private final LoadingCache<Long, Optional<Game>> games;
-    private final StatsWriter statsWriter;
+    private final IStatsService statsService;
 
-    public GameCacheStorage(StatsWriter statsWriter) {
-        this.statsWriter = statsWriter;
+    public GameService(IStatsService statsService) {
+        this.statsService = statsService;
         this.games = Caffeine.newBuilder()
             .initialCapacity(1000)
             .scheduler(Scheduler.systemScheduler())
@@ -60,12 +60,14 @@ public class GameCacheStorage implements GameStorage {
         }
 
         try {
-            saveGame(game);
+            var optGame = Optional.of(game);
+            games.put(game.blackPlayer().id(), optGame);
+            games.put(game.whitePlayer().id(), optGame);
         } catch (PersistenceException ex) {
             throw new AlreadyPlayingException();
         }
 
-        return game;
+        return new Game(game);
     }
 
     public Game createBotGame(Player blackPlayer, long level) throws AlreadyPlayingException {
@@ -77,25 +79,23 @@ public class GameCacheStorage implements GameStorage {
         }
 
         try {
-            saveGame(game);
+            var optGame = Optional.of(game);
+            games.put(game.blackPlayer().id(), optGame);
+            games.put(game.whitePlayer().id(), optGame);
         } catch (PersistenceException ex) {
             throw new AlreadyPlayingException();
         }
-        return game;
+        return new Game(game);
     }
 
     @Nullable
     public Game getGame(Player player) {
-        return games.get(player.id()).orElse(null);
-    }
-
-    public void saveGame(Game game) {
-        var optGame = Optional.of(game);
-        if (!game.blackPlayer().isBot()) {
-            games.put(game.blackPlayer().id(), optGame);
+        var game = games.get(player.id()).orElse(null);
+        if (game == null) {
+            return null;
         }
-        if (!game.whitePlayer().isBot()) {
-            games.put(game.whitePlayer().id(), optGame);
+        synchronized (game) {
+            return new Game(game);
         }
     }
 
@@ -108,47 +108,48 @@ public class GameCacheStorage implements GameStorage {
         return games.get(player.id()).isPresent();
     }
 
-    public Game makeMove(Game game, Tile move) {
-        // make the move by creating a new immutable game
-        var newBoard = game.board().makeMoved(move);
-        game = new Game(newBoard, game.whitePlayer(), game.blackPlayer());
-
-        if (!game.isGameOver()) {
-            saveGame(game);
-        } else {
-            deleteGame(game);
-        }
-        return game;
-    }
-
     // Responsible for making the given move on the player's game. Updates the game in the storage if
     // the game is not complete, deletes the game in the storage if the game is complete
     // returns a mutable copy of the game from the storage
     public Game makeMove(Player player, Tile move) throws NotPlayingException, InvalidMoveException, TurnException {
-        var game = getGame(player);
+        var game = games.get(player.id()).orElse(null);
         if (game == null) {
             throw new NotPlayingException();
         }
 
-        if (!game.getCurrentPlayer().equals(player)) {
-            throw new TurnException();
-        }
-
-        // calculate the potential moves
-        var potentialMoves = game.board().findPotentialMoves();
-        // check if the move being requested is any of the potential moves, if so make the move
-        for (var potentialMove : potentialMoves) {
-            if (potentialMove.equals(move)) {
-                return makeMove(game, potentialMove);
+        synchronized (game) {
+            if (!game.getCurrentPlayer().equals(player)) {
+                throw new TurnException();
             }
-        }
 
-        throw new InvalidMoveException();
+            var potentialMoves = game.findPotentialMoves();
+
+            // check if the move being requested is any of the potential moves, if so make the move
+            for (var potentialMove : potentialMoves) {
+                if (potentialMove.equals(move)) {
+                    // make the move by modifying the game's board state
+                    game.makeMove(potentialMove);
+
+                    if (game.hasNoMoves()) {
+                        game.skipTurn();
+                    }
+
+                    if (game.hasNoMoves()) {
+                        deleteGame(game);
+                        return new Game(game);
+                    }
+
+                    return new Game(game);
+                }
+            }
+
+            throw new InvalidMoveException();
+        }
     }
 
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
         var forfeitResult = GameResult.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
-        statsWriter.writeStats(forfeitResult);
+        statsService.writeStats(forfeitResult);
     }
 }

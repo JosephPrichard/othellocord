@@ -10,11 +10,14 @@ import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import othello.Tile;
 import services.game.Game;
 import services.player.Player;
-import utils.ImageUtils;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 // allows for building complex messages that send embeds, images, and messages as replies or directly to channels
 public class MessageSender {
@@ -45,7 +48,8 @@ public class MessageSender {
         var embed = new EmbedBuilder()
             .setTitle("Your game with " + game.getOtherPlayer().name())
             .setDescription(desc)
-            .setFooter(game.isBlackMove() ? "Black to move" : "White to move");;
+            .setFooter(game.isBlackMove() ? "Black to move" : "White to move");
+        ;
 
         return new MessageSender(embed)
             .setTag(game.getCurrentPlayer())
@@ -69,9 +73,9 @@ public class MessageSender {
         var desc = getScoreText(game);
 
         var embed = new EmbedBuilder()
-        .setTitle("Game Analysis using bot level " + level)
-        .setDescription(desc)
-        .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
+            .setTitle("Game Analysis using bot level " + level)
+            .setDescription(desc)
+            .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
 
         return new MessageSender(embed)
             .setTag(game.getCurrentPlayer())
@@ -95,9 +99,15 @@ public class MessageSender {
         return this;
     }
 
+    private static InputStream toPngInputStream(BufferedImage image) throws IOException {
+        var os = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", os);
+        return new ByteArrayInputStream(os.toByteArray());
+    }
+
     public void sendReply(SlashCommandInteraction event) {
         try {
-            var is = ImageUtils.toPngInputStream(image);
+            var is = toPngInputStream(image);
             embed.setImage("attachment://image.png");
 
             if (message != null) {
@@ -115,7 +125,7 @@ public class MessageSender {
 
     public void sendMessage(SlashCommandInteraction event) {
         try {
-            var is = ImageUtils.toPngInputStream(image);
+            var is = toPngInputStream(image);
             embed.setImage("attachment://image.png");
 
             if (message != null) {
@@ -133,7 +143,7 @@ public class MessageSender {
 
     public void editMessageUsingHook(InteractionHook hook) {
         try {
-            var is = ImageUtils.toPngInputStream(image);
+            var is = toPngInputStream(image);
             embed.setImage("attachment://image.png");
 
             hook.editOriginalEmbeds(embed.build())

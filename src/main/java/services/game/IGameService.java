@@ -14,7 +14,7 @@ import services.player.Player;
 import javax.annotation.Nullable;
 
 // performs crud operations on games stored within memory
-public interface GameStorage {
+public interface IGameService {
 
     Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException;
 
@@ -23,11 +23,7 @@ public interface GameStorage {
     @Nullable
     Game getGame(Player player);
 
-    void saveGame(Game game);
-
     void deleteGame(Game game);
-
-    Game makeMove(Game game, Tile move);
 
     Game makeMove(Player player, Tile move) throws NotPlayingException, InvalidMoveException, TurnException;
 }

@@ -14,55 +14,60 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import services.DataSource;
-import services.agent.AgentThreadDispatcher;
+import services.agent.AgentDispatcher;
 import services.challenge.ChallengeScheduler;
-import services.game.GameCacheStorage;
+import services.game.GameService;
 import services.player.UserFetcher;
-import services.stats.StatsOrmDao;
+import services.stats.StatsDao;
 import services.stats.StatsService;
-import utils.Threading;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
-import static utils.Threading.createThreadFactory;
 
 public class OthelloBot extends ListenerAdapter {
 
     private final Map<String, Command> commandMap = new HashMap<>();
-    private final ExecutorService cpuBndExecutor = Executors.newFixedThreadPool(Threading.CORES / 2,
-        createThreadFactory("CPU-Bnd-Pool"));
-    private final ExecutorService taskExecutor = Executors.newCachedThreadPool(
-        createThreadFactory("Task-Pool"));
+
+    public static final int CORES = Runtime.getRuntime().availableProcessors();
+
+    private final ThreadPoolExecutor cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
+        0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), createThreadFactory("CPU-Bnd-Pool"));
+    private final ExecutorService taskExecutor = Executors.newCachedThreadPool(createThreadFactory("Task-Pool"));
+
+    public static ThreadFactory createThreadFactory(String pool) {
+        return (task) -> {
+            Thread thread = new Thread(task, pool);
+            thread.setDaemon(true);
+            return thread;
+        };
+    }
 
     public void initListeners(JDA jda) {
-        var ds = new DataSource();
+        var dataSource = new DataSource();
 
-        var statsDao = new StatsOrmDao(ds);
+        var statsDao = new StatsDao(dataSource);
 
         var userFetcher = UserFetcher.usingDiscord(jda);
-        var agentDispatcher = new AgentThreadDispatcher(cpuBndExecutor);
+        var agentDispatcher = new AgentDispatcher(cpuBndExecutor);
         var statsService = new StatsService(statsDao, userFetcher);
-        var gameStorage = new GameCacheStorage(statsService);
+        var gameService = new GameService(statsService);
         var challengeScheduler = new ChallengeScheduler();
 
-        // add all bot commands to the handler map for handling events
-        addCommands(
-            new ChallengeCommand(gameStorage, challengeScheduler),
-            new AcceptCommand(gameStorage, challengeScheduler),
-            new ForfeitCommand(gameStorage, statsService),
-            new MoveCommand(gameStorage, statsService, agentDispatcher),
-            new ViewCommand(gameStorage),
-            new AnalyzeCommand(gameStorage, agentDispatcher),
-            new StatsCommand(statsService),
-            new LeaderBoardCommand(statsService)
-        );
+        // add all bot commands to the handler map for handling
+        commandMap.put("challenge", new ChallengeCommand(gameService, challengeScheduler));
+        commandMap.put("accept", new AcceptCommand(gameService, challengeScheduler));
+        commandMap.put("forfeit", new ForfeitCommand(gameService, statsService));
+        commandMap.put("move", new MoveCommand(gameService, statsService, agentDispatcher));
+        commandMap.put("view", new ViewCommand(gameService));
+        commandMap.put("analyze", new AnalyzeCommand(gameService, agentDispatcher));
+        commandMap.put("stats", new StatsCommand(statsService));
+        commandMap.put("leaderboard", new LeaderBoardCommand(statsService));
     }
 
     public List<SlashCommandData> getCommandData() {
@@ -91,12 +96,6 @@ public class OthelloBot extends ListenerAdapter {
 
             Commands.slash("leaderboard", "Retrieves the highest rated players by ELO")
         );
-    }
-
-    private void addCommands(Command... commands) {
-        for (var c : commands) {
-            commandMap.put(c.getKey(), c);
-        }
     }
 
     @Override

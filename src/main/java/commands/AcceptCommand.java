@@ -8,8 +8,8 @@ import commands.context.CommandContext;
 import commands.messaging.MessageSender;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
-import services.challenge.ChallengeManager;
-import services.game.GameStorage;
+import services.challenge.IChallengeScheduler;
+import services.game.IGameService;
 import services.game.exceptions.AlreadyPlayingException;
 
 import java.util.Objects;
@@ -18,13 +18,12 @@ import static utils.Logger.LOGGER;
 
 public class AcceptCommand extends Command {
 
-    private final GameStorage gameStorage;
-    private final ChallengeManager challengeManager;
+    private final IGameService gameService;
+    private final IChallengeScheduler challengeScheduler;
 
-    public AcceptCommand(GameStorage gameStorage, ChallengeManager challengeManager) {
-        super("accept");
-        this.gameStorage = gameStorage;
-        this.challengeManager = challengeManager;
+    public AcceptCommand(IGameService gameService, IChallengeScheduler challengeScheduler) {
+        this.gameService = gameService;
+        this.challengeScheduler = challengeScheduler;
     }
 
     @Override
@@ -32,17 +31,17 @@ public class AcceptCommand extends Command {
         var opponent = Objects.requireNonNull(ctx.getPlayerParam("challenger"));
         var player = ctx.getPlayer();
 
-        if (!challengeManager.acceptChallenge(new Challenge(player, opponent))) {
+        if (!challengeScheduler.acceptChallenge(new Challenge(player, opponent))) {
             ctx.reply("No challenge to accept.");
             return;
         }
 
         try {
-            var game = gameStorage.createGame(player, opponent);
+            var game = gameService.createGame(player, opponent);
             var image = BoardRenderer.drawBoard(game.board());
 
             var sender = MessageSender.createGameStartSender(game, image);
-            ctx.replyWithSender(sender);
+            ctx.sendReply(sender);
         } catch (AlreadyPlayingException ex) {
             ctx.reply("One or more players are already in a game.");
         }

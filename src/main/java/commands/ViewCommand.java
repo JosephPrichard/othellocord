@@ -7,24 +7,23 @@ package commands;
 import commands.context.CommandContext;
 import commands.messaging.MessageSender;
 import othello.BoardRenderer;
-import services.game.GameStorage;
+import services.game.IGameService;
 
 import static utils.Logger.LOGGER;
 
 public class ViewCommand extends Command {
 
-    private final GameStorage gameStorage;
+    private final IGameService gameService;
 
-    public ViewCommand(GameStorage gameStorage) {
-        super("view");
-        this.gameStorage = gameStorage;
+    public ViewCommand(IGameService gameService) {
+        this.gameService = gameService;
     }
 
     @Override
     public void onCommand(CommandContext ctx) {
         var player = ctx.getPlayer();
 
-        var game = gameStorage.getGame(player);
+        var game = gameService.getGame(player);
         if (game == null) {
             ctx.reply("You're not currently in a game.");
             return;
@@ -35,7 +34,7 @@ public class ViewCommand extends Command {
 
         var image = BoardRenderer.drawBoard(board, potentialMoves);
         var sender = MessageSender.createGameViewSender(game, image);
-        ctx.replyWithSender(sender);
+        ctx.sendReply(sender);
 
         LOGGER.info("Player " + player + " view moves in game");
     }

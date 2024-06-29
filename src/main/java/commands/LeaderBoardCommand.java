@@ -7,23 +7,22 @@ package commands;
 import commands.context.CommandContext;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import services.stats.IStatsService;
 import services.stats.Stats;
-import services.stats.StatsReader;
 
 import java.awt.*;
 import java.util.List;
 
+import static commands.messaging.StringFormat.leftPad;
+import static commands.messaging.StringFormat.rightPad;
 import static utils.Logger.LOGGER;
-import static utils.StringUtils.leftPad;
-import static utils.StringUtils.rightPad;
 
 public class LeaderBoardCommand extends Command {
 
-    private final StatsReader statsReader;
+    private final IStatsService statsService;
 
-    public LeaderBoardCommand(StatsReader statsReader) {
-        super("leaderboard");
-        this.statsReader = statsReader;
+    public LeaderBoardCommand(IStatsService statsService) {
+        this.statsService = statsService;
     }
 
     public MessageEmbed buildLeaderboardEmbed(List<Stats> statsList) {
@@ -34,8 +33,8 @@ public class LeaderBoardCommand extends Command {
         var count = 1;
         for (var stats : statsList) {
             desc.append(rightPad(count + ")", 4))
-                .append(leftPad(stats.getPlayer().name(), 40))
-                .append(leftPad(Float.toString(stats.getElo()), 16))
+                .append(leftPad(stats.getPlayer().name(), 32))
+                .append(leftPad(String.format("%.2f", stats.getElo()), 12))
                 .append("\n");
             count++;
         }
@@ -49,7 +48,7 @@ public class LeaderBoardCommand extends Command {
 
     @Override
     public void onCommand(CommandContext ctx) {
-        var statsList = statsReader.readTopStats();
+        var statsList = statsService.readTopStats();
         var embed = buildLeaderboardEmbed(statsList);
         ctx.replyEmbeds(embed);
         LOGGER.info("Fetched leaderboard");

@@ -8,8 +8,8 @@ import commands.context.CommandContext;
 import commands.messaging.MessageSender;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
-import services.challenge.ChallengeManager;
-import services.game.GameStorage;
+import services.challenge.IChallengeScheduler;
+import services.game.IGameService;
 import services.game.exceptions.AlreadyPlayingException;
 import services.player.Player;
 
@@ -19,13 +19,12 @@ import static utils.Logger.LOGGER;
 
 public class ChallengeCommand extends Command {
 
-    private final GameStorage gameStorage;
-    private final ChallengeManager challengeManager;
+    private final IGameService gameService;
+    private final IChallengeScheduler challengeScheduler;
 
-    public ChallengeCommand(GameStorage gameStorage, ChallengeManager challengeManager) {
-        super("challenge");
-        this.gameStorage = gameStorage;
-        this.challengeManager = challengeManager;
+    public ChallengeCommand(IGameService gameService, IChallengeScheduler challengeScheduler) {
+        this.gameService = gameService;
+        this.challengeScheduler = challengeScheduler;
     }
 
     public String buildChallengeStr(Player challenged, Player challenger) {
@@ -64,11 +63,11 @@ public class ChallengeCommand extends Command {
         var player = ctx.getPlayer();
 
         try {
-            var game = gameStorage.createBotGame(player, level);
+            var game = gameService.createBotGame(player, level);
             var image = BoardRenderer.drawBoardMoves(game.board());
 
             var sender = MessageSender.createGameStartSender(game, image);
-            ctx.replyWithSender(sender);
+            ctx.sendReply(sender);
         } catch (AlreadyPlayingException ex) {
             ctx.reply("You're already in a game");
         }
@@ -83,7 +82,7 @@ public class ChallengeCommand extends Command {
 
         var id = player.id();
         Runnable onExpiry = () -> ctx.sendMessage("<@" + id + "> Challenge timed out!");
-        challengeManager.createChallenge(new Challenge(opponent, player), onExpiry);
+        challengeScheduler.createChallenge(new Challenge(opponent, player), onExpiry);
 
         var message = buildChallengeStr(opponent, player);
         ctx.reply(message);

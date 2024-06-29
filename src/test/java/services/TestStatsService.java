@@ -11,7 +11,7 @@ import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
 import services.stats.Stats;
-import services.stats.StatsDao;
+import services.stats.IStatsDao;
 import services.stats.StatsEntity;
 import services.stats.StatsService;
 
@@ -22,13 +22,13 @@ import static org.mockito.Mockito.*;
 
 public class TestStatsService {
 
-    private StatsDao mock_statsDao;
+    private IStatsDao mock_statsDao;
     private UserFetcher mock_userFetcher;
     private StatsService statsService;
 
     @BeforeEach
     public void beforeEach() {
-        mock_statsDao = mock(StatsDao.class);
+        mock_statsDao = mock(IStatsDao.class);
         mock_userFetcher = mock(UserFetcher.class);
         statsService = new StatsService(mock_statsDao, mock_userFetcher);
     }

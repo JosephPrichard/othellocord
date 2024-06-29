@@ -61,10 +61,6 @@ public class OthelloBoard {
         return countDiscs(BLACK);
     }
 
-    public OthelloBoard copy() {
-        return new OthelloBoard(this);
-    }
-
     public static List<Tile> tiles() {
         List<Tile> tiles = new ArrayList<>();
         for (var row = 0; row < getBoardSize(); row++) {
@@ -137,8 +133,14 @@ public class OthelloBoard {
         return count[0];
     }
 
-    public boolean isGameOver() {
-        return countPotentialMoves(blackMove ? BLACK : WHITE) <= 0;
+    public OthelloBoard skippedTurn() {
+        var copiedBoard = new OthelloBoard(this);
+        copiedBoard.skipTurn();
+        return copiedBoard;
+    }
+
+    public void skipTurn() {
+        blackMove = !blackMove;
     }
 
     public OthelloBoard makeMoved(String move) {
@@ -146,16 +148,17 @@ public class OthelloBoard {
     }
 
     public OthelloBoard makeMoved(Tile move) {
-        var copiedBoard = copy();
+        var copiedBoard = new OthelloBoard(this);
         copiedBoard.makeMove(move);
         return copiedBoard;
     }
 
-    private void makeMove(Tile move) {
+    // makes the move on the board, changing the state to a moved state
+    // only flips the turn if the next color has moves - otherwise it will be current color turn again
+    public void makeMove(Tile move) {
         var oppositeColor = blackMove ? WHITE : BLACK;
         var currentColor = blackMove ? BLACK : WHITE;
 
-        blackMove = !blackMove;
         setSquare(move.row(), move.col(), currentColor);
 
         // check each direction of new tile position
@@ -199,6 +202,8 @@ public class OthelloBoard {
                 col += direction[1];
             }
         }
+
+        blackMove = !blackMove;
     }
 
     public void setSquare(int row, int col, byte color) {
@@ -263,15 +268,12 @@ public class OthelloBoard {
     @Override
     public String toString() {
         var builder = new StringBuilder();
-        // add space for better board indentation
         builder.append("  ");
-        // add each column header as letter
         for (var i = 0; i < getBoardSize(); i++) {
             builder.append((char) ('a' + (char) i));
             builder.append(" ");
         }
         builder.append("\n");
-        // add each matrix element in board with row header
         for (var row = 0; row < getBoardSize(); row++) {
             builder.append(row + 1);
             builder.append(" ");
@@ -292,7 +294,7 @@ public class OthelloBoard {
                 System.out.print(move + " ");
             }
             System.out.println();
-            board.makeMove(board.findPotentialMoves().get(0));
+            board.makeMove(moves.get(0));
         }
     }
 }

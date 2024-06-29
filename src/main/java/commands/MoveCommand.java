@@ -11,17 +11,20 @@ import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
 import othello.Move;
+import othello.OthelloBoard;
 import othello.Tile;
-import services.agent.AgentDispatcher;
 import services.agent.AgentEvent;
+import services.agent.IAgentDispatcher;
 import services.game.Game;
-import services.game.GameStorage;
+import services.game.IGameService;
 import services.game.exceptions.InvalidMoveException;
 import services.game.exceptions.NotPlayingException;
 import services.game.exceptions.TurnException;
 import services.player.Player;
-import services.stats.StatsWriter;
+import services.stats.IStatsService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -29,14 +32,13 @@ import static utils.Logger.LOGGER;
 
 public class MoveCommand extends Command {
 
-    private final GameStorage gameStorage;
-    private final StatsWriter statsWriter;
-    private final AgentDispatcher agentDispatcher;
+    private final IGameService gameService;
+    private final IStatsService statsService;
+    private final IAgentDispatcher agentDispatcher;
 
-    public MoveCommand(GameStorage gameStorage, StatsWriter statsWriter, AgentDispatcher agentDispatcher) {
-        super("move");
-        this.gameStorage = gameStorage;
-        this.statsWriter = statsWriter;
+    public MoveCommand(IGameService gameService, IStatsService statsService, IAgentDispatcher agentDispatcher) {
+        this.gameService = gameService;
+        this.statsService = statsService;
         this.agentDispatcher = agentDispatcher;
     }
 
@@ -52,7 +54,7 @@ public class MoveCommand extends Command {
 
     public MessageSender onGameOver(Game game, Tile move) {
         var result = game.createResult();
-        var statsResult = statsWriter.writeStats(result);
+        var statsResult = statsService.writeStats(result);
 
         var image = BoardRenderer.drawBoard(game.board());
         return new GameOverSender()
@@ -64,15 +66,21 @@ public class MoveCommand extends Command {
     }
 
     public void doBotMove(CommandContext ctx, Game game) {
-        // queue an agent request which will find the best move, make the move, and send back a response
-        var depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().id());
-        AgentEvent<Move> event = new AgentEvent<>(game, depth, (bestMove) -> {
-            var newGame = gameStorage.makeMove(game, bestMove.tile());
+        var currPlayer = game.getCurrentPlayer();
+        var depth = Player.Bot.getDepthFromId(currPlayer.id());
 
-            var sender = newGame.isGameOver() ?
-                onGameOver(newGame, bestMove.tile()) :
-                buildMoveSender(newGame, bestMove.tile());
-            ctx.msgWithSender(sender);
+        // queue an agent request which will find the best move, make the move, and send back a response
+        AgentEvent<Move> event = new AgentEvent<>(game.board(), depth, (bestMove) -> {
+            try {
+                var newGame = gameService.makeMove(currPlayer, bestMove.tile());
+
+                var sender = newGame.hasNoMoves() ?
+                    onGameOver(newGame, bestMove.tile()) :
+                    buildMoveSender(newGame, bestMove.tile());
+                ctx.sendMessage(sender);
+            } catch (Exception ex) {
+                LOGGER.warning("Error occurred in an agent callback thread" + ex);
+            }
         });
         agentDispatcher.dispatchFindMoveEvent(event);
     }
@@ -84,20 +92,20 @@ public class MoveCommand extends Command {
 
         var move = Tile.fromNotation(strMove);
         try {
-            var game = gameStorage.makeMove(player, move);
+            var game = gameService.makeMove(player, move);
 
-            if (!game.isGameOver()) {
-                if (!game.isAgainstBot()) {
-                    var sender = buildMoveSender(game, move);
-                    ctx.replyWithSender(sender);
-                } else {
-                    var sender = buildMoveSender(game);
-                    ctx.replyWithSender(sender);
-                    doBotMove(ctx, game);
-                }
-            } else {
+            if (game.hasNoMoves()) {
                 var sender = onGameOver(game, move);
-                ctx.replyWithSender(sender);
+                ctx.sendReply(sender);
+            } else {
+                if (game.isAgainstBot()) {
+                    var sender = buildMoveSender(game);
+                    ctx.sendReply(sender);
+                    doBotMove(ctx, game);
+                } else {
+                    var sender = buildMoveSender(game, move);
+                    ctx.sendReply(sender);
+                }
             }
 
             LOGGER.info("Player " + player + " made move on game");
@@ -113,13 +121,28 @@ public class MoveCommand extends Command {
     @Override
     public void onAutoComplete(CommandAutoCompleteInteraction interaction) {
         var player = new Player(interaction.getUser());
-        var game = gameStorage.getGame(player);
+
+        var game = gameService.getGame(player);
         if (game != null) {
-            var moves = game.board().findPotentialMoves();
-            var choices = moves.stream()
-                .map((tile) -> new Choice(tile.toString(), tile.toString()))
-                .collect(Collectors.toList());
+            var moves = game.findPotentialMoves();
+
+            // don't display duplicate moves
+            var duplicate = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
+
+            List<Choice> choices = new ArrayList<>();
+            for (var tile : moves) {
+                var row = tile.row();
+                var col = tile.col();
+
+                if (!duplicate[row][col]) {
+                    choices.add(new Choice(tile.toString(), tile.toString()));
+                }
+                duplicate[row][col] = true;
+            }
+
             interaction.replyChoices(choices).queue();
+        } else {
+            interaction.replyChoices().queue();
         }
     }
 }

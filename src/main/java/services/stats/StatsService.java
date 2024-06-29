@@ -7,20 +7,20 @@ package services.stats;
 import services.game.GameResult;
 import services.player.Player;
 import services.player.UserFetcher;
-import utils.StreamUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 // implementation that delegates persistence to a data access object and performs calculations, mapping, and flow control
 // depends on blocking io dao class and therefore also uses blocking io
-public class StatsService implements StatsWriter, StatsReader {
+public class StatsService implements IStatsService {
 
     public static final int ELO_K = 30;
-    private final StatsDao statsDao;
+    private final IStatsDao statsDao;
     private final UserFetcher userFetcher;
 
-    public StatsService(StatsDao statsDao, UserFetcher userFetcher) {
+    public StatsService(IStatsDao statsDao, UserFetcher userFetcher) {
         this.statsDao = statsDao;
         this.userFetcher = userFetcher;
     }
@@ -38,27 +38,27 @@ public class StatsService implements StatsWriter, StatsReader {
         // fetch each tag and wait til each fetch operation is complete
         var futures = statsEntityList
             .stream()
-            .map((entity) -> Player.Bot.isBotId(entity.getPlayerId()) ?
-                CompletableFuture.<String>completedFuture(null) :
-                userFetcher.fetchUsername(entity.getPlayerId())
+            .map((entity) ->
+                Player.Bot.isBotId(entity.getPlayerId())
+                    ? CompletableFuture.<String>completedFuture(null)
+                    : userFetcher.fetchUsername(entity.getPlayerId())
             )
             .toList();
-        CompletableFuture.allOf((futures.toArray(new CompletableFuture[0]))).join();
 
-        return StreamUtils
-            .zip(statsEntityList, futures)
-            .map((pair) -> {
-                var statsEntity = pair.left();
-                var future = pair.right();
+        List<Stats> statsList = new ArrayList<>();
+        for (int i = 0; i < statsEntityList.size(); i++) {
+            var statsEntity = statsEntityList.get(i);
+            var future = futures.get(i);
 
-                var tag = future.join();
-                if (tag == null) {
-                    tag = Player.Bot.name(statsEntity.getPlayerId());
-                }
+            var tag = future.join();
+            if (tag == null) {
+                tag = Player.Bot.name(statsEntity.getPlayerId());
+            }
 
-                return new Stats(statsEntity, tag);
-            })
-            .toList();
+            statsList.add(new Stats(statsEntity, tag));
+        }
+
+        return statsList;
     }
 
     public static float calcProbability(float rating1, float rating2) {

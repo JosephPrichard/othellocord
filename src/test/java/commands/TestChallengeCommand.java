@@ -8,9 +8,9 @@ import commands.context.CommandContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import services.challenge.Challenge;
-import services.challenge.ChallengeManager;
+import services.challenge.IChallengeScheduler;
 import services.game.Game;
-import services.game.GameStorage;
+import services.game.IGameService;
 import services.game.exceptions.AlreadyPlayingException;
 import services.player.Player;
 
@@ -19,15 +19,15 @@ import static org.mockito.Mockito.*;
 
 public class TestChallengeCommand {
 
-    private GameStorage mock_gameStorage;
-    private ChallengeManager mock_challengeManager;
+    private IGameService mock_gameService;
+    private IChallengeScheduler mock_challengeScheduler;
     private ChallengeCommand challengeCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameStorage = mock(GameStorage.class);
-        mock_challengeManager = mock(ChallengeManager.class);
-        challengeCommand = new ChallengeCommand(mock_gameStorage, mock_challengeManager);
+        mock_gameService = mock(IGameService.class);
+        mock_challengeScheduler = mock(IChallengeScheduler.class);
+        challengeCommand = new ChallengeCommand(mock_gameService, mock_challengeScheduler);
     }
 
     @Test
@@ -42,7 +42,7 @@ public class TestChallengeCommand {
 
         challengeCommand.doUserCommand(mock_cmdCtx);
 
-        verify(mock_challengeManager).createChallenge(eq(new Challenge(otherPlayer, callingPlayer)), any());
+        verify(mock_challengeScheduler).createChallenge(eq(new Challenge(otherPlayer, callingPlayer)), any());
     }
 
     @Test
@@ -53,12 +53,12 @@ public class TestChallengeCommand {
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
         when(mock_cmdCtx.getLongParam("level")).thenReturn(3L);
 
-        when(mock_gameStorage.createBotGame(any(), anyLong()))
+        when(mock_gameService.createBotGame(any(), anyLong()))
             .thenReturn(new Game(Player.Bot.create(3), callingPlayer)); // the challenging player is always black
 
         challengeCommand.doBotCommand(mock_cmdCtx);
 
-        verify(mock_gameStorage).createBotGame(callingPlayer, 3);
+        verify(mock_gameService).createBotGame(callingPlayer, 3);
     }
 
     @Test
@@ -72,6 +72,6 @@ public class TestChallengeCommand {
         challengeCommand.doBotCommand(mock_cmdCtx);
 
         verify(mock_cmdCtx).reply(any());
-        verify(mock_gameStorage, times(0)).createBotGame(any(), anyLong());
+        verify(mock_gameService, times(0)).createBotGame(any(), anyLong());
     }
 }

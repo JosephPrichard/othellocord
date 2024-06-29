@@ -1,10 +1,11 @@
 /*
- * Copyright (c) Joseph Prichard 2023.
+ * Copyright (c) Joseph Prichard 2024.
  */
 
-package utils;
+package commands.messaging;
 
-public class StringUtils {
+// for formatting tabular string data to be sent in discord text responses
+public class StringFormat {
 
     public static String column(String str, int size, String tail) {
         var builder = new StringBuilder();

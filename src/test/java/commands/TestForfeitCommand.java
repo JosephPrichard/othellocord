@@ -8,25 +8,25 @@ import commands.context.CommandContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import services.game.Game;
-import services.game.GameStorage;
+import services.game.IGameService;
 import services.player.Player;
 import services.stats.StatsResult;
-import services.stats.StatsWriter;
+import services.stats.IStatsService;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class TestForfeitCommand {
 
-    private GameStorage mock_gameStorage;
-    private StatsWriter mock_statsWriter;
+    private IGameService mock_gameService;
+    private IStatsService mock_statsService;
     private ForfeitCommand forfeitCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameStorage = mock(GameStorage.class);
-        mock_statsWriter = mock(StatsWriter.class);
-        forfeitCommand = new ForfeitCommand(mock_gameStorage, mock_statsWriter);
+        mock_gameService = mock(IGameService.class);
+        mock_statsService = mock(IStatsService.class);
+        forfeitCommand = new ForfeitCommand(mock_gameService, mock_statsService);
     }
 
     @Test
@@ -38,14 +38,14 @@ public class TestForfeitCommand {
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
 
         var game = new Game(callingPlayer, otherPlayer);
-        when(mock_gameStorage.getGame(any())).thenReturn(game);
-        when(mock_statsWriter.writeStats(any()))
+        when(mock_gameService.getGame(any())).thenReturn(game);
+        when(mock_statsService.writeStats(any()))
             .thenReturn(new StatsResult());
 
         forfeitCommand.onCommand(mock_cmdCtx);
 
-        verify(mock_gameStorage).deleteGame(game);
-        verify(mock_statsWriter).writeStats(
+        verify(mock_gameService).deleteGame(game);
+        verify(mock_statsService).writeStats(
             argThat((r) -> r.loser().equals(callingPlayer)
                 && r.winner().equals(otherPlayer)
             ));
@@ -56,7 +56,7 @@ public class TestForfeitCommand {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getPlayer()).thenReturn(new Player(1000L));
-        when(mock_gameStorage.getGame(any())).thenReturn(null);
+        when(mock_gameService.getGame(any())).thenReturn(null);
 
         forfeitCommand.onCommand(mock_cmdCtx);
 

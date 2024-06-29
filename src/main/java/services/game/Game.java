@@ -5,18 +5,32 @@
 package services.game;
 
 import othello.OthelloBoard;
+import othello.Tile;
 import services.player.Player;
 
+import java.util.List;
 import java.util.Objects;
 
-public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
+public class Game {
+
+    private final OthelloBoard board;
+    private final Player whitePlayer;
+    private final Player blackPlayer;
+    private List<Tile> currPotentialMoves;
+
+    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
+        this.board = board;
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+        this.currPotentialMoves = board.findPotentialMoves();
+    }
 
     public Game(Player whitePlayer, Player blackPlayer) {
         this(new OthelloBoard(), whitePlayer, blackPlayer);
     }
 
     public Game(Game game) {
-        this(game.board.copy(), game.whitePlayer, game.blackPlayer);
+        this(new OthelloBoard(game.board), game.whitePlayer, game.blackPlayer);
     }
 
     public OthelloBoard board() {
@@ -51,8 +65,27 @@ public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
         return whitePlayer.isBot() || blackPlayer.isBot();
     }
 
-    public boolean isGameOver() {
-        return board.isGameOver();
+    public List<Tile> findPotentialMoves() {
+        if (currPotentialMoves != null) {
+            return currPotentialMoves;
+        }
+        var potentialMoves = board.findPotentialMoves();
+        currPotentialMoves = potentialMoves;
+        return potentialMoves;
+    }
+
+    public void makeMove(Tile move) {
+        board.makeMove(move);
+        currPotentialMoves = null;
+    }
+
+    public void skipTurn() {
+        board.skipTurn();
+        currPotentialMoves = null;
+    }
+
+    public boolean hasNoMoves() {
+        return findPotentialMoves().isEmpty();
     }
 
     public boolean isBlackMove() {
@@ -84,7 +117,6 @@ public record Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
         }
         return GameResult.WinLoss(winner, loser);
     }
-
 
     @Override
     public boolean equals(Object o) {

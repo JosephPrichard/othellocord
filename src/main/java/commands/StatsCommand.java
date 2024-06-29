@@ -9,8 +9,8 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import services.player.Player;
+import services.stats.IStatsService;
 import services.stats.Stats;
-import services.stats.StatsReader;
 
 import java.awt.*;
 
@@ -18,11 +18,10 @@ import static utils.Logger.LOGGER;
 
 public class StatsCommand extends Command {
 
-    private final StatsReader statsReader;
+    private final IStatsService statsService;
 
-    public StatsCommand(StatsReader statsReader) {
-        super("stats");
-        this.statsReader = statsReader;
+    public StatsCommand(IStatsService statsService) {
+        this.statsService = statsService;
     }
 
     public MessageEmbed buildStatsEmbed(Stats stats, User author) {
@@ -45,7 +44,7 @@ public class StatsCommand extends Command {
 
         var player = new Player(user);
 
-        var stats = statsReader.readStats(player);
+        var stats = statsService.readStats(player);
 
         var embed = buildStatsEmbed(stats, user);
         ctx.replyEmbeds(embed);

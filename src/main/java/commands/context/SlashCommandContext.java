@@ -64,11 +64,11 @@ public record SlashCommandContext(SlashCommandInteraction event) implements Comm
         event.replyEmbeds(embed).queue();
     }
 
-    public void replyWithSender(MessageSender sender) {
+    public void sendReply(MessageSender sender) {
         sender.sendReply(event);
     }
 
-    public void msgWithSender(MessageSender sender) {
+    public void sendMessage(MessageSender sender) {
         sender.sendMessage(event);
     }
 }

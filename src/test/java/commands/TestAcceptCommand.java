@@ -8,9 +8,9 @@ import commands.context.CommandContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import services.challenge.Challenge;
-import services.challenge.ChallengeManager;
+import services.challenge.IChallengeScheduler;
 import services.game.Game;
-import services.game.GameStorage;
+import services.game.IGameService;
 import services.game.exceptions.AlreadyPlayingException;
 import services.player.Player;
 
@@ -19,15 +19,15 @@ import static org.mockito.Mockito.*;
 
 public class TestAcceptCommand {
 
-    private GameStorage mock_gameStorage;
-    private ChallengeManager mock_challengeManager;
+    private IGameService mock_gameService;
+    private IChallengeScheduler mock_challengeScheduler;
     private AcceptCommand acceptCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameStorage = mock(GameStorage.class);
-        mock_challengeManager = mock(ChallengeManager.class);
-        acceptCommand = new AcceptCommand(mock_gameStorage, mock_challengeManager);
+        mock_gameService = mock(IGameService.class);
+        mock_challengeScheduler = mock(IChallengeScheduler.class);
+        acceptCommand = new AcceptCommand(mock_gameService, mock_challengeScheduler);
     }
 
     @Test
@@ -40,15 +40,15 @@ public class TestAcceptCommand {
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
         when(mock_cmdCtx.getPlayerParam("challenger")).thenReturn(otherPlayer);
 
-        when(mock_challengeManager.acceptChallenge(any())).thenReturn(true);
+        when(mock_challengeScheduler.acceptChallenge(any())).thenReturn(true);
 
-        when(mock_gameStorage.createGame(callingPlayer, otherPlayer))
+        when(mock_gameService.createGame(callingPlayer, otherPlayer))
             .thenReturn(new Game(callingPlayer, otherPlayer));
 
         acceptCommand.onCommand(mock_cmdCtx);
 
-        verify(mock_cmdCtx).replyWithSender(any());
-        verify(mock_challengeManager).acceptChallenge(new Challenge(callingPlayer, otherPlayer));
+        verify(mock_cmdCtx).sendReply(any());
+        verify(mock_challengeScheduler).acceptChallenge(new Challenge(callingPlayer, otherPlayer));
     }
 
     @Test
@@ -61,11 +61,11 @@ public class TestAcceptCommand {
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
         when(mock_cmdCtx.getPlayerParam("challenger")).thenReturn(otherPlayer);
 
-        when(mock_challengeManager.acceptChallenge(any())).thenReturn(false);
+        when(mock_challengeScheduler.acceptChallenge(any())).thenReturn(false);
 
         acceptCommand.onCommand(mock_cmdCtx);
 
         verify(mock_cmdCtx).reply(any());
-        verify(mock_gameStorage, times(0)).createGame(any(), any());
+        verify(mock_gameService, times(0)).createGame(any(), any());
     }
 }

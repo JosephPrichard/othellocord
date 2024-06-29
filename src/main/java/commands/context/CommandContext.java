@@ -42,7 +42,7 @@ public interface CommandContext {
 
     void replyEmbeds(MessageEmbed embed);
 
-    void replyWithSender(MessageSender sender);
+    void sendReply(MessageSender sender);
 
-    void msgWithSender(MessageSender sender);
+    void sendMessage(MessageSender sender);
 }

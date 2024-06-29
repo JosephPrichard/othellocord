@@ -59,14 +59,6 @@ public record Player(long id, String name) {
         return Bot.isBotId(id);
     }
 
-    public long id() {
-        return id;
-    }
-
-    public String name() {
-        return name;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

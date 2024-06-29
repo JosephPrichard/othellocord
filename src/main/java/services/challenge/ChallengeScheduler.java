@@ -10,7 +10,7 @@ import java.util.concurrent.*;
 import static utils.Logger.LOGGER;
 
 // implementation that manages challenges by scheduling them using a scheduled executor service
-public class ChallengeScheduler implements ChallengeManager {
+public class ChallengeScheduler implements IChallengeScheduler {
 
     private final Map<Challenge, ScheduledFuture<?>> challenges;
     private final ScheduledExecutorService scheduler;

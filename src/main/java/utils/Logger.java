@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Joseph Prichard 2023.
+ * Copyright (c) Joseph Prichard 2024.
  */
 
 package utils;

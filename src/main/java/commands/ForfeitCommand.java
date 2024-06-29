@@ -7,44 +7,43 @@ package commands;
 import commands.context.CommandContext;
 import commands.messaging.GameOverSender;
 import othello.BoardRenderer;
-import services.game.GameStorage;
-import services.stats.StatsWriter;
+import services.game.IGameService;
+import services.stats.IStatsService;
 
 import static utils.Logger.LOGGER;
 
 public class ForfeitCommand extends Command {
 
-    private final GameStorage gameStorage;
-    private final StatsWriter statsWriter;
+    private final IGameService gameService;
+    private final IStatsService statsService;
 
-    public ForfeitCommand(GameStorage gameStorage, StatsWriter statsWriter) {
-        super("forfeit");
-        this.gameStorage = gameStorage;
-        this.statsWriter = statsWriter;
+    public ForfeitCommand(IGameService gameService, IStatsService statsService) {
+        this.gameService = gameService;
+        this.statsService = statsService;
     }
 
     @Override
     public void onCommand(CommandContext ctx) {
         var player = ctx.getPlayer();
 
-        var game = gameStorage.getGame(player);
+        var game = gameService.getGame(player);
         if (game == null) {
             ctx.reply("You're not currently in a game.");
             return;
         }
 
         var image = BoardRenderer.drawBoard(game.board());
-        gameStorage.deleteGame(game);
+        gameService.deleteGame(game);
         var result = game.createForfeitResult(player);
 
-        var statsResult = statsWriter.writeStats(result);
+        var statsResult = statsService.writeStats(result);
 
         var sender = new GameOverSender()
             .setResults(result, statsResult)
             .addForfeitMessage(result.winner())
             .setTag(result)
             .setImage(image);
-        ctx.replyWithSender(sender);
+        ctx.sendReply(sender);
 
         LOGGER.info(player + " has forfeited");
     }

@@ -10,26 +10,25 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import othello.BoardRenderer;
 import othello.Move;
-import services.agent.AgentDispatcher;
 import services.agent.AgentEvent;
-import services.game.GameStorage;
+import services.agent.IAgentDispatcher;
+import services.game.IGameService;
 import services.player.Player;
 
 import java.awt.*;
 import java.util.List;
 
+import static commands.messaging.StringFormat.rightPad;
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
-import static utils.StringUtils.rightPad;
 
 public class AnalyzeCommand extends Command {
 
-    private final GameStorage gameStorage;
-    private final AgentDispatcher agentDispatcher;
+    private final IGameService gameService;
+    private final IAgentDispatcher agentDispatcher;
 
-    public AnalyzeCommand(GameStorage gameStorage, AgentDispatcher agentDispatcher) {
-        super("analyze");
-        this.gameStorage = gameStorage;
+    public AnalyzeCommand(IGameService gameService, IAgentDispatcher agentDispatcher) {
+        this.gameService = gameService;
         this.agentDispatcher = agentDispatcher;
     }
 
@@ -70,7 +69,7 @@ public class AnalyzeCommand extends Command {
 
         var player = ctx.getPlayer();
 
-        var game = gameStorage.getGame(player);
+        var game = gameService.getGame(player);
         if (game == null) {
             ctx.reply("You're not currently in a game.");
             return;
@@ -82,7 +81,7 @@ public class AnalyzeCommand extends Command {
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
-            AgentEvent<List<Move>> event = new AgentEvent<>(game, depth, (rankedMoves) -> {
+            AgentEvent<List<Move>> event = new AgentEvent<>(game.board(), depth, (rankedMoves) -> {
                 var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
                 var sender = MessageSender.createGameAnalyzeSender(game, image, finalLevel);
 
