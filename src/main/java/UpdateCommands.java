@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Joseph Prichard 2023.
+ * Copyright (c) Joseph Prichard 2024.
  */
 
 import net.dv8tion.jda.api.JDABuilder;
@@ -10,20 +10,22 @@ import javax.security.auth.login.LoginException;
 
 import static utils.Logger.LOGGER;
 
-public class Main {
+public class UpdateCommands {
 
     public static void main(String[] args) throws LoginException {
         var botToken = OthelloBot.readToken();
 
-        System.out.println("Token: " + botToken);
-
-        LOGGER.info("Starting the bot");
-        var bot = new OthelloBot();
-
         var jda = JDABuilder.createLight(botToken, GatewayIntent.GUILD_MESSAGES)
-            .addEventListeners(bot)
+            .addEventListeners(new OthelloBot())
             .setActivity(Activity.playing("Othello"))
             .build();
-        bot.initMessageHandlers(jda);
+
+        LOGGER.info("Updating the commands to discord");
+        jda.updateCommands()
+            .addCommands(OthelloBot.getCommandData())
+            .complete();
+        LOGGER.info("Finished updating the commands to discord");
+
+        jda.shutdown();
     }
 }

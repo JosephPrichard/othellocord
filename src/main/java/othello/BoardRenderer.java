@@ -210,8 +210,7 @@ public class BoardRenderer {
 
     // test driver function to see board image
     public static void main(String[] args) throws IOException {
-        var board = new OthelloBoard();
-
+        var board = OthelloBoard.initial();
         var image = drawBoardAnalysis(board, new OthelloAgent().findRankedMoves(board, 5));
 
         var outputFile = new File("test_board.png");

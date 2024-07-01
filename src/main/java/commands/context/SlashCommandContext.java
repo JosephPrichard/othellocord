@@ -4,7 +4,7 @@
 
 package commands.context;
 
-import commands.messaging.MessageSender;
+import commands.messaging.GameView;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -64,11 +64,11 @@ public record SlashCommandContext(SlashCommandInteraction event) implements Comm
         event.replyEmbeds(embed).queue();
     }
 
-    public void sendReply(MessageSender sender) {
-        sender.sendReply(event);
+    public void sendReply(GameView view) {
+        view.sendReply(event);
     }
 
-    public void sendMessage(MessageSender sender) {
-        sender.sendMessage(event);
+    public void sendMessage(GameView view) {
+        view.sendMessage(event);
     }
 }

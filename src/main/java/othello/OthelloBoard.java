@@ -23,22 +23,27 @@ public class OthelloBoard {
     private long boardB;
     private boolean blackMove;
 
-    public OthelloBoard() {
-        setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2 - 1, WHITE);
-        setSquare(getBoardSize() / 2, getBoardSize() / 2, WHITE);
-        setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2, BLACK);
-        setSquare(getBoardSize() / 2, getBoardSize() / 2 - 1, BLACK);
-        blackMove = true;
+    private OthelloBoard(long boardA, long boardB, boolean blackMove) {
+        this.boardA = boardA;
+        this.boardB = boardB;
+        this.blackMove = blackMove;
     }
 
     public OthelloBoard(boolean blackMove) {
         this.blackMove = blackMove;
     }
 
-    public OthelloBoard(OthelloBoard othelloBoard) {
-        this.boardA = othelloBoard.boardA;
-        this.boardB = othelloBoard.boardB;
-        this.blackMove = othelloBoard.blackMove;
+    public static OthelloBoard from(OthelloBoard board) {
+       return new OthelloBoard(board.boardA, board.boardB, board.blackMove);
+    }
+
+    public static OthelloBoard initial() {
+        var board = new OthelloBoard(true);
+        board.setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2 - 1, WHITE);
+        board.setSquare(getBoardSize() / 2, getBoardSize() / 2, WHITE);
+        board.setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2, BLACK);
+        board.setSquare(getBoardSize() / 2, getBoardSize() / 2 - 1, BLACK);
+        return board;
     }
 
     public static int getBoardSize() {
@@ -134,7 +139,7 @@ public class OthelloBoard {
     }
 
     public OthelloBoard skippedTurn() {
-        var copiedBoard = new OthelloBoard(this);
+        var copiedBoard = OthelloBoard.from(this);
         copiedBoard.skipTurn();
         return copiedBoard;
     }
@@ -148,7 +153,7 @@ public class OthelloBoard {
     }
 
     public OthelloBoard makeMoved(Tile move) {
-        var copiedBoard = new OthelloBoard(this);
+        var copiedBoard = OthelloBoard.from(this);
         copiedBoard.makeMove(move);
         return copiedBoard;
     }
@@ -287,7 +292,7 @@ public class OthelloBoard {
     }
 
     public static void main(String[] args) {
-        var board = new OthelloBoard();
+        var board = OthelloBoard.initial();
         for (var j = 0; j < 10; j++) {
             var moves = board.findPotentialMoves();
             for (var move : moves) {

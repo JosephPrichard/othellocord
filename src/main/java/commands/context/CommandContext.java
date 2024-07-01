@@ -4,7 +4,7 @@
 
 package commands.context;
 
-import commands.messaging.MessageSender;
+import commands.messaging.GameView;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -42,7 +42,7 @@ public interface CommandContext {
 
     void replyEmbeds(MessageEmbed embed);
 
-    void sendReply(MessageSender sender);
+    void sendReply(GameView view);
 
-    void sendMessage(MessageSender sender);
+    void sendMessage(GameView view);
 }

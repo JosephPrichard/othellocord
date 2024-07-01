@@ -53,7 +53,7 @@ public class GameService implements IGameService {
     }
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
-        var game = new Game(whitePlayer, blackPlayer);
+        var game = Game.start(blackPlayer, whitePlayer);
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
@@ -67,12 +67,12 @@ public class GameService implements IGameService {
             throw new AlreadyPlayingException();
         }
 
-        return new Game(game);
+        return Game.from(game);
     }
 
     public Game createBotGame(Player blackPlayer, long level) throws AlreadyPlayingException {
         var whitePlayer = Player.Bot.create(level);
-        var game = new Game(whitePlayer, blackPlayer);
+        var game = Game.start(blackPlayer, whitePlayer);
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();
@@ -85,7 +85,7 @@ public class GameService implements IGameService {
         } catch (PersistenceException ex) {
             throw new AlreadyPlayingException();
         }
-        return new Game(game);
+        return Game.from(game);
     }
 
     @Nullable
@@ -95,7 +95,7 @@ public class GameService implements IGameService {
             return null;
         }
         synchronized (game) {
-            return new Game(game);
+            return Game.from(game);
         }
     }
 
@@ -130,16 +130,12 @@ public class GameService implements IGameService {
                     // make the move by modifying the game's board state
                     game.makeMove(potentialMove);
 
-                    if (game.hasNoMoves()) {
-                        game.skipTurn();
-                    }
-
-                    if (game.hasNoMoves()) {
+                    if (game.isOver()) {
                         deleteGame(game);
-                        return new Game(game);
+                        return Game.from(game);
                     }
 
-                    return new Game(game);
+                    return Game.from(game);
                 }
             }
 

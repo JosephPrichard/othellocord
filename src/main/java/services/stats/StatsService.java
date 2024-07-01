@@ -74,15 +74,14 @@ public class StatsService implements IStatsService {
     }
 
     public StatsResult writeStats(GameResult result) {
-        StatsEntity winnerStats = statsDao.getOrSaveStats(result.winner().id());
-        StatsEntity loserStats = statsDao.getOrSaveStats(result.loser().id());
+        var winnerStats = statsDao.getOrSaveStats(result.winner().id());
+        var loserStats = statsDao.getOrSaveStats(result.loser().id());
 
         if (result.isDraw() || result.winner().equals(result.loser())) {
             // draw games don't need to update the elo, nor do games against self
             return new StatsResult(winnerStats.getElo(), loserStats.getElo(), 0, 0);
         }
 
-        // perform elo calculations
         var winnerEloBefore = winnerStats.getElo();
         var loserEloBefore = loserStats.getElo();
         var probWin = calcProbability(loserStats.getElo(), winnerStats.getElo());
@@ -92,13 +91,11 @@ public class StatsService implements IStatsService {
         var winnerEloDiff = winnerEloAfter - winnerEloBefore;
         var loserEloDiff = loserEloAfter - loserEloBefore;
 
-        // set new values in entities
         winnerStats.setElo(winnerEloAfter);
         loserStats.setElo(loserEloAfter);
         winnerStats.setWon(winnerStats.getWon() + 1);
         loserStats.setLost(loserStats.getLost() + 1);
 
-        // update stats in dao
         statsDao.updateStats(winnerStats, loserStats);
 
         return new StatsResult(winnerStats.getElo(), loserStats.getElo(), winnerEloDiff, loserEloDiff);

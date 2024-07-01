@@ -6,12 +6,14 @@ package services.agent;
 
 import othello.Move;
 import othello.OthelloAgent;
+import othello.OthelloBoard;
 
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
 
 import static utils.Logger.LOGGER;
 
@@ -37,40 +39,38 @@ public class AgentDispatcher implements IAgentDispatcher {
         this.agentsQueue = agentsQueue;
     }
 
-    public void dispatchFindMovesEvent(AgentEvent<List<Move>> agentEvent) {
+    public void findMoves(OthelloBoard board, int depth, Consumer<List<Move>> onComplete) {
         cpuBndExecutor.submit(() -> {
             try {
                 var agent = agentsQueue.take();
 
-                LOGGER.info("Started agent ranked moves calculation of depth " + agentEvent.depth());
+                LOGGER.info("Started agent ranked moves calculation of depth " + depth);
 
-                var moves = agent.findRankedMoves(agentEvent.board(), agentEvent.depth());
-                agentEvent.applyOnComplete(moves);
-
+                var moves = agent.findRankedMoves(board, depth);
                 agentsQueue.add(agent);
 
-                LOGGER.info("Finished agent ranked moves calculation of depth " + agentEvent.depth());
-            } catch (InterruptedException ex) {
-                LOGGER.warning("Failed to take agent off queue" + ex);
+                LOGGER.info("Finished agent ranked moves calculation of depth " + depth);
+                onComplete.accept(moves);
+            } catch (Exception ex) {
+                LOGGER.warning("Error occurred while processing a find moves event " + ex);
             }
         });
     }
 
-    public void dispatchFindMoveEvent(AgentEvent<Move> agentEvent) {
+    public void findMove(OthelloBoard board, int depth, Consumer<Move> onComplete) {
         cpuBndExecutor.submit(() -> {
             try {
                 var agent = agentsQueue.take();
 
-                LOGGER.info("Started agent best move calculation of depth " + agentEvent.depth());
+                LOGGER.info("Started agent best move calculation of depth " + depth);
 
-                var move = agent.findBestMove(agentEvent.board(), agentEvent.depth());
-                agentEvent.applyOnComplete(move);
-
+                var move = agent.findBestMove(board, depth);
                 agentsQueue.add(agent);
 
-                LOGGER.info("Finished agent best move calculation of depth " + agentEvent.depth());
-            } catch (InterruptedException ex) {
-                LOGGER.warning("Failed to take agent off queue" + ex);
+                LOGGER.info("Finished agent best move calculation of depth " + depth);
+                onComplete.accept(move);
+            } catch (Exception ex) {
+                LOGGER.warning("Error occurred while processing a find move event " + ex);
             }
         });
     }

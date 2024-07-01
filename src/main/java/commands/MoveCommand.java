@@ -5,15 +5,14 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameOverSender;
-import commands.messaging.MessageSender;
+import commands.messaging.GameResultView;
+import commands.messaging.GameStateView;
+import commands.messaging.GameView;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
-import othello.Move;
 import othello.OthelloBoard;
 import othello.Tile;
-import services.agent.AgentEvent;
 import services.agent.IAgentDispatcher;
 import services.game.Game;
 import services.game.IGameService;
@@ -26,7 +25,11 @@ import services.stats.IStatsService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static utils.Logger.LOGGER;
 
@@ -42,47 +45,54 @@ public class MoveCommand extends Command {
         this.agentDispatcher = agentDispatcher;
     }
 
-    public MessageSender buildMoveSender(Game game, Tile move) {
+    public GameStateView buildMoveView(Game game, Tile move) {
         var image = BoardRenderer.drawBoardMoves(game.board());
-        return MessageSender.createGameViewSender(game, move, image);
+        return GameStateView.createGameView(game, move, image);
     }
 
-    public MessageSender buildMoveSender(Game game) {
+    public GameStateView buildMoveView(Game game) {
         var image = BoardRenderer.drawBoardMoves(game.board());
-        return MessageSender.createGameViewSender(game, image);
+        return GameStateView.createGameView(game, image);
     }
 
-    public MessageSender onGameOver(Game game, Tile move) {
+    public GameResultView onGameOver(Game game, Tile move) {
         var result = game.createResult();
         var statsResult = statsService.writeStats(result);
-
         var image = BoardRenderer.drawBoard(game.board());
-        return new GameOverSender()
-            .setResults(result, statsResult)
-            .addMoveMessage(result.winner(), move.toString())
-            .addScoreMessage(game.getWhiteScore(), game.getBlackScore())
-            .setTag(result)
-            .setImage(image);
+        return GameResultView.createGameOverView(result, statsResult, move, game, image);
     }
 
     public void doBotMove(CommandContext ctx, Game game) {
         var currPlayer = game.getCurrentPlayer();
         var depth = Player.Bot.getDepthFromId(currPlayer.id());
 
+        var latch = new CountDownLatch(1);
+        AtomicReference<GameView> view = new AtomicReference<>(null);
+
         // queue an agent request which will find the best move, make the move, and send back a response
-        AgentEvent<Move> event = new AgentEvent<>(game.board(), depth, (bestMove) -> {
+        agentDispatcher.findMove(game.board(), depth, (bestMove) -> {
             try {
                 var newGame = gameService.makeMove(currPlayer, bestMove.tile());
 
-                var sender = newGame.hasNoMoves() ?
+                var tempView = newGame.isOver() ?
                     onGameOver(newGame, bestMove.tile()) :
-                    buildMoveSender(newGame, bestMove.tile());
-                ctx.sendMessage(sender);
-            } catch (Exception ex) {
-                LOGGER.warning("Error occurred in an agent callback thread" + ex);
+                    buildMoveView(newGame, bestMove.tile());
+
+                view.set(tempView);
+                latch.countDown();
+            } catch (TurnException | NotPlayingException | InvalidMoveException ex) {
+                // this shouldn't happen: the bot should only make legal moves when it is currently it's turn
+                // if we get an error like this, the only thing we can do is log it and debug later
+                LOGGER.warning("Error occurred in an agent callback thread " + ex);
             }
         });
-        agentDispatcher.dispatchFindMoveEvent(event);
+
+        try {
+            latch.await();
+            ctx.sendMessage(view.get());
+        } catch (InterruptedException ex) {
+            LOGGER.warning("Error occurred while waiting for a bot response " + ex);
+        }
     }
 
     @Override
@@ -94,17 +104,17 @@ public class MoveCommand extends Command {
         try {
             var game = gameService.makeMove(player, move);
 
-            if (game.hasNoMoves()) {
-                var sender = onGameOver(game, move);
-                ctx.sendReply(sender);
+            if (game.isOver()) {
+                var view = onGameOver(game, move);
+                ctx.sendReply(view);
             } else {
                 if (game.isAgainstBot()) {
-                    var sender = buildMoveSender(game);
-                    ctx.sendReply(sender);
+                    var view = buildMoveView(game);
+                    ctx.sendReply(view);
                     doBotMove(ctx, game);
                 } else {
-                    var sender = buildMoveSender(game, move);
-                    ctx.sendReply(sender);
+                    var view = buildMoveView(game, move);
+                    ctx.sendReply(view);
                 }
             }
 

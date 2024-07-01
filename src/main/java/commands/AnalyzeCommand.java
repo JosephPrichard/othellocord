@@ -5,12 +5,11 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.MessageSender;
+import commands.messaging.GameStateView;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import othello.BoardRenderer;
 import othello.Move;
-import services.agent.AgentEvent;
 import services.agent.IAgentDispatcher;
 import services.game.IGameService;
 import services.player.Player;
@@ -81,16 +80,15 @@ public class AnalyzeCommand extends Command {
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
-            AgentEvent<List<Move>> event = new AgentEvent<>(game.board(), depth, (rankedMoves) -> {
+            agentDispatcher.findMoves(game.board(), depth, (rankedMoves) -> {
                 var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
-                var sender = MessageSender.createGameAnalyzeSender(game, image, finalLevel);
+                var view = GameStateView.createAnalysisView(game, image, finalLevel);
 
-                sender.setTag(player);
-                sender.editMessageUsingHook(hook);
+                view.setTag(player);
+                view.editMessageUsingHook(hook);
 
                 LOGGER.info("Finished board state analysis");
             });
-            agentDispatcher.dispatchFindMovesEvent(event);
         });
     }
 }

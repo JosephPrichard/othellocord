@@ -1,4 +1,4 @@
-.env
+src/main/resources/.env
 .idea
 /target
 /test_board.png

@@ -54,7 +54,7 @@ public class TestChallengeCommand {
         when(mock_cmdCtx.getLongParam("level")).thenReturn(3L);
 
         when(mock_gameService.createBotGame(any(), anyLong()))
-            .thenReturn(new Game(Player.Bot.create(3), callingPlayer)); // the challenging player is always black
+            .thenReturn(Game.start(Player.Bot.create(3), callingPlayer)); // the challenging player is always black
 
         challengeCommand.doBotCommand(mock_cmdCtx);
 

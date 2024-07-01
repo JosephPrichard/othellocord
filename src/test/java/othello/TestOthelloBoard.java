@@ -17,7 +17,7 @@ public class TestOthelloBoard {
 
     @BeforeEach
     public void beforeEach() {
-        othelloBoard = new OthelloBoard();
+        othelloBoard = OthelloBoard.initial();
     }
 
     @Test

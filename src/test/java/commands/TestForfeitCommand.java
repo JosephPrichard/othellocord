@@ -37,7 +37,7 @@ public class TestForfeitCommand {
         var otherPlayer = new Player(1001L);
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
 
-        var game = new Game(callingPlayer, otherPlayer);
+        var game = Game.start(callingPlayer, otherPlayer);
         when(mock_gameService.getGame(any())).thenReturn(game);
         when(mock_statsService.writeStats(any()))
             .thenReturn(new StatsResult());

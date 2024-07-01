@@ -24,6 +24,7 @@ import services.stats.StatsService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 
@@ -48,7 +49,7 @@ public class OthelloBot extends ListenerAdapter {
         };
     }
 
-    public void initListeners(JDA jda) {
+    public void initMessageHandlers(JDA jda) {
         var dataSource = new DataSource();
 
         var statsDao = new StatsDao(dataSource);
@@ -59,7 +60,6 @@ public class OthelloBot extends ListenerAdapter {
         var gameService = new GameService(statsService);
         var challengeScheduler = new ChallengeScheduler();
 
-        // add all bot commands to the handler map for handling
         commandMap.put("challenge", new ChallengeCommand(gameService, challengeScheduler));
         commandMap.put("accept", new AcceptCommand(gameService, challengeScheduler));
         commandMap.put("forfeit", new ForfeitCommand(gameService, statsService));
@@ -68,9 +68,10 @@ public class OthelloBot extends ListenerAdapter {
         commandMap.put("analyze", new AnalyzeCommand(gameService, agentDispatcher));
         commandMap.put("stats", new StatsCommand(statsService));
         commandMap.put("leaderboard", new LeaderBoardCommand(statsService));
+        commandMap.put("simulate", new SimulateCommand(agentDispatcher));
     }
 
-    public List<SlashCommandData> getCommandData() {
+    public static List<SlashCommandData> getCommandData() {
         return List.of(
             Commands.slash("challenge", "Challenges the bot or another user to an Othello game")
                 .addSubcommands(new SubcommandData("user", "Challenges another user to a game")
@@ -94,8 +95,39 @@ public class OthelloBot extends ListenerAdapter {
             Commands.slash("stats", "Retrieves the stats profile for a player")
                 .addOptions(new OptionData(OptionType.USER, "player", "Player to get stats profile for", false)),
 
-            Commands.slash("leaderboard", "Retrieves the highest rated players by ELO")
+            Commands.slash("leaderboard", "Retrieves the highest rated players by ELO"),
+
+            Commands.slash("simulate", "Simulates a game between two bots")
+                .addOptions(new OptionData(OptionType.STRING, "blevel",
+                    "Level of the bot to play black between 1 and " + MAX_BOT_LEVEL, false))
+                .addOptions(new OptionData(OptionType.STRING, "wlevel",
+                    "Level of the bot to play white between 1 and " + MAX_BOT_LEVEL, false))
         );
+    }
+
+    public static String readToken() {
+        var envFile = Main.class.getResourceAsStream(".env");
+        if (envFile == null) {
+            System.out.println("Needs a .env file with a BOT_TOKEN field");
+            System.exit(1);
+        }
+
+        String botToken = null;
+
+        var envScanner = new Scanner(envFile);
+        while (envScanner.hasNext()) {
+            var line = envScanner.nextLine();
+            var tokens = line.split("=");
+            if (tokens[0].equals("BOT_TOKEN")) {
+                botToken = tokens[1];
+            }
+        }
+        if (botToken == null) {
+            System.out.println("You have to provide the BOT_TOKEN key  in the .env file");
+            System.exit(1);
+        }
+
+        return botToken;
     }
 
     @Override

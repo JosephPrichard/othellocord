@@ -48,7 +48,6 @@ public final class OthelloAgent {
             var child = board.makeMoved(move);
 
             var heuristic = evaluateLoop(child, maxDepth - 1);
-            ;
 //            var heuristic = evaluate(child, maxDepth - 1);
 
             rankedMoves.add(new Move(move, heuristic));
@@ -93,7 +92,6 @@ public final class OthelloAgent {
             var child = board.makeMoved(move);
 
             var heuristic = evaluateLoop(child, maxDepth - 1);
-            ;
 //            var heuristic = evaluate(child, maxDepth - 1);
 
             if (comparator.compare(heuristic, bestHeuristic) > 0) {
@@ -128,7 +126,7 @@ public final class OthelloAgent {
 
         float heuristic = 0;
         for (var depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
-            heuristic = evaluateLoop(stack, new OthelloBoard(board), depthLimit);
+            heuristic = evaluateLoop(stack, OthelloBoard.from(board), depthLimit);
         }
         return heuristic;
     }
@@ -141,7 +139,7 @@ public final class OthelloAgent {
     public float evaluate(OthelloBoard board, int maxDepth) {
         float heuristic = 0;
         for (var depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
-            heuristic = evaluate(new OthelloBoard(board), depthLimit, -INF, INF);
+            heuristic = evaluate(OthelloBoard.from(board), depthLimit, -INF, INF);
         }
         return heuristic;
     }
@@ -373,7 +371,7 @@ public final class OthelloAgent {
     public static void main(String[] args) {
         var startTime = System.currentTimeMillis();
 
-        var board = new OthelloBoard();
+        var board = OthelloBoard.initial();
         for (var j = 0; j < 10; j++) {
             var agent = new OthelloAgent();
             var bestMove = agent.findBestMove(board, 8);

@@ -18,19 +18,21 @@ public class Game {
     private final Player blackPlayer;
     private List<Tile> currPotentialMoves;
 
-    public Game(OthelloBoard board, Player whitePlayer, Player blackPlayer) {
+    public Game(OthelloBoard board, Player blackPlayer, Player whitePlayer) {
         this.board = board;
-        this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
-        this.currPotentialMoves = board.findPotentialMoves();
+        this.whitePlayer = whitePlayer;
+        this.currPotentialMoves = null;
     }
 
-    public Game(Player whitePlayer, Player blackPlayer) {
-        this(new OthelloBoard(), whitePlayer, blackPlayer);
+    public static Game start(Player blackPlayer, Player whitePlayer) {
+        return new Game(OthelloBoard.initial(), blackPlayer, whitePlayer);
     }
 
-    public Game(Game game) {
-        this(new OthelloBoard(game.board), game.whitePlayer, game.blackPlayer);
+    public static Game from(Game game) {
+        var copiedGame = new Game(OthelloBoard.from(game.board), game.blackPlayer, game.whitePlayer);
+        copiedGame.currPotentialMoves = game.currPotentialMoves;
+        return copiedGame;
     }
 
     public OthelloBoard board() {
@@ -77,14 +79,14 @@ public class Game {
     public void makeMove(Tile move) {
         board.makeMove(move);
         currPotentialMoves = null;
+
+        if (findPotentialMoves().isEmpty()) {
+            board.skipTurn();
+            currPotentialMoves = null;
+        }
     }
 
-    public void skipTurn() {
-        board.skipTurn();
-        currPotentialMoves = null;
-    }
-
-    public boolean hasNoMoves() {
+    public boolean isOver() {
         return findPotentialMoves().isEmpty();
     }
 
@@ -93,7 +95,7 @@ public class Game {
     }
 
     public GameResult createResult() {
-        var diff = board.blackScore() - board.whiteScore();
+        var diff = getBlackScore() - getWhiteScore();
         if (diff > 0) {
             return GameResult.WinLoss(blackPlayer, whitePlayer);
         } else if (diff < 0) {
@@ -104,18 +106,13 @@ public class Game {
     }
 
     public GameResult createForfeitResult(Player forfeitingPlayer) {
-        Player loser;
-        Player winner;
         if (whitePlayer.equals(forfeitingPlayer)) {
-            loser = whitePlayer;
-            winner = blackPlayer;
+            return GameResult.WinLoss(blackPlayer, whitePlayer);
         } else if (blackPlayer.equals(forfeitingPlayer)) {
-            loser = blackPlayer;
-            winner = whitePlayer;
+            return GameResult.WinLoss(whitePlayer, blackPlayer);
         } else {
             throw new IllegalStateException("Player not part of a game attempted to forfeit");
         }
-        return GameResult.WinLoss(winner, loser);
     }
 
     @Override

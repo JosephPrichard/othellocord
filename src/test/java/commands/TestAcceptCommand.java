@@ -43,7 +43,7 @@ public class TestAcceptCommand {
         when(mock_challengeScheduler.acceptChallenge(any())).thenReturn(true);
 
         when(mock_gameService.createGame(callingPlayer, otherPlayer))
-            .thenReturn(new Game(callingPlayer, otherPlayer));
+            .thenReturn(Game.start(callingPlayer, otherPlayer));
 
         acceptCommand.onCommand(mock_cmdCtx);
 
