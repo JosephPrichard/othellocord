@@ -12,7 +12,7 @@ import static utils.Logger.LOGGER;
 
 public class UpdateCommands {
 
-    public static void main(String[] args) throws LoginException {
+    public static void main(String[] args) throws LoginException, InterruptedException {
         var botToken = OthelloBot.readToken();
 
         var jda = JDABuilder.createLight(botToken, GatewayIntent.GUILD_MESSAGES)
@@ -26,6 +26,7 @@ public class UpdateCommands {
             .complete();
         LOGGER.info("Finished updating the commands to discord");
 
+        jda.awaitReady();
         jda.shutdown();
     }
 }

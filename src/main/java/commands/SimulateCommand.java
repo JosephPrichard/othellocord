@@ -8,7 +8,7 @@ import commands.context.CommandContext;
 import commands.views.GameResultView;
 import commands.views.GameStateView;
 import commands.views.GameView;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import othello.BoardRenderer;
 import othello.OthelloBoard;
 import services.agent.AgentDispatcher;
@@ -23,6 +23,9 @@ import java.util.logging.Level;
 import static utils.Logger.LOGGER;
 
 public class SimulateCommand extends Command {
+
+    public static final long MAX_DELAY = 5000L;
+    public static final long MIN_DELAY = 1000L;
 
     private final ScheduledExecutorService scheduler;
     private final AgentDispatcher agentDispatcher;
@@ -62,16 +65,15 @@ public class SimulateCommand extends Command {
         });
     }
 
-    private void waitLoop(BlockingQueue<Optional<GameView>> queue, CommandContext ctx) {
+    private void waitLoop(BlockingQueue<Optional<GameView>> queue, long delay, InteractionHook hook) {
         Runnable scheduled = () -> {
             try {
                 var optView = queue.take();
                 if (optView.isPresent()) {
-                    ctx.sendView(optView.get());
                     // each completion callback will recursively schedule the next action
-                    waitLoop(queue, ctx);
-                }
-                else {
+                    optView.get().editUsingHook(hook);
+                    waitLoop(queue, delay, hook);
+                } else {
                     LOGGER.info("Finished game simulation wait loop");
                 }
             } catch (Exception ex) {
@@ -79,19 +81,30 @@ public class SimulateCommand extends Command {
             }
         };
         // wait at least 1 second before we process each element to avoid overloading a Discord text channel
-        scheduler.schedule(scheduled, 1000, TimeUnit.MILLISECONDS);
+        scheduler.schedule(scheduled, delay, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void onCommand(CommandContext ctx) {
-        var blackLevel = ctx.getLongParam("blevel");
+        var blackLevel = ctx.getLongParam("black-level");
         if (blackLevel == null) {
             blackLevel = 3L;
         }
 
-        var whiteLevel = ctx.getLongParam("wlevel");
+        var whiteLevel = ctx.getLongParam("white-level");
         if (whiteLevel == null) {
             whiteLevel = 3L;
+        }
+
+        var delay = ctx.getLongParam("delay");
+        if (delay == null) {
+            delay = 1500L;
+        }
+
+        long finalDelay = delay;
+        if (finalDelay < MIN_DELAY || finalDelay > MAX_DELAY) {
+            ctx.reply("Invalid delay, should be between " + MIN_DELAY + " and " + MAX_DELAY + " ms");
+            return;
         }
 
         var startGame = new Game(OthelloBoard.initial(), Player.Bot.create(blackLevel), Player.Bot.create(whiteLevel));
@@ -101,10 +114,12 @@ public class SimulateCommand extends Command {
 
         var image = BoardRenderer.drawBoardMoves(startGame.board());
         var startView = GameStateView.createSimulationStartView(startGame, image);
-        ctx.replyView(startView);
 
-        BlockingQueue<Optional<GameView>> queue = new LinkedBlockingQueue<>();
-        gameLoop(startGame, queue, id);
-        waitLoop(queue, ctx);
+
+        ctx.replyView(startView, (hook) -> {
+            BlockingQueue<Optional<GameView>> queue = new LinkedBlockingQueue<>();
+            gameLoop(startGame, queue, id);
+            waitLoop(queue, finalDelay, hook);
+        });
     }
 }

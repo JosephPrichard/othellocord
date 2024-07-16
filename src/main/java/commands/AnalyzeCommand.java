@@ -5,7 +5,6 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.context.SlashCommandContext;
 import commands.views.GameStateView;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -85,7 +84,7 @@ public class AnalyzeCommand extends Command {
                 var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
                 var view = GameStateView.createAnalysisView(game, image, finalLevel, player);
 
-                SlashCommandContext.editViewUsingHook(view, hook);
+                view.editUsingHook(hook);
                 LOGGER.info("Finished board state analysis");
             });
         });

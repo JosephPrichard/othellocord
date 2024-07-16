@@ -44,7 +44,9 @@ public interface CommandContext {
 
     void replyEmbeds(MessageEmbed embed);
 
-    void replyView(GameView view, ItemComponent... component);
+    void replyView(GameView view);
 
-    void sendView(GameView view, ItemComponent... component);
+    void replyView(GameView view, Consumer<InteractionHook> onSuccess);
+
+    void sendView(GameView view);
 }

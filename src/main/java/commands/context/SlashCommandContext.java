@@ -73,13 +73,17 @@ public record SlashCommandContext(SlashCommandInteraction event) implements Comm
         event.replyEmbeds(embed).queue();
     }
 
-    static InputStream toPngInputStream(BufferedImage image) throws IOException {
+    private static InputStream toPngInputStream(BufferedImage image) throws IOException {
         var os = new ByteArrayOutputStream();
         ImageIO.write(image, "png", os);
         return new ByteArrayInputStream(os.toByteArray());
     }
 
-    public void replyView(GameView view, ItemComponent... components) {
+    public void replyView(GameView view) {
+        replyView(view, (hook) -> {});
+    }
+
+    public void replyView(GameView view, Consumer<InteractionHook> onSuccess) {
         try {
             var embed = view.getEmbed();
             var message = view.getMessage();
@@ -91,17 +95,15 @@ public record SlashCommandContext(SlashCommandInteraction event) implements Comm
                 event.getChannel().sendMessage(message).queue();
             }
 
-            var action = event.replyEmbeds(embed.build());
-            if (components.length > 0) {
-                action = action.addActionRow(components);
-            }
-            action.addFile(is, "image.png").queue();
+            event.replyEmbeds(embed.build())
+                .addFile(is, "image.png")
+                .queue(onSuccess);
         } catch (IOException ex) {
             event.reply("Unexpected error: couldn't create image").queue();
         }
     }
 
-    public void sendView(GameView view, ItemComponent... components) {
+    public void sendView(GameView view) {
         try {
             var embed = view.getEmbed();
             var message = view.getMessage();
@@ -113,33 +115,12 @@ public record SlashCommandContext(SlashCommandInteraction event) implements Comm
                 event.getChannel().sendMessage(message).queue();
             }
 
-            var action = event.getChannel().sendMessageEmbeds(embed.build());
-            if (components.length > 0) {
-                action = action.setActionRow(components);
-            }
-            action.addFile(is, "image.png").queue();
-        } catch (IOException ex) {
-            event.reply("Unexpected error: couldn't create image").queue();
-        }
-    }
-
-    public static void editViewUsingHook(GameView view, InteractionHook hook) {
-        try {
-            var embed = view.getEmbed();
-            var message = view.getMessage();
-
-            var is = toPngInputStream(view.getImage());
-            embed.setImage("attachment://image.png");
-
-            hook.editOriginalEmbeds(embed.build())
+            event.getChannel()
+                .sendMessageEmbeds(embed.build())
                 .addFile(is, "image.png")
                 .queue();
-            if (!message.isEmpty()) {
-                hook.editOriginal(view.getMessage()).queue();
-            }
         } catch (IOException ex) {
-            hook.editOriginal("Unexpected error: couldn't create image").queue();
+            event.reply("Unexpected error: couldn't create image").queue();
         }
     }
-
 }

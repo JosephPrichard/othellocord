@@ -28,6 +28,8 @@ import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 
+import static commands.SimulateCommand.MAX_DELAY;
+import static commands.SimulateCommand.MIN_DELAY;
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
@@ -100,10 +102,12 @@ public class OthelloBot extends ListenerAdapter {
             Commands.slash("leaderboard", "Retrieves the highest rated players by ELO"),
 
             Commands.slash("simulate", "Simulates a game between two bots")
-                .addOptions(new OptionData(OptionType.STRING, "blevel",
+                .addOptions(new OptionData(OptionType.STRING, "black-level",
                     "Level of the bot to play black between 1 and " + MAX_BOT_LEVEL, false))
-                .addOptions(new OptionData(OptionType.STRING, "wlevel",
+                .addOptions(new OptionData(OptionType.STRING, "white-level",
                     "Level of the bot to play white between 1 and " + MAX_BOT_LEVEL, false))
+                .addOptions(new OptionData(OptionType.INTEGER, "delay",
+                    "Delay between moves in seconds between " + MIN_DELAY + " and " + MAX_DELAY + " ms", false))
         );
     }
 

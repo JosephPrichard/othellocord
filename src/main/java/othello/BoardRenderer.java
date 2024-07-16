@@ -30,9 +30,9 @@ public class BoardRenderer {
     private static final int DOT_SIZE = 16;
     private static final int TOP_LEFT = 5;
 
-    private static final BufferedImage WHITE_DISC_IMAGE = drawDisc(WHITE_FILL);
-    private static final BufferedImage BLACK_DISC_IMAGE = drawDisc(BLACK_FILL);
-    private static final BufferedImage OUTLINE_IMAGE = drawDisc(NO_FILL);
+    private static final BufferedImage WHITE_DISC_IMAGE = drawDisc(WHITE_FILL, new BasicStroke(1));
+    private static final BufferedImage BLACK_DISC_IMAGE = drawDisc(BLACK_FILL, new BasicStroke(1));
+    private static final BufferedImage OUTLINE_IMAGE = drawDisc(NO_FILL, new BasicStroke(2));
     private static final BufferedImage BACKGROUND_IMAGE = drawBackground(OthelloBoard.getBoardSize());
 
     public static BufferedImage drawBoard(OthelloBoard board) {
@@ -184,7 +184,7 @@ public class BoardRenderer {
         }
     }
 
-    private static BufferedImage drawDisc(Color fillColor) {
+    private static BufferedImage drawDisc(Color fillColor, Stroke stroke) {
         var image = new BufferedImage(DISC_SIZE, DISC_SIZE, BufferedImage.TYPE_INT_ARGB);
 
         var graphics = image.createGraphics();
@@ -192,6 +192,7 @@ public class BoardRenderer {
         graphics.setColor(fillColor);
         graphics.fillOval(TOP_LEFT, TOP_LEFT, DISC_SIZE - TOP_LEFT * 2, DISC_SIZE - TOP_LEFT * 2);
         graphics.setColor(OUTLINE);
+        graphics.setStroke(stroke);
         graphics.drawOval(TOP_LEFT, TOP_LEFT, DISC_SIZE - TOP_LEFT * 2, DISC_SIZE - TOP_LEFT * 2);
         graphics.dispose();
 
