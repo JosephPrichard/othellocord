@@ -5,7 +5,8 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameStateView;
+import commands.context.SlashCommandContext;
+import commands.views.GameStateView;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import othello.BoardRenderer;
@@ -17,7 +18,7 @@ import services.player.Player;
 import java.awt.*;
 import java.util.List;
 
-import static commands.messaging.StringFormat.rightPad;
+import static commands.string.StringFormat.rightPad;
 import static services.player.Player.Bot.MAX_BOT_LEVEL;
 import static utils.Logger.LOGGER;
 
@@ -82,11 +83,9 @@ public class AnalyzeCommand extends Command {
 
             agentDispatcher.findMoves(game.board(), depth, (rankedMoves) -> {
                 var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
-                var view = GameStateView.createAnalysisView(game, image, finalLevel);
+                var view = GameStateView.createAnalysisView(game, image, finalLevel, player);
 
-                view.setTag(player);
-                view.editMessageUsingHook(hook);
-
+                SlashCommandContext.editViewUsingHook(view, hook);
                 LOGGER.info("Finished board state analysis");
             });
         });

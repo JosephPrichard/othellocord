@@ -37,8 +37,6 @@ public class OthelloBot extends ListenerAdapter {
 
     public static final int CORES = Runtime.getRuntime().availableProcessors();
 
-    private final ThreadPoolExecutor cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
-        0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), createThreadFactory("CPU-Bnd-Pool"));
     private final ExecutorService taskExecutor = Executors.newCachedThreadPool(createThreadFactory("Task-Pool"));
 
     public static ThreadFactory createThreadFactory(String pool) {
@@ -51,6 +49,10 @@ public class OthelloBot extends ListenerAdapter {
 
     public void initMessageHandlers(JDA jda) {
         var dataSource = new DataSource();
+
+        var cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
+            0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), createThreadFactory("CPU-Bnd-Pool"));
+        var scheduler = Executors.newScheduledThreadPool(1, createThreadFactory("Schedule-Pool"));
 
         var statsDao = new StatsDao(dataSource);
 
@@ -68,7 +70,7 @@ public class OthelloBot extends ListenerAdapter {
         commandMap.put("analyze", new AnalyzeCommand(gameService, agentDispatcher));
         commandMap.put("stats", new StatsCommand(statsService));
         commandMap.put("leaderboard", new LeaderBoardCommand(statsService));
-        commandMap.put("simulate", new SimulateCommand(agentDispatcher));
+        commandMap.put("simulate", new SimulateCommand(agentDispatcher, scheduler));
     }
 
     public static List<SlashCommandData> getCommandData() {

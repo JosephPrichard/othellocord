@@ -5,7 +5,7 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameStateView;
+import commands.views.GameStateView;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
 import services.challenge.IChallengeScheduler;
@@ -67,7 +67,7 @@ public class ChallengeCommand extends Command {
             var image = BoardRenderer.drawBoardMoves(game.board());
 
             var view = GameStateView.createGameStartView(game, image);
-            ctx.sendReply(view);
+            ctx.replyView(view);
         } catch (AlreadyPlayingException ex) {
             ctx.reply("You're already in a game");
         }
@@ -81,7 +81,7 @@ public class ChallengeCommand extends Command {
         var player = ctx.getPlayer();
 
         var id = player.id();
-        Runnable onExpiry = () -> ctx.sendMessage("<@" + id + "> Challenge timed out!");
+        Runnable onExpiry = () -> ctx.sendView("<@" + id + "> Challenge timed out!");
         challengeScheduler.createChallenge(new Challenge(opponent, player), onExpiry);
 
         var message = buildChallengeStr(opponent, player);

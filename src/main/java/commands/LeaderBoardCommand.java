@@ -13,8 +13,8 @@ import services.stats.Stats;
 import java.awt.*;
 import java.util.List;
 
-import static commands.messaging.StringFormat.leftPad;
-import static commands.messaging.StringFormat.rightPad;
+import static commands.string.StringFormat.leftPad;
+import static commands.string.StringFormat.rightPad;
 import static utils.Logger.LOGGER;
 
 public class LeaderBoardCommand extends Command {

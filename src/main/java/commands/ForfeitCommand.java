@@ -5,7 +5,7 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameResultView;
+import commands.views.GameResultView;
 import othello.BoardRenderer;
 import services.game.IGameService;
 import services.stats.IStatsService;
@@ -39,7 +39,7 @@ public class ForfeitCommand extends Command {
 
         var image = BoardRenderer.drawBoard(game.board());
         var view = GameResultView.createForfeitView(result, statsResult, image);
-        ctx.sendReply(view);
+        ctx.replyView(view);
 
         LOGGER.info(player + " has forfeited");
     }

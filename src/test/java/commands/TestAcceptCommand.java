@@ -47,7 +47,7 @@ public class TestAcceptCommand {
 
         acceptCommand.onCommand(mock_cmdCtx);
 
-        verify(mock_cmdCtx).sendReply(any());
+        verify(mock_cmdCtx).replyView(any());
         verify(mock_challengeScheduler).acceptChallenge(new Challenge(callingPlayer, otherPlayer));
     }
 

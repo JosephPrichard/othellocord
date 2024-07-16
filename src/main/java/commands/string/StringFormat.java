@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2024.
  */
 
-package commands.messaging;
+package commands.string;
 
 // for formatting tabular string data to be sent in discord text responses
 public class StringFormat {

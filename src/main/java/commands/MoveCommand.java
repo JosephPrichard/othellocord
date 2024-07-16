@@ -5,9 +5,9 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameResultView;
-import commands.messaging.GameStateView;
-import commands.messaging.GameView;
+import commands.views.GameResultView;
+import commands.views.GameStateView;
+import commands.views.GameView;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
 import othello.BoardRenderer;
@@ -26,10 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static utils.Logger.LOGGER;
 
@@ -45,17 +42,17 @@ public class MoveCommand extends Command {
         this.agentDispatcher = agentDispatcher;
     }
 
-    public GameStateView buildMoveView(Game game, Tile move) {
+    public GameView buildMoveView(Game game, Tile move) {
         var image = BoardRenderer.drawBoardMoves(game.board());
         return GameStateView.createGameView(game, move, image);
     }
 
-    public GameStateView buildMoveView(Game game) {
+    public GameView buildMoveView(Game game) {
         var image = BoardRenderer.drawBoardMoves(game.board());
         return GameStateView.createGameView(game, image);
     }
 
-    public GameResultView onGameOver(Game game, Tile move) {
+    public GameView onGameOver(Game game, Tile move) {
         var result = game.createResult();
         var statsResult = statsService.writeStats(result);
         var image = BoardRenderer.drawBoard(game.board());
@@ -89,7 +86,7 @@ public class MoveCommand extends Command {
 
         try {
             latch.await();
-            ctx.sendMessage(view.get());
+            ctx.sendView(view.get());
         } catch (InterruptedException ex) {
             LOGGER.warning("Error occurred while waiting for a bot response " + ex);
         }
@@ -106,15 +103,15 @@ public class MoveCommand extends Command {
 
             if (game.isOver()) {
                 var view = onGameOver(game, move);
-                ctx.sendReply(view);
+                ctx.replyView(view);
             } else {
                 if (game.isAgainstBot()) {
                     var view = buildMoveView(game);
-                    ctx.sendReply(view);
+                    ctx.replyView(view);
                     doBotMove(ctx, game);
                 } else {
                     var view = buildMoveView(game, move);
-                    ctx.sendReply(view);
+                    ctx.replyView(view);
                 }
             }
 

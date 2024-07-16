@@ -5,7 +5,7 @@
 package commands;
 
 import commands.context.CommandContext;
-import commands.messaging.GameStateView;
+import commands.views.GameStateView;
 import othello.BoardRenderer;
 import services.challenge.Challenge;
 import services.challenge.IChallengeScheduler;
@@ -41,7 +41,7 @@ public class AcceptCommand extends Command {
             var image = BoardRenderer.drawBoard(game.board());
 
             var view = GameStateView.createGameStartView(game, image);
-            ctx.sendReply(view);
+            ctx.replyView(view);
         } catch (AlreadyPlayingException ex) {
             ctx.reply("One or more players are already in a game.");
         }

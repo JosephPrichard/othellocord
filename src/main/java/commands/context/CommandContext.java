@@ -4,11 +4,13 @@
 
 package commands.context;
 
-import commands.messaging.GameView;
+import commands.views.GameView;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import services.player.Player;
 
 import javax.annotation.Nullable;
@@ -38,11 +40,11 @@ public interface CommandContext {
 
     void reply(String message, Consumer<InteractionHook> onSuccess);
 
-    void sendMessage(String message);
+    void sendView(String message);
 
     void replyEmbeds(MessageEmbed embed);
 
-    void sendReply(GameView view);
+    void replyView(GameView view, ItemComponent... component);
 
-    void sendMessage(GameView view);
+    void sendView(GameView view, ItemComponent... component);
 }
