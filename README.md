@@ -41,6 +41,7 @@ Fetches the stats for the current user. Displays rating, win rate, wins, losses,
 Shows the top users with the highest elo in the entire database.
 
 `/simulate`
+
 Run a game between two bots real time in a text channel.
 
 ## Evaluation Algorithm
