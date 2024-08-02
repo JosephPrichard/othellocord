@@ -4,30 +4,24 @@
 
 package commands;
 
-import commands.context.CommandContext;
-import commands.views.GameStateView;
-import othello.BoardRenderer;
-import services.challenge.Challenge;
-import services.challenge.IChallengeScheduler;
-import services.game.IGameService;
-import services.game.exceptions.AlreadyPlayingException;
-import services.player.Player;
+import lombok.AllArgsConstructor;
+import domain.BoardRenderer;
+import models.Challenge;
+import services.ChallengeScheduler;
+import services.GameService;
+import models.Player;
 
 import java.util.Objects;
 
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
 
-public class ChallengeCommand extends Command {
+@AllArgsConstructor
+public class ChallengeCommand extends CommandHandler {
 
-    private final IGameService gameService;
-    private final IChallengeScheduler challengeScheduler;
+    private final GameService gameService;
+    private final ChallengeScheduler challengeScheduler;
 
-    public ChallengeCommand(IGameService gameService, IChallengeScheduler challengeScheduler) {
-        this.gameService = gameService;
-        this.challengeScheduler = challengeScheduler;
-    }
-
-    public String buildChallengeStr(Player challenged, Player challenger) {
+    public static String buildChallengeStr(Player challenged, Player challenger) {
         return "<@" +
             challenged.id() +
             ">, " +
@@ -55,7 +49,7 @@ public class ChallengeCommand extends Command {
             level = 3L;
         }
 
-        if (!Player.Bot.isValidLevel(level)) {
+        if (Player.Bot.isInvalidLevel(level)) {
             ctx.reply("Invalid level. Type !help analyze for valid levels.");
             return;
         }
@@ -68,7 +62,7 @@ public class ChallengeCommand extends Command {
 
             var view = GameStateView.createGameStartView(game, image);
             ctx.replyView(view);
-        } catch (AlreadyPlayingException ex) {
+        } catch (GameService.AlreadyPlayingException ex) {
             ctx.reply("You're already in a game");
         }
 

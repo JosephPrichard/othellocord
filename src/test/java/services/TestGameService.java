@@ -4,20 +4,15 @@
 
 package services;
 
+import models.Game;
+import models.Player;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
-import othello.Tile;
-import services.game.Game;
-import services.game.GameService;
-import services.game.exceptions.AlreadyPlayingException;
-import services.game.exceptions.InvalidMoveException;
-import services.game.exceptions.NotPlayingException;
-import services.game.exceptions.TurnException;
-import services.player.Player;
+import domain.Tile;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -33,14 +28,14 @@ public class TestGameService {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
 
-        Assertions.assertThrows(AlreadyPlayingException.class, () -> {
+        Assertions.assertThrows(GameService.AlreadyPlayingException.class, () -> {
             gameService.createGame(blackPlayer, whitePlayer);
             gameService.createGame(blackPlayer, whitePlayer);
         });
     }
 
     @Test
-    public void whenSaveThenDelete_success() throws AlreadyPlayingException {
+    public void whenSaveThenDelete_success() throws GameService.AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
 
@@ -56,7 +51,7 @@ public class TestGameService {
     }
 
     @Test
-    public void whenGetGame_success() throws AlreadyPlayingException {
+    public void whenGetGame_success() throws GameService.AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
@@ -77,22 +72,22 @@ public class TestGameService {
     }
 
     @Test
-    public void whenMove_ifInvalid_fail() throws AlreadyPlayingException {
+    public void whenMove_ifInvalid_fail() throws GameService.AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
 
-        Assertions.assertThrows(InvalidMoveException.class, () ->
+        Assertions.assertThrows(GameService.InvalidMoveException.class, () ->
             gameService.makeMove(blackPlayer, Tile.fromNotation("a1")));
     }
 
     @Test
-    public void whenMove_ifAlreadyPlaying_fail() throws AlreadyPlayingException {
+    public void whenMove_ifAlreadyPlaying_fail() throws GameService.AlreadyPlayingException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
 
-        Assertions.assertThrows(TurnException.class, () ->
+        Assertions.assertThrows(GameService.TurnException.class, () ->
             gameService.makeMove(whitePlayer, Tile.fromNotation("d3")));
     }
 
@@ -100,12 +95,12 @@ public class TestGameService {
     public void whenMove_ifNotPlaying_fail() {
         var player = new Player(1000, "Player1");
 
-        Assertions.assertThrows(NotPlayingException.class, () ->
+        Assertions.assertThrows(GameService.NotPlayingException.class, () ->
             gameService.makeMove(player, Tile.fromNotation("d3")));
     }
 
     @Test
-    public void whenMove_success() throws AlreadyPlayingException, TurnException, NotPlayingException, InvalidMoveException {
+    public void whenMove_success() throws GameService.AlreadyPlayingException, GameService.TurnException, GameService.NotPlayingException, GameService.InvalidMoveException {
         var whitePlayer = new Player(1000, "Player1");
         var blackPlayer = new Player(1001, "Player2");
         var game = gameService.createGame(blackPlayer, whitePlayer);
@@ -153,7 +148,7 @@ public class TestGameService {
 
                 successCount += 1;
             } else {
-                if (!(result.getRight() instanceof TurnException)) {
+                if (!(result.getRight() instanceof GameService.TurnException)) {
                     throw result.getRight();
                 }
             }

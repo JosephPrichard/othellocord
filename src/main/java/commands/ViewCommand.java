@@ -4,20 +4,16 @@
 
 package commands;
 
-import commands.context.CommandContext;
-import commands.views.GameStateView;
-import othello.BoardRenderer;
-import services.game.IGameService;
+import lombok.AllArgsConstructor;
+import domain.BoardRenderer;
+import services.GameService;
 
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
 
-public class ViewCommand extends Command {
+@AllArgsConstructor
+public class ViewCommand extends CommandHandler {
 
-    private final IGameService gameService;
-
-    public ViewCommand(IGameService gameService) {
-        this.gameService = gameService;
-    }
+    private final GameService gameService;
 
     @Override
     public void onCommand(CommandContext ctx) {

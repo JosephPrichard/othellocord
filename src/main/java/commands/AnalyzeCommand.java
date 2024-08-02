@@ -4,54 +4,22 @@
 
 package commands;
 
-import commands.context.CommandContext;
-import commands.views.GameStateView;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import othello.BoardRenderer;
-import othello.Move;
-import services.agent.IAgentDispatcher;
-import services.game.IGameService;
-import services.player.Player;
+import lombok.AllArgsConstructor;
+import domain.BoardRenderer;
+import services.AgentDispatcher;
+import services.GameService;
+import models.Player;
 
-import java.awt.*;
-import java.util.List;
+import java.util.concurrent.ExecutionException;
 
-import static commands.string.StringFormat.rightPad;
-import static services.player.Player.Bot.MAX_BOT_LEVEL;
-import static utils.Logger.LOGGER;
+import static models.Player.Bot.MAX_BOT_LEVEL;
+import static utils.Log.LOGGER;
 
-public class AnalyzeCommand extends Command {
+@AllArgsConstructor
+public class AnalyzeCommand extends CommandHandler {
 
-    private final IGameService gameService;
-    private final IAgentDispatcher agentDispatcher;
-
-    public AnalyzeCommand(IGameService gameService, IAgentDispatcher agentDispatcher) {
-        this.gameService = gameService;
-        this.agentDispatcher = agentDispatcher;
-    }
-
-    public MessageEmbed buildAnalyzeEmbed(List<Move> rankedMoves) {
-        var embed = new EmbedBuilder();
-
-        var desc = new StringBuilder();
-        desc.append("```");
-        var count = 1;
-        for (var move : rankedMoves) {
-            desc.append(rightPad(count + ")", 5))
-                .append(rightPad(move.tile().toString(), 5))
-                .append(move.heuristic()).append(" ")
-                .append("\n");
-            count++;
-        }
-        desc.append("```");
-
-        embed.setTitle("Move Analysis")
-            .setColor(Color.GREEN)
-            .setDescription(desc)
-            .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
-        return embed.build();
-    }
+    private final GameService gameService;
+    private final AgentDispatcher agentDispatcher;
 
     @Override
     public void onCommand(CommandContext ctx) {
@@ -61,7 +29,7 @@ public class AnalyzeCommand extends Command {
         }
 
         // check if level is within range
-        if (!Player.Bot.isValidLevel(level)) {
+        if (Player.Bot.isInvalidLevel(level)) {
             ctx.reply("Invalid level, should be between 1 and " + MAX_BOT_LEVEL);
             return;
         }
@@ -80,13 +48,18 @@ public class AnalyzeCommand extends Command {
         ctx.reply("Analyzing... Wait a second...", hook -> {
             LOGGER.info("Starting board state analysis");
 
-            agentDispatcher.findMoves(game.board(), depth, (rankedMoves) -> {
+            try {
+                var future = agentDispatcher.findMoves(game.board(), depth);
+                var rankedMoves = future.get();
+
                 var image = BoardRenderer.drawBoardAnalysis(game.board(), rankedMoves);
                 var view = GameStateView.createAnalysisView(game, image, finalLevel, player);
 
                 view.editUsingHook(hook);
                 LOGGER.info("Finished board state analysis");
-            });
+            } catch (ExecutionException | InterruptedException e) {
+                LOGGER.warning("Error occurred while responding to an analyze command " + e);
+            }
         });
     }
 }

@@ -8,7 +8,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
 
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
 
 public class UpdateCommands {
 

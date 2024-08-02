@@ -4,43 +4,29 @@
 
 package commands;
 
-import commands.context.CommandContext;
-import commands.views.GameResultView;
-import commands.views.GameStateView;
-import commands.views.GameView;
+import lombok.AllArgsConstructor;
+import models.Game;
+import models.Player;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
-import othello.BoardRenderer;
-import othello.OthelloBoard;
-import othello.Tile;
-import services.agent.IAgentDispatcher;
-import services.game.Game;
-import services.game.IGameService;
-import services.game.exceptions.InvalidMoveException;
-import services.game.exceptions.NotPlayingException;
-import services.game.exceptions.TurnException;
-import services.player.Player;
-import services.stats.IStatsService;
+import domain.BoardRenderer;
+import domain.OthelloBoard;
+import domain.Tile;
+import services.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ExecutionException;
 
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
 
-public class MoveCommand extends Command {
+@AllArgsConstructor
+public class MoveCommand extends CommandHandler {
 
-    private final IGameService gameService;
-    private final IStatsService statsService;
-    private final IAgentDispatcher agentDispatcher;
-
-    public MoveCommand(IGameService gameService, IStatsService statsService, IAgentDispatcher agentDispatcher) {
-        this.gameService = gameService;
-        this.statsService = statsService;
-        this.agentDispatcher = agentDispatcher;
-    }
+    private final GameService gameService;
+    private final StatsService statsService;
+    private final AgentDispatcher agentDispatcher;
 
     public GameView buildMoveView(Game game, Tile move) {
         var image = BoardRenderer.drawBoardMoves(game.board());
@@ -60,35 +46,27 @@ public class MoveCommand extends Command {
     }
 
     public void doBotMove(CommandContext ctx, Game game) {
-        var currPlayer = game.getCurrentPlayer();
+        var currPlayer = game.currentPlayer();
         var depth = Player.Bot.getDepthFromId(currPlayer.id());
 
-        var latch = new CountDownLatch(1);
-        AtomicReference<GameView> view = new AtomicReference<>(null);
-
-        // queue an agent request which will find the best move, make the move, and send back a response
-        agentDispatcher.findMove(game.board(), depth, (bestMove) -> {
-            try {
-                var newGame = gameService.makeMove(currPlayer, bestMove.tile());
-
-                var tempView = newGame.isOver() ?
-                    onGameOver(newGame, bestMove.tile()) :
-                    buildMoveView(newGame, bestMove.tile());
-
-                view.set(tempView);
-                latch.countDown();
-            } catch (TurnException | NotPlayingException | InvalidMoveException ex) {
-                // this shouldn't happen: the bot should only make legal moves when it is currently it's turn
-                // if we get an error like this, the only thing we can do is log it and debug later
-                LOGGER.warning("Error occurred in an agent callback thread " + ex);
-            }
-        });
-
         try {
-            latch.await();
-            ctx.sendView(view.get());
-        } catch (InterruptedException ex) {
-            LOGGER.warning("Error occurred while waiting for a bot response " + ex);
+            // queue an agent request which will find the best move, make the move, and send back a response
+            var future = agentDispatcher.findMove(game.board(), depth);
+            var bestMove = future.get();
+
+            var newGame = gameService.makeMove(currPlayer, bestMove.tile());
+
+            var view = newGame.isOver() ?
+                onGameOver(newGame, bestMove.tile()) :
+                buildMoveView(newGame, bestMove.tile());
+
+            ctx.sendView(view);
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.warning("Error occurred while waiting for a bot response " + e);
+        } catch (GameService.TurnException | GameService.NotPlayingException | GameService.InvalidMoveException e) {
+            // this shouldn't happen: the bot should only make legal moves when it is currently it's turn
+            // if we get an error like this, the only thing we can do is log it and debug later
+            LOGGER.warning("Error occurred after handling a bot move" + e);
         }
     }
 
@@ -116,11 +94,11 @@ public class MoveCommand extends Command {
             }
 
             LOGGER.info("Player " + player + " made move on game");
-        } catch (TurnException e) {
+        } catch (GameService.TurnException e) {
             ctx.reply("It isn't your turn.");
-        } catch (NotPlayingException e) {
+        } catch (GameService.NotPlayingException e) {
             ctx.reply("You're not currently in a game.");
-        } catch (InvalidMoveException e) {
+        } catch (GameService.InvalidMoveException e) {
             ctx.reply("Can't make a move to " + strMove + ".");
         }
     }

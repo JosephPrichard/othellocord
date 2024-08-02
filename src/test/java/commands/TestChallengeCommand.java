@@ -4,29 +4,26 @@
 
 package commands;
 
-import commands.context.CommandContext;
+import models.Challenge;
+import models.Game;
+import models.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import services.challenge.Challenge;
-import services.challenge.IChallengeScheduler;
-import services.game.Game;
-import services.game.IGameService;
-import services.game.exceptions.AlreadyPlayingException;
-import services.player.Player;
+import services.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class TestChallengeCommand {
 
-    private IGameService mock_gameService;
-    private IChallengeScheduler mock_challengeScheduler;
+    private GameService mock_gameService;
+    private ChallengeScheduler mock_challengeScheduler;
     private ChallengeCommand challengeCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameService = mock(IGameService.class);
-        mock_challengeScheduler = mock(IChallengeScheduler.class);
+        mock_gameService = mock(GameService.class);
+        mock_challengeScheduler = mock(ChallengeScheduler.class);
         challengeCommand = new ChallengeCommand(mock_gameService, mock_challengeScheduler);
     }
 
@@ -46,7 +43,7 @@ public class TestChallengeCommand {
     }
 
     @Test
-    public void whenBotCommand_success() throws AlreadyPlayingException {
+    public void whenBotCommand_success() throws GameService.AlreadyPlayingException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         var callingPlayer = new Player(1000L);
@@ -62,7 +59,7 @@ public class TestChallengeCommand {
     }
 
     @Test
-    public void whenBotCommand_fail() throws AlreadyPlayingException {
+    public void whenBotCommand_fail() throws GameService.AlreadyPlayingException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         var callingPlayer = new Player(1000L);

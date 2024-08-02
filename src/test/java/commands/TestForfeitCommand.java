@@ -4,28 +4,26 @@
 
 package commands;
 
-import commands.context.CommandContext;
+import models.Game;
+import models.Player;
+import models.Stats;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import services.game.Game;
-import services.game.IGameService;
-import services.player.Player;
-import services.stats.StatsResult;
-import services.stats.IStatsService;
+import services.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class TestForfeitCommand {
 
-    private IGameService mock_gameService;
-    private IStatsService mock_statsService;
+    private GameService mock_gameService;
+    private StatsService mock_statsService;
     private ForfeitCommand forfeitCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameService = mock(IGameService.class);
-        mock_statsService = mock(IStatsService.class);
+        mock_gameService = mock(GameService.class);
+        mock_statsService = mock(StatsService.class);
         forfeitCommand = new ForfeitCommand(mock_gameService, mock_statsService);
     }
 
@@ -40,15 +38,13 @@ public class TestForfeitCommand {
         var game = Game.start(callingPlayer, otherPlayer);
         when(mock_gameService.getGame(any())).thenReturn(game);
         when(mock_statsService.writeStats(any()))
-            .thenReturn(new StatsResult());
+            .thenReturn(new Stats.Result());
 
         forfeitCommand.onCommand(mock_cmdCtx);
 
         verify(mock_gameService).deleteGame(game);
         verify(mock_statsService).writeStats(
-            argThat((r) -> r.loser().equals(callingPlayer)
-                && r.winner().equals(otherPlayer)
-            ));
+            argThat((r) -> r.loser().equals(callingPlayer) && r.winner().equals(otherPlayer)));
     }
 
     @Test

@@ -4,16 +4,10 @@
 
 package services;
 
+import models.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import services.game.GameResult;
-import services.player.Player;
-import services.player.UserFetcher;
-import services.stats.Stats;
-import services.stats.IStatsDao;
-import services.stats.StatsEntity;
-import services.stats.StatsService;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,13 +16,13 @@ import static org.mockito.Mockito.*;
 
 public class TestStatsService {
 
-    private IStatsDao mock_statsDao;
+    private StatsDao mock_statsDao;
     private UserFetcher mock_userFetcher;
     private StatsService statsService;
 
     @BeforeEach
     public void beforeEach() {
-        mock_statsDao = mock(IStatsDao.class);
+        mock_statsDao = mock(StatsDao.class);
         mock_userFetcher = mock(UserFetcher.class);
         statsService = new StatsService(mock_statsDao, mock_userFetcher);
     }
@@ -75,7 +69,7 @@ public class TestStatsService {
     public void whenUpdateStats_correctResult() {
         var winner = new Player(1000, "Player1");
         var loser = new Player(1001, "Player2");
-        var result = GameResult.WinLoss(winner, loser);
+        var result = Game.Result.WinLoss(winner, loser);
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));
@@ -85,8 +79,8 @@ public class TestStatsService {
         var statsRes = statsService.writeStats(result);
 
         verify(mock_statsDao).updateStats(
-            argThat((arg) -> arg.getWon() == 2 && arg.getLost() == 1),
-            argThat((arg) -> arg.getWon() == 1 && arg.getLost() == 2));
+            argThat((arg) -> arg.won == 2 && arg.lost == 1),
+            argThat((arg) -> arg.won == 1 && arg.lost == 2));
 
         Assertions.assertEquals(1015f, statsRes.winnerElo() - statsRes.winnerEloDiff());
         Assertions.assertEquals(1015f, statsRes.loserElo() - statsRes.loserEloDiff());
@@ -98,7 +92,7 @@ public class TestStatsService {
     public void whenUpdateStats_ifDraw_correctResult() {
         var winner = new Player(1000, "Player1");
         var loser = new Player(1001, "Player2");
-        var result = GameResult.Draw(winner, loser);
+        var result = Game.Result.Draw(winner, loser);
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));

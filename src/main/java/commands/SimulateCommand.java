@@ -4,25 +4,23 @@
 
 package commands;
 
-import commands.context.CommandContext;
-import commands.views.GameResultView;
-import commands.views.GameStateView;
-import commands.views.GameView;
+import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import othello.BoardRenderer;
-import othello.OthelloBoard;
-import services.agent.AgentDispatcher;
-import services.game.Game;
-import services.player.Player;
+import domain.BoardRenderer;
+import domain.OthelloBoard;
+import services.AgentDispatcher;
+import models.Game;
+import models.Player;
 
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
 
-public class SimulateCommand extends Command {
+@AllArgsConstructor
+public class SimulateCommand extends CommandHandler {
 
     public static final long MAX_DELAY = 5000L;
     public static final long MIN_DELAY = 1000L;
@@ -30,17 +28,16 @@ public class SimulateCommand extends Command {
     private final ScheduledExecutorService scheduler;
     private final AgentDispatcher agentDispatcher;
 
-    public SimulateCommand(AgentDispatcher agentDispatcher, ScheduledExecutorService scheduler) {
-        this.agentDispatcher = agentDispatcher;
-        this.scheduler = scheduler;
-    }
-
     private void gameLoop(Game game, BlockingQueue<Optional<GameView>> queue, String id) {
-        int depth = Player.Bot.getDepthFromId(game.getCurrentPlayer().id());
+        int depth = Player.Bot.getDepthFromId(game.currentPlayer().id());
 
-        final var board = game.board();
-        agentDispatcher.findMove(board, depth, (bestMove) -> {
+        var finished = false;
+        while (!finished) {
             try {
+                var board = game.board();
+                var future = agentDispatcher.findMove(board, depth);
+                var bestMove = future.get();
+
                 var nextGame = Game.from(game);
                 nextGame.makeMove(bestMove.tile());
 
@@ -52,17 +49,16 @@ public class SimulateCommand extends Command {
                     queue.put(Optional.empty());
 
                     LOGGER.info("Finished the game simulation: " + id);
+                    finished = true;
                 } else {
                     var view = GameStateView.createSimulationView(nextGame, bestMove.tile(), image);
                     queue.put(Optional.of(view));
-
-                    // each completion callback will recursively schedule the next action
-                    gameLoop(nextGame, queue, id);
+                    game = nextGame;
                 }
-            } catch (InterruptedException ex) {
-                LOGGER.log(Level.WARNING, "Failed to put a task on the game view queue", ex);
+            } catch (InterruptedException | ExecutionException x) {
+                LOGGER.log(Level.WARNING, "Failed to put a task on the game view queue", x);
             }
-        });
+        }
     }
 
     private void waitLoop(BlockingQueue<Optional<GameView>> queue, long delay, InteractionHook hook) {

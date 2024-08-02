@@ -4,45 +4,37 @@
 
 package commands;
 
-import commands.context.CommandContext;
+import models.Game;
+import models.Player;
+import models.Stats;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
-import othello.Move;
-import othello.Tile;
-import services.agent.IAgentDispatcher;
-import services.game.Game;
-import services.game.GameResult;
-import services.game.IGameService;
-import services.game.exceptions.InvalidMoveException;
-import services.game.exceptions.NotPlayingException;
-import services.game.exceptions.TurnException;
-import services.player.Player;
-import services.stats.StatsResult;
-import services.stats.IStatsService;
+import domain.Tile;
+import services.*;
 
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class TestMoveCommand {
 
-    private IGameService mock_gameService;
-    private IStatsService mock_statsService;
-    private IAgentDispatcher mock_agentDispatcher;
+    private GameService mock_gameService;
+    private StatsService mock_statsService;
+    private AgentDispatcher mock_agentDispatcher;
     private MoveCommand spy_moveCommand;
 
     @BeforeEach
     public void beforeEach() {
-        mock_gameService = mock(IGameService.class);
-        mock_statsService = mock(IStatsService.class);
-        mock_agentDispatcher = mock(IAgentDispatcher.class);
+        mock_gameService = mock(GameService.class);
+        mock_statsService = mock(StatsService.class);
+        mock_agentDispatcher = mock(AgentDispatcher.class);
         spy_moveCommand = spy(new MoveCommand(mock_gameService, mock_statsService, mock_agentDispatcher));
     }
 
     @Test
-    public void whenCommand_ifPlayer_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifPlayer_success() throws GameService.TurnException, GameService.NotPlayingException, GameService.InvalidMoveException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -62,7 +54,7 @@ public class TestMoveCommand {
     }
 
     @Test
-    public void whenCommand_ifBot_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifBot_success() throws GameService.TurnException, GameService.NotPlayingException, GameService.InvalidMoveException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -72,15 +64,15 @@ public class TestMoveCommand {
         when(mock_cmdCtx.getPlayer()).thenReturn(callingPlayer);
 
         var spy_game = spy(Game.start(botPlayer, callingPlayer));
-        when(spy_game.getCurrentPlayer()).thenReturn(botPlayer);
+        when(spy_game.currentPlayer()).thenReturn(botPlayer);
 
-        Answer<Void> stubbedFindMove = invocation -> {
-            Consumer<Move> argument = invocation.getArgument(2);
+        Answer<CompletableFuture<Tile.Move>> stubbedFindMove = invocation -> {
             // mock the response from the agent to be anything - this test doesn't need to know what it is
-            argument.accept(new Move(Tile.fromNotation("a1"), 0));
-            return null;
+            CompletableFuture<Tile.Move> future = new CompletableFuture<>();
+            future.complete(new Tile.Move(Tile.fromNotation("a1"), 0));
+            return future;
         };
-        doAnswer(stubbedFindMove).when(mock_agentDispatcher).findMove(any(), anyInt(), any());
+        doAnswer(stubbedFindMove).when(mock_agentDispatcher).findMove(any(), anyInt());
 
         when(mock_gameService.makeMove(any(), any())).thenReturn(spy_game);
 
@@ -89,11 +81,11 @@ public class TestMoveCommand {
         verify(mock_gameService).makeMove(callingPlayer, Tile.fromNotation("c4"));
         verify(spy_moveCommand).buildMoveView(spy_game);
         verify(spy_moveCommand).doBotMove(mock_cmdCtx, spy_game);
-        verify(mock_agentDispatcher).findMove(eq(spy_game.board()), eq(1), any());
+        verify(mock_agentDispatcher).findMove(eq(spy_game.board()), eq(1));
     }
 
     @Test
-    public void whenCommand_ifGameOver_success() throws TurnException, NotPlayingException, InvalidMoveException {
+    public void whenCommand_ifGameOver_success() throws GameService.TurnException, GameService.NotPlayingException, GameService.InvalidMoveException {
         var mock_cmdCtx = mock(CommandContext.class);
 
         when(mock_cmdCtx.getStringParam("move")).thenReturn("c4");
@@ -104,15 +96,15 @@ public class TestMoveCommand {
 
         var spy_game = spy(Game.start(blackPlayer, whitePlayer));
         when(spy_game.isOver()).thenReturn(true);
-        when(spy_game.getWhiteScore()).thenReturn(19);
-        when(spy_game.getBlackScore()).thenReturn(21);
+        when(spy_game.whiteScore()).thenReturn(19);
+        when(spy_game.blackScore()).thenReturn(21);
 
-        when(mock_statsService.writeStats(any())).thenReturn(new StatsResult());
+        when(mock_statsService.writeStats(any())).thenReturn(new Stats.Result());
         when(mock_gameService.makeMove(any(), any())).thenReturn(spy_game);
 
         spy_moveCommand.onCommand(mock_cmdCtx);
 
         verify(spy_moveCommand).onGameOver(spy_game, Tile.fromNotation("c4"));
-        verify(mock_statsService).writeStats(eq(new GameResult(blackPlayer, whitePlayer, false)));
+        verify(mock_statsService).writeStats(eq(new Game.Result(blackPlayer, whitePlayer, false)));
     }
 }

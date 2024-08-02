@@ -4,28 +4,25 @@
 
 package commands;
 
-import commands.context.CommandContext;
+import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import services.stats.IStatsService;
-import services.stats.Stats;
+import models.Stats;
+import services.StatsService;
 
 import java.awt.*;
 import java.util.List;
 
-import static commands.string.StringFormat.leftPad;
-import static commands.string.StringFormat.rightPad;
-import static utils.Logger.LOGGER;
+import static utils.Log.LOGGER;
+import static utils.StringFormat.leftPad;
+import static utils.StringFormat.rightPad;
 
-public class LeaderBoardCommand extends Command {
+@AllArgsConstructor
+public class LeaderBoardCommand extends CommandHandler {
 
-    private final IStatsService statsService;
+    private final StatsService statsService;
 
-    public LeaderBoardCommand(IStatsService statsService) {
-        this.statsService = statsService;
-    }
-
-    public MessageEmbed buildLeaderboardEmbed(List<Stats> statsList) {
+    public static MessageEmbed buildLeaderboardEmbed(List<Stats> statsList) {
         var embed = new EmbedBuilder();
 
         var desc = new StringBuilder();
@@ -33,8 +30,8 @@ public class LeaderBoardCommand extends Command {
         var count = 1;
         for (var stats : statsList) {
             desc.append(rightPad(count + ")", 4))
-                .append(leftPad(stats.getPlayer().name(), 32))
-                .append(leftPad(String.format("%.2f", stats.getElo()), 12))
+                .append(leftPad(stats.player().name(), 32))
+                .append(leftPad(String.format("%.2f", stats.elo()), 12))
                 .append("\n");
             count++;
         }
