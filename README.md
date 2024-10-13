@@ -10,7 +10,8 @@ Challenges another user to an othello game. Another player can accept the challe
 
 `/challengebot level`
 
-Challenges the bot to an othello game. The bot can be level 1-6, each level using a different depth (for the bot to work on level 6 you need very good hardware)
+Challenges the bot to an othello game. The bot can be level 1-6, each level using a different depth 
+(for the bot to feel snappy on level 6 you need very good hardware).
 
 `/accept @user`
 
@@ -53,18 +54,27 @@ The evaluation algorithm uses a standard implementation of the Minimax algorithm
 ### Heuristics
 
 The algorithm's heuristic evaluation function is responsible for deciding how good a board state is. The primary heuristic function is implemented as a combination of the 5 following specified heuristic functions.
-
-`Parity Heuristic` - Measures the number of captured discs, useful for closing out games, the weightage increases gradually as the game goes on
-
-`Corner Heuristic:` - Measures the number of captured corners, highly weighted at all stages of the game
-
-`XCSquare Heuristic` - Measures the number of captured X squares and C squares, lowly weighted at all stages of the game
-
-`Mobility Heuristic` - Measures the number of available moves, the weightage decreases gradually as the game goes on
-
-`Stability Heuristic` - Measures the number of moves that cannot be flipped, highly weighted at all stages of the game
-
 All heuristic components are normalized to a weight between 100 and 0, with 100 being the highest weight and 0 being the lowest.
+
+`Parity Heuristic` 
+
+Measures the number of captured discs, useful for closing out games, the weightage increases gradually as the game goes on.
+
+`Corner Heuristic` 
+
+Measures the number of captured corners, highly weighted at all stages of the game.
+
+`XCSquare Heuristic` 
+
+Measures the number of captured X squares and C squares, lowly weighted at all stages of the game.
+
+`Mobility Heuristic` 
+
+Measures the number of available moves, the weightage decreases gradually as the game goes on.
+
+`Stability Heuristic` 
+
+Measures the number of moves that cannot be flipped, highly weighted at all stages of the game.
 
 ### Bit Board
 
