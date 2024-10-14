@@ -4,7 +4,17 @@
 
 package models;
 
-public record Stats(Player player, float elo, int won, int lost, int drawn) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class Stats {
+    public Player player;
+    public float elo;
+    public int won;
+    public int lost;
+    public int drawn;
 
     public Stats(Player player) {
         this(player, 0f, 0, 0, 0);

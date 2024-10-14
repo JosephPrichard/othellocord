@@ -2,11 +2,11 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package domain;
+package engine;
 
 import java.util.*;
 
-import static utils.Log.LOGGER;
+import static utils.LogUtils.LOGGER;
 
 public final class OthelloAgent {
 
@@ -95,13 +95,8 @@ public final class OthelloAgent {
         var endTime = System.currentTimeMillis();
         var timeTaken = endTime - startTime;
 
-        LOGGER.info("Finished ai analysis, " +
-            "max_depth: " + maxDepth + ", " +
-            "nodes_visited: " + nodesVisited + ", " +
-            "tt_hits: " + table.getHits() + ", " +
-            "tt_misses: " + table.getMisses() + ", " +
-            "time_taken: " + timeTaken + "ms"
-        );
+        LOGGER.info("Finished ai analysis, max_depth: {}, nodes_visited: {}, tt_hits: {}, tt_misses: {}, time_taken: {}ms",
+            maxDepth, nodesVisited, table.getHits(), table.getMisses(), timeTaken);
 
         table.clear();
         return new Tile.Move(bestMove, bestHeuristic);

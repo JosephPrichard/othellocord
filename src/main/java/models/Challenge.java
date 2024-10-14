@@ -4,5 +4,12 @@
 
 package models;
 
-public record Challenge(Player challenged, Player challenger) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class Challenge {
+    public Player challenged;
+    public Player challenger;
 }

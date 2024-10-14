@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package domain;
+package engine;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

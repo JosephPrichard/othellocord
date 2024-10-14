@@ -4,9 +4,17 @@
 
 package models;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import net.dv8tion.jda.api.entities.User;
 
-public record Player(long id, String name) {
+@Data
+@AllArgsConstructor
+public class Player {
+    public long id;
+    @EqualsAndHashCode.Exclude
+    public String name;
 
     public Player(long id) {
         this(id, "");
@@ -25,22 +33,8 @@ public record Player(long id, String name) {
         return Bot.isBotId(id);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        var player = (Player) o;
-        return id == player.id();
-    }
-
-    @Override
-    public int hashCode() {
-        return Long.hashCode(id);
-    }
-
-    @Override
-    public String toString() {
-        return Long.toString(id);
+    public String toAtString() {
+        return "<@" + id + "> ";
     }
 
     public static class Bot {

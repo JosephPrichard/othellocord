@@ -4,27 +4,26 @@
 
 package services;
 
-import models.*;
+import lombok.AllArgsConstructor;
+import models.Game;
+import models.Player;
+import models.Stats;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static utils.Log.LOGGER;
+import static utils.LogUtils.LOGGER;
 
+@AllArgsConstructor
 public class StatsService {
 
     public static final int ELO_K = 30;
     private final StatsDao statsDao;
     private final UserFetcher userFetcher;
 
-    public StatsService(StatsDao statsDao, UserFetcher userFetcher) {
-        this.statsDao = statsDao;
-        this.userFetcher = userFetcher;
-    }
-
     public Stats readStats(Player player) {
-        var statsEntity = statsDao.getOrSaveStats(player.id());
+        var statsEntity = statsDao.getOrSaveStats(player.id);
         // we assume the tag can be loaded, so we throw an exception if it cannot be read
         var tag = userFetcher.fetchUsername(statsEntity.playerId).join();
         return new Stats(statsEntity, tag);
@@ -36,11 +35,8 @@ public class StatsService {
         // fetch each tag and wait til each fetch operation is complete
         var futures = statsEntityList
             .stream()
-            .map((entity) ->
-                Player.Bot.isBotId(entity.playerId)
-                    ? CompletableFuture.<String>completedFuture(null)
-                    : userFetcher.fetchUsername(entity.playerId)
-            )
+            .map((entity) -> Player.Bot.isBotId(entity.playerId)
+                ? CompletableFuture.<String>completedFuture(null) : userFetcher.fetchUsername(entity.playerId))
             .toList();
 
         List<Stats> statsList = new ArrayList<>();
@@ -72,13 +68,13 @@ public class StatsService {
     }
 
     public Stats.Result writeStats(Game.Result result) {
-        var win = statsDao.getOrSaveStats(result.winner().id());
-        var loss = statsDao.getOrSaveStats(result.loser().id());
+        var win = statsDao.getOrSaveStats(result.winner().id);
+        var loss = statsDao.getOrSaveStats(result.loser().id);
 
         if (result.isDraw() || result.winner().equals(result.loser())) {
             // draw games don't need to update the elo, nor do games against self
             var stats = new Stats.Result(win.elo, loss.elo, 0, 0);
-            LOGGER.info("Wrote stats with result: " + stats);
+            LOGGER.info("Wrote stats with result: {}", stats);
             return stats;
         }
 
@@ -95,7 +91,7 @@ public class StatsService {
         var lossDiff = loss.elo - lossEloBefore;
 
         var stats = new Stats.Result(win.elo, loss.elo, winDiff, lossDiff);
-        LOGGER.info("Wrote stats with result: " + stats);
+        LOGGER.info("Wrote stats with result: {}", stats);
         return stats;
     }
 }

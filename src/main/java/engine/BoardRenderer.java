@@ -2,7 +2,7 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package domain;
+package engine;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

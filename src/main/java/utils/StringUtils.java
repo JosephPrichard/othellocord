@@ -5,7 +5,7 @@
 package utils;
 
 // for formatting tabular string data to be sent in discord text responses
-public class StringFormat {
+public class StringUtils {
 
     public static String column(String str, int size, String tail) {
         var builder = new StringBuilder();

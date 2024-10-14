@@ -4,15 +4,15 @@
 
 package models;
 
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "Stats", indexes = {@Index(name = "idx_elo", columnList = "elo")})
-@ToString
-@EqualsAndHashCode
+@NoArgsConstructor
+@AllArgsConstructor
 public class StatsEntity {
 
     @Id
@@ -26,18 +26,7 @@ public class StatsEntity {
     @Column(nullable = false)
     public Integer drawn;
 
-    public StatsEntity() {
-    }
-
     public StatsEntity(Long playerId) {
         this(playerId, 0f, 0, 0, 0);
-    }
-
-    public StatsEntity(Long playerId, Float elo, Integer won, Integer lost, Integer drawn) {
-        this.playerId = playerId;
-        this.elo = elo;
-        this.won = won;
-        this.lost = lost;
-        this.drawn = drawn;
     }
 }

@@ -2,13 +2,16 @@
  * Copyright (c) Joseph Prichard 2023.
  */
 
-package domain;
+package engine;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
+@EqualsAndHashCode
 public class OthelloBoard {
 
     private static final int BOARD_SIZE = 8;
@@ -21,6 +24,7 @@ public class OthelloBoard {
 
     private long boardA;
     private long boardB;
+    @Getter
     private boolean blackMove;
 
     private OthelloBoard(long boardA, long boardB, boolean blackMove) {
@@ -52,10 +56,6 @@ public class OthelloBoard {
 
     public static boolean inBounds(int row, int col) {
         return row >= 0 && col >= 0 && row < getBoardSize() && col < getBoardSize();
-    }
-
-    public boolean isBlackMove() {
-        return blackMove;
     }
 
     public float whiteScore() {
@@ -258,19 +258,6 @@ public class OthelloBoard {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        OthelloBoard that = (OthelloBoard) o;
-        return boardA == that.boardA && boardB == that.boardB && blackMove == that.blackMove;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(boardA, boardB, blackMove);
-    }
-
-    @Override
     public String toString() {
         var builder = new StringBuilder();
         builder.append("  ");
@@ -301,13 +288,5 @@ public class OthelloBoard {
             System.out.println();
             board.makeMove(moves.get(0));
         }
-    }
-
-    public static class BoardSizeException extends RuntimeException {
-
-    }
-
-    public static class BoardDeserializationException extends RuntimeException {
-
     }
 }
