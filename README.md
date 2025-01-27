@@ -1,6 +1,6 @@
-# OthelloBot
+# OthelloCord
 
-OthelloBot is a self-hosted Discord Bot used to play othello in discord text channels against other players or a bot. It includes graphical interface to see the othello board and a database with statistics for each player.
+OthelloCord is a self-hosted Discord Bot used to play othello in discord text channels against other players or a bot. It includes graphical interface to see the othello board and a database with statistics for each player.
 
 ## Commands
 
@@ -89,5 +89,5 @@ Each cache line has 2 buckets, one which is only replaced if the new board is fo
 
 ## Images
 
-<img src="https://github.com/JosephPrichard/OthelloBot/assets/58538077/0096a164-cfb9-44a1-be89-30896e93f0ff" width="45%" height="45%">
-<img src="https://github.com/JosephPrichard/OthelloBot/assets/58538077/c53ecbc3-800b-4767-8553-498f9c529874" width="45%" height="45%">
+<img src="https://github.com/JosephPrichard/OthelloCord/assets/58538077/0096a164-cfb9-44a1-be89-30896e93f0ff" width="45%" height="45%">
+<img src="https://github.com/JosephPrichard/OthelloCord/assets/58538077/c53ecbc3-800b-4767-8553-498f9c529874" width="45%" height="45%">
