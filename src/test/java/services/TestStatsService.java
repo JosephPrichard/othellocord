@@ -32,14 +32,14 @@ public class TestStatsService {
 
     @Test
     public void whenReadStats_success() {
-        var player = new Player(1000);
+        Player player = new Player(1000);
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L));
         when(mock_userFetcher.fetchUsername(1000L))
             .thenReturn(CompletableFuture.completedFuture("Player1"));
 
-        var stats = statsService.readStats(player);
+        Stats stats = statsService.readStats(player);
 
         Assertions.assertEquals(new Stats(new Player(1000, "Player1")), stats);
     }
@@ -59,7 +59,7 @@ public class TestStatsService {
         when(mock_userFetcher.fetchUsername(1002L))
             .thenReturn(CompletableFuture.completedFuture("Player3"));
 
-        var statsList = statsService.readTopStats();
+        List<Stats> statsList = statsService.readTopStats();
 
         Assertions.assertEquals(List.of(
             new Stats(new Player(1000L, "Player1")),
@@ -70,16 +70,16 @@ public class TestStatsService {
 
     @Test
     public void whenUpdateStats_correctResult() {
-        var winner = new Player(1000, "Player1");
-        var loser = new Player(1001, "Player2");
-        var result = Game.Result.WinLoss(winner, loser);
+        Player winner = new Player(1000, "Player1");
+        Player loser = new Player(1001, "Player2");
+        Game.Result result = Game.Result.WinLoss(winner, loser);
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));
         when(mock_statsDao.getOrSaveStats(1001L))
             .thenReturn(new StatsEntity(1001L, 1015f, 1, 1, 1));
 
-        var statsRes = statsService.writeStats(result);
+        Stats.Result statsRes = statsService.writeStats(result);
 
         verify(mock_statsDao).updateStats(
             argThat((arg) -> arg.won == 2 && arg.lost == 1),
@@ -93,16 +93,16 @@ public class TestStatsService {
 
     @Test
     public void whenUpdateStats_ifDraw_correctResult() {
-        var winner = new Player(1000, "Player1");
-        var loser = new Player(1001, "Player2");
-        var result = Game.Result.Draw(winner, loser);
+        Player winner = new Player(1000, "Player1");
+        Player loser = new Player(1001, "Player2");
+        Game.Result result = Game.Result.Draw(winner, loser);
 
         when(mock_statsDao.getOrSaveStats(1000L))
             .thenReturn(new StatsEntity(1000L, 1015f, 1, 1, 1));
         when(mock_statsDao.getOrSaveStats(1001L))
             .thenReturn(new StatsEntity(1001L, 1015f, 1, 1, 1));
 
-        var statsRes = statsService.writeStats(result);
+        Stats.Result statsRes = statsService.writeStats(result);
 
         Assertions.assertEquals(1015f, statsRes.winnerElo());
         Assertions.assertEquals(1015f, statsRes.loserElo());

@@ -25,7 +25,7 @@ public class Player {
     }
 
     public static long parseDiscordID(String id) {
-        var strippedId = id.replaceAll("\\D", "");
+        String strippedId = id.replaceAll("\\D", "");
         return Long.parseLong(strippedId);
     }
 

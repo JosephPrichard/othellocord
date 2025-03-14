@@ -31,18 +31,18 @@ public final class OthelloAgent {
     }
 
     public List<Tile.Move> findRankedMoves(OthelloBoard board, int maxDepth) {
-        var startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         nodesVisited = 0;
         stopTime = startTime + maxTime;
 
-        var moves = board.findPotentialMoves();
+        List<Tile> moves = board.findPotentialMoves();
 
         List<Tile.Move> rankedMoves = new ArrayList<>();
 
         // call the iterative deepening negamax to calculate the heuristic for each move and add it to list
-        for (var move : moves) {
-            var child = board.makeMoved(move);
-            var heuristic = evaluateLoop(child, maxDepth - 1);
+        for (Tile move : moves) {
+            OthelloBoard child = board.makeMoved(move);
+            float heuristic = evaluateLoop(child, maxDepth - 1);
             rankedMoves.add(new Tile.Move(move, heuristic));
         }
 
@@ -53,11 +53,11 @@ public final class OthelloAgent {
         rankedMoves.sort(comparator);
 
         // remove duplicate moves (this is possible, has minimal effect on speed of algo due to transposition tables)
-        var duplicate = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
-        for (var iterator = rankedMoves.iterator(); iterator.hasNext(); ) {
-            var move = iterator.next();
-            var row = move.tile().row();
-            var col = move.tile().col();
+        boolean[][] duplicate = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
+        for (Iterator<Tile.Move> iterator = rankedMoves.iterator(); iterator.hasNext(); ) {
+            Tile.Move move = iterator.next();
+            int row = move.tile().row();
+            int col = move.tile().col();
 
             if (duplicate[row][col])
                 iterator.remove();
@@ -69,21 +69,21 @@ public final class OthelloAgent {
     }
 
     public Tile.Move findBestMove(OthelloBoard board, int maxDepth) {
-        var startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         nodesVisited = 0;
         stopTime = startTime + maxTime;
 
-        var moves = board.findPotentialMoves();
+        List<Tile> moves = board.findPotentialMoves();
 
         Tile bestMove = null;
-        var bestHeuristic = board.isBlackMove() ? -INF : INF;
+        float bestHeuristic = board.isBlackMove() ? -INF : INF;
         Comparator<Float> comparator = board.isBlackMove() ? Float::compare : (m1, m2) -> Float.compare(m2, m1);
 
         // call the iterative deepening negamax to calculate the heuristic for each potential move and determine the best one
-        for (var move : moves) {
-            var child = board.makeMoved(move);
+        for (Tile move : moves) {
+            OthelloBoard child = board.makeMoved(move);
 
-            var heuristic = evaluateLoop(child, maxDepth - 1);
+            float heuristic = evaluateLoop(child, maxDepth - 1);
 //            var heuristic = evaluate(child, maxDepth - 1);
 
             if (comparator.compare(heuristic, bestHeuristic) > 0) {
@@ -92,8 +92,8 @@ public final class OthelloAgent {
             }
         }
 
-        var endTime = System.currentTimeMillis();
-        var timeTaken = endTime - startTime;
+        long endTime = System.currentTimeMillis();
+        long timeTaken = endTime - startTime;
 
         LOGGER.info("Finished ai analysis, max_depth: {}, nodes_visited: {}, tt_hits: {}, tt_misses: {}, time_taken: {}ms",
             maxDepth, nodesVisited, table.getHits(), table.getMisses(), timeTaken);
@@ -108,7 +108,7 @@ public final class OthelloAgent {
         }
 
         float heuristic = 0;
-        for (var depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
+        for (int depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
             heuristic = evaluateLoop(stack, OthelloBoard.from(board), depthLimit);
         }
         return heuristic;
@@ -116,7 +116,7 @@ public final class OthelloAgent {
 
     public float evaluate(OthelloBoard board, int maxDepth) {
         float heuristic = 0;
-        for (var depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
+        for (int depthLimit = 1; depthLimit < maxDepth; depthLimit++) {
             heuristic = evaluate(OthelloBoard.from(board), depthLimit, -INF, INF);
         }
         return heuristic;
@@ -140,7 +140,7 @@ public final class OthelloAgent {
         }
 
         public OthelloBoard nextBoard() {
-            var board = children.get(index);
+            OthelloBoard board = children.get(index);
             children.set(index, null);
             index++;
             return board;
@@ -158,10 +158,10 @@ public final class OthelloAgent {
     private float evaluateLoop(Deque<StackFrame> stack, OthelloBoard initialBoard, int startDepth) {
         stack.push(new StackFrame(initialBoard, startDepth, -INF, INF));
 
-        var heuristic = 0.0f;
+        float heuristic = 0.0f;
         while (!stack.isEmpty()) {
-            var frame = stack.peek();
-            var currBoard = frame.board;
+            StackFrame frame = stack.peek();
+            OthelloBoard currBoard = frame.board;
 
             if (!frame.hasChildren()) {
                 if (frame.depth == 0 || (frame.depth >= MIN_DEPTH && System.currentTimeMillis() > stopTime)) {
@@ -170,7 +170,7 @@ public final class OthelloAgent {
                     continue;
                 }
 
-                var moves = currBoard.findPotentialMoves();
+                List<Tile> moves = currBoard.findPotentialMoves();
 
                 // stop when we cannot expand node's children
                 if (moves.isEmpty()) {
@@ -183,10 +183,10 @@ public final class OthelloAgent {
                     }
                 }
 
-                var hashKey = table.hash(currBoard);
+                long hashKey = table.hash(currBoard);
 
                 // check tt table to see if we have a cache hit
-                var node = table.get(hashKey);
+                TTable.Node node = table.get(hashKey);
                 if (node != null && node.depth() >= frame.depth) {
                     heuristic = node.heuristic();
                     stack.pop();
@@ -194,8 +194,8 @@ public final class OthelloAgent {
                 }
 
                 List<OthelloBoard> children = new ArrayList<>();
-                for (var move : moves) {
-                    var child = currBoard.makeMoved(move);
+                for (Tile move : moves) {
+                    OthelloBoard child = currBoard.makeMoved(move);
                     nodesVisited++;
                     children.add(child);
                 }
@@ -217,7 +217,7 @@ public final class OthelloAgent {
                     }
                 }
             } else {
-                var doPrune = false;
+                boolean doPrune = false;
 
                 if (currBoard.isBlackMove()) {
                     frame.alpha = Math.max(frame.alpha, heuristic);
@@ -258,7 +258,7 @@ public final class OthelloAgent {
             return findHeuristic(board);
         }
 
-        var moves = board.findPotentialMoves();
+        List<Tile> moves = board.findPotentialMoves();
 
         // stop when we cannot expand node's children
         if (moves.isEmpty()) {
@@ -269,24 +269,24 @@ public final class OthelloAgent {
             }
         }
 
-        var hashKey = table.hash(board);
+        long hashKey = table.hash(board);
 
         // check tt table to see if we have a cache hit
-        var node = table.get(hashKey);
+        TTable.Node node = table.get(hashKey);
         if (node != null && node.depth() >= depth) {
             return node.heuristic();
         }
 
         List<OthelloBoard> children = new ArrayList<>();
-        for (var move : moves) {
-            var child = board.makeMoved(move);
+        for (Tile move : moves) {
+            OthelloBoard child = board.makeMoved(move);
             nodesVisited++;
             children.add(child);
         }
 
         // black is the maximizer and white is the minimizer
         if (board.isBlackMove()) {
-            for (var child : children) {
+            for (OthelloBoard child : children) {
                 alpha = Math.max(alpha, evaluate(child, depth - 1, alpha, beta));
                 if (alpha >= beta) {
                     break;
@@ -295,7 +295,7 @@ public final class OthelloAgent {
             table.put(new TTable.Node(hashKey, alpha, depth));
             return alpha;
         } else {
-            for (var child : children) {
+            for (OthelloBoard child : children) {
                 beta = Math.min(beta, evaluate(child, depth - 1, alpha, beta));
                 if (beta <= alpha) {
                     break;
@@ -320,10 +320,10 @@ public final class OthelloAgent {
     }
 
     private float findParityHeuristic(OthelloBoard board) {
-        var whiteScore = 0f;
-        var blackScore = 0f;
-        for (var row = 0; row < OthelloBoard.getBoardSize(); row++) {
-            for (var col = 0; col < OthelloBoard.getBoardSize(); col++) {
+        float whiteScore = 0f;
+        float blackScore = 0f;
+        for (int row = 0; row < OthelloBoard.getBoardSize(); row++) {
+            for (int col = 0; col < OthelloBoard.getBoardSize(); col++) {
                 if (board.getSquare(row, col) == OthelloBoard.WHITE) {
                     whiteScore++;
                 }
@@ -339,8 +339,8 @@ public final class OthelloAgent {
         float whiteTiles = 0;
         float blackTiles = 0;
         // iterate over corners and calculate the number of white and black corners
-        for (var tile : tiles) {
-            var currentColor = board.getSquare(tile[0], tile[1]);
+        for (int[] tile : tiles) {
+            byte currentColor = board.getSquare(tile[0], tile[1]);
             if (currentColor == OthelloBoard.WHITE) {
                 whiteTiles++;
             } else if (currentColor == OthelloBoard.BLACK) {
@@ -375,17 +375,17 @@ public final class OthelloAgent {
     }
 
     public static void main(String[] args) {
-        var startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
 
-        var board = OthelloBoard.initial();
-        for (var j = 0; j < 10; j++) {
-            var agent = new OthelloAgent();
-            var bestMove = agent.findBestMove(board, 8);
+        OthelloBoard board = OthelloBoard.initial();
+        for (int j = 0; j < 10; j++) {
+            OthelloAgent agent = new OthelloAgent();
+            Tile.Move bestMove = agent.findBestMove(board, 8);
             System.out.println(bestMove);
             board = board.makeMoved(bestMove.tile());
         }
 
-        var endTime = System.currentTimeMillis();
+        long endTime = System.currentTimeMillis();
         System.out.println("Total execution time: " + (endTime - startTime) + " ms");
     }
 }

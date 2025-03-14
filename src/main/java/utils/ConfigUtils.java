@@ -18,10 +18,10 @@ public class ConfigUtils {
 
         String botToken = null;
 
-        var envScanner = new Scanner(envFile);
+        Scanner envScanner = new Scanner(envFile);
         while (envScanner.hasNext()) {
-            var line = envScanner.nextLine();
-            var tokens = line.split("=");
+            String line = envScanner.nextLine();
+            String[] tokens = line.split("=");
             if (tokens.length < 2) {
                 LOGGER.error("The env file line must have at least two tokens");
                 System.exit(1);

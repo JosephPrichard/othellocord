@@ -35,10 +35,10 @@ public class BotState {
     }
 
     public BotState(JDA jda) {
-        var dataSource = new DataSource();
-        var cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
+        DataSource dataSource = new DataSource();
+        ThreadPoolExecutor cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
             0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), createThreadFactory("CPU-Bnd-Pool"));
-        var statsDao = new StatsDao(dataSource);
+        StatsDao statsDao = new StatsDao(dataSource);
 
         taskExecutor = Executors.newCachedThreadPool(createThreadFactory("Task-Pool"));
         scheduler = Executors.newScheduledThreadPool(1, createThreadFactory("Schedule-Pool"));

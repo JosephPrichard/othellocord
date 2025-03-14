@@ -14,6 +14,7 @@ import models.Player;
 
 import javax.annotation.Nullable;
 import javax.persistence.PersistenceException;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -59,14 +60,14 @@ public class GameService {
     }
 
     public Game createGame(Player blackPlayer, Player whitePlayer) throws AlreadyPlayingException {
-        var game = Game.start(blackPlayer, whitePlayer);
+        Game game = Game.start(blackPlayer, whitePlayer);
 
         if (isPlaying(blackPlayer) || isPlaying(whitePlayer)) {
             throw new AlreadyPlayingException();
         }
 
         try {
-            var optGame = Optional.of(game);
+            Optional<Game> optGame = Optional.of(game);
             games.put(game.getBlackPlayer().getId(), optGame);
             games.put(game.getWhitePlayer().getId(), optGame);
         } catch (PersistenceException ex) {
@@ -77,15 +78,15 @@ public class GameService {
     }
 
     public Game createBotGame(Player blackPlayer, long level) throws AlreadyPlayingException {
-        var whitePlayer = Player.Bot.create(level);
-        var game = Game.start(blackPlayer, whitePlayer);
+        Player whitePlayer = Player.Bot.create(level);
+        Game game = Game.start(blackPlayer, whitePlayer);
 
         if (isPlaying(blackPlayer)) {
             throw new AlreadyPlayingException();
         }
 
         try {
-            var optGame = Optional.of(game);
+            Optional<Game> optGame = Optional.of(game);
             games.put(game.getBlackPlayer().getId(), optGame);
             games.put(game.getWhitePlayer().getId(), optGame);
         } catch (PersistenceException ex) {
@@ -96,7 +97,7 @@ public class GameService {
 
     @Nullable
     public Game getGame(Player player) {
-        var game = games.get(player.getId()).orElse(null);
+        Game game = games.get(player.getId()).orElse(null);
         if (game == null) {
             return null;
         }
@@ -118,7 +119,7 @@ public class GameService {
     // the game is not complete, deletes the game in the storage if the game is complete
     // returns a mutable copy of the game from the storage
     public Game makeMove(Player player, Tile move) throws NotPlayingException, InvalidMoveException, TurnException {
-        var game = games.get(player.getId()).orElse(null);
+        Game game = games.get(player.getId()).orElse(null);
         if (game == null) {
             throw new NotPlayingException();
         }
@@ -128,10 +129,10 @@ public class GameService {
                 throw new TurnException();
             }
 
-            var potentialMoves = game.findPotentialMoves();
+            List<Tile> potentialMoves = game.findPotentialMoves();
 
             // check if the move being requested is any of the potential moves, if so make the move
-            for (var potentialMove : potentialMoves) {
+            for (Tile potentialMove : potentialMoves) {
                 if (potentialMove.equals(move)) {
                     // make the move by modifying the game's board state
                     game.makeMove(potentialMove);
@@ -151,7 +152,7 @@ public class GameService {
 
     private void onGameExpiry(Game game) {
         // call the stats service to update the stats where the current player loses
-        var forfeitResult = Game.Result.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
+        Game.Result forfeitResult = Game.Result.WinLoss(game.getOtherPlayer(), game.getCurrentPlayer());
         statsService.writeStats(forfeitResult);
     }
 }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -25,8 +26,8 @@ public class TestGameService {
 
     @Test
     public void whenDuplicateCreate_fail() {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
 
         Assertions.assertThrows(GameService.AlreadyPlayingException.class, () -> {
             gameService.createGame(blackPlayer, whitePlayer);
@@ -36,12 +37,12 @@ public class TestGameService {
 
     @Test
     public void whenSaveThenDelete_success() throws GameService.AlreadyPlayingException {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
 
         gameService.createGame(blackPlayer, whitePlayer);
 
-        var game = gameService.getGame(blackPlayer);
+        Game game = gameService.getGame(blackPlayer);
         assert game != null;
 
         gameService.deleteGame(game);
@@ -52,11 +53,11 @@ public class TestGameService {
 
     @Test
     public void whenGetGame_success() throws GameService.AlreadyPlayingException {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
 
-        var game = gameService.getGame(whitePlayer);
+        Game game = gameService.getGame(whitePlayer);
 
         Assertions.assertNotNull(game);
         Assertions.assertEquals(game.getWhitePlayer(), whitePlayer);
@@ -64,17 +65,17 @@ public class TestGameService {
 
     @Test
     public void whenGetInvalidGame_returnNull() {
-        var player = new Player(1000, "Player1");
+        Player player = new Player(1000, "Player1");
 
-        var game = gameService.getGame(player);
+        Game game = gameService.getGame(player);
 
         Assertions.assertNull(game);
     }
 
     @Test
     public void whenMove_ifInvalid_fail() throws GameService.AlreadyPlayingException {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
 
         Assertions.assertThrows(GameService.InvalidMoveException.class, () ->
@@ -83,8 +84,8 @@ public class TestGameService {
 
     @Test
     public void whenMove_ifAlreadyPlaying_fail() throws GameService.AlreadyPlayingException {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
         gameService.createGame(blackPlayer, whitePlayer);
 
         Assertions.assertThrows(GameService.TurnException.class, () ->
@@ -93,7 +94,7 @@ public class TestGameService {
 
     @Test
     public void whenMove_ifNotPlaying_fail() {
-        var player = new Player(1000, "Player1");
+        Player player = new Player(1000, "Player1");
 
         Assertions.assertThrows(GameService.NotPlayingException.class, () ->
             gameService.makeMove(player, Tile.fromNotation("d3")));
@@ -101,11 +102,11 @@ public class TestGameService {
 
     @Test
     public void whenMove_success() throws GameService.AlreadyPlayingException, GameService.TurnException, GameService.NotPlayingException, GameService.InvalidMoveException {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
-        var game = gameService.createGame(blackPlayer, whitePlayer);
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
+        Game game = gameService.createGame(blackPlayer, whitePlayer);
 
-        var movedGame = gameService.makeMove(blackPlayer, Tile.fromNotation("d3"));
+        Game movedGame = gameService.makeMove(blackPlayer, Tile.fromNotation("d3"));
 
         Assertions.assertEquals(game, movedGame);
         Assertions.assertNotEquals(game.getBoard(), movedGame.getBoard());
@@ -114,14 +115,14 @@ public class TestGameService {
 
     @Test
     public void whenMove_parallel_success() throws Exception {
-        var whitePlayer = new Player(1000, "Player1");
-        var blackPlayer = new Player(1001, "Player2");
-        var game = gameService.createGame(blackPlayer, whitePlayer);
+        Player whitePlayer = new Player(1000, "Player1");
+        Player blackPlayer = new Player(1001, "Player2");
+        Game game = gameService.createGame(blackPlayer, whitePlayer);
 
-        var results = Stream
+        List<Pair<Game, Exception>> results = Stream
             .generate(() -> CompletableFuture.supplyAsync(() -> {
                 try {
-                    var movedGame = gameService.makeMove(blackPlayer, Tile.fromNotation("d3"));
+                    Game movedGame = gameService.makeMove(blackPlayer, Tile.fromNotation("d3"));
 
                     Assertions.assertEquals(game, movedGame);
                     Assertions.assertNotEquals(game.getBoard(), movedGame.getBoard());
@@ -138,9 +139,9 @@ public class TestGameService {
 
         int successCount = 0;
 
-        for (var result : results) {
+        for (Pair<Game, Exception> result : results) {
             if (result.getLeft() != null) {
-                var movedGame = result.getLeft();
+                Game movedGame = result.getLeft();
 
                 Assertions.assertEquals(game, movedGame);
                 Assertions.assertNotEquals(game.getBoard(), movedGame.getBoard());

@@ -7,11 +7,14 @@ package discord;
 import engine.BoardRenderer;
 import lombok.AllArgsConstructor;
 import models.Challenge;
+import models.Game;
 import models.Player;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import services.ChallengeScheduler;
 import services.GameService;
 import utils.EventUtils;
 
+import java.awt.image.BufferedImage;
 import java.util.Objects;
 
 import static utils.LogUtils.LOGGER;
@@ -21,11 +24,11 @@ public class ChallengeHandler {
     private BotState state;
 
     public void handleAccept(SlashCommandInteraction event) {
-        var gameService = state.getGameService();
-        var challengeScheduler = state.getChallengeScheduler();
+        GameService gameService = state.getGameService();
+        ChallengeScheduler challengeScheduler = state.getChallengeScheduler();
 
-        var opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "challenger"));
-        var player = new Player(event.getUser());
+        Player opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "challenger"));
+        Player player = new Player(event.getUser());
 
         if (!challengeScheduler.acceptChallenge(new Challenge(player, opponent))) {
             event.reply("No challenge to accept.").queue();
@@ -33,10 +36,10 @@ public class ChallengeHandler {
         }
 
         try {
-            var game = gameService.createGame(player, opponent);
-            var image = BoardRenderer.drawBoard(game.getBoard());
+            Game game = gameService.createGame(player, opponent);
+            BufferedImage image = BoardRenderer.drawBoard(game.getBoard());
 
-            var view = GameView.createGameStartView(game, image);
+            GameView view = GameView.createGameStartView(game, image);
             EventUtils.replyView(event, view);
         } catch (GameService.AlreadyPlayingException ex) {
             event.reply("One or more players are already in a game.").queue();
@@ -54,9 +57,9 @@ public class ChallengeHandler {
     }
 
     private void handleBotChallenge(SlashCommandInteraction event) {
-        var gameService = state.getGameService();
+        GameService gameService = state.getGameService();
 
-        var level = EventUtils.getLongParam(event, "level");
+        Long level = EventUtils.getLongParam(event, "level");
         if (level == null) {
             level = 3L;
         }
@@ -66,13 +69,13 @@ public class ChallengeHandler {
             return;
         }
 
-        var player = new Player(event.getUser());
+        Player player = new Player(event.getUser());
 
         try {
-            var game = gameService.createBotGame(player, level);
-            var image = BoardRenderer.drawBoardMoves(game.getBoard());
+            Game game = gameService.createBotGame(player, level);
+            BufferedImage image = BoardRenderer.drawBoardMoves(game.getBoard());
 
-            var view = GameView.createGameStartView(game, image);
+            GameView view = GameView.createGameStartView(game, image);
             EventUtils.replyView(event, view);
         } catch (GameService.AlreadyPlayingException ex) {
             event.reply("You're already in a game").queue();
@@ -82,16 +85,16 @@ public class ChallengeHandler {
     }
 
     private void handleUserChallenge(SlashCommandInteraction event) {
-        var challengeScheduler = state.getChallengeScheduler();
+        ChallengeScheduler challengeScheduler = state.getChallengeScheduler();
 
-        var opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "opponent"));
+        Player opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "opponent"));
 
-        var player = new Player(event.getUser());
+        Player player = new Player(event.getUser());
 
         Runnable onExpiry = () -> event.getChannel().sendMessage(player.toAtString() + " Challenge timed out!").queue();
         challengeScheduler.createChallenge(new Challenge(opponent, player), onExpiry);
 
-        var message = String.format("%s, %s has challenged you to a game of Othello. Type `/accept` %s, or ignore to decline",
+        String message = String.format("%s, %s has challenged you to a game of Othello. Type `/accept` %s, or ignore to decline",
             opponent, player.getName(), player.toAtString());
         event.reply(message).queue();
 

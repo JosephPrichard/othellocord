@@ -5,16 +5,22 @@
 package discord;
 
 import engine.BoardRenderer;
+import engine.OthelloBoard;
 import engine.Tile;
 import lombok.AllArgsConstructor;
 import models.Game;
 import models.Player;
+import models.Stats;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 import services.GameService;
+import services.StatsService;
 import utils.EventUtils;
 
+import java.awt.image.BufferedImage;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static utils.LogUtils.LOGGER;
 
@@ -23,45 +29,45 @@ public class GameHandler {
     private BotState state;
 
     public void handleView(SlashCommandInteraction event) {
-        var gameService = state.getGameService();
-        var player = new Player(event.getUser());
+        GameService gameService = state.getGameService();
+        Player player = new Player(event.getUser());
 
-        var game = gameService.getGame(player);
+        Game game = gameService.getGame(player);
         if (game == null) {
             event.reply("You're not currently in a game.").queue();
             return;
         }
 
-        var board = game.getBoard();
-        var potentialMoves = board.findPotentialMoves();
+        OthelloBoard board = game.getBoard();
+        List<Tile> potentialMoves = board.findPotentialMoves();
 
-        var image = BoardRenderer.drawBoard(board, potentialMoves);
-        var view = GameView.createGameView(game, image);
+        BufferedImage image = BoardRenderer.drawBoard(board, potentialMoves);
+        GameView view = GameView.createGameView(game, image);
         EventUtils.replyView(event, view);
 
         LOGGER.info("{} viewed moves in game", player);
     }
 
     private GameView handleGameOver(Game game, Tile move) {
-        var result = game.createResult();
-        var statsResult = state.getStatsService().writeStats(result);
+        Game.Result result = game.createResult();
+        Stats.Result statsResult = state.getStatsService().writeStats(result);
 
-        var image = BoardRenderer.drawBoard(game.getBoard());
+        BufferedImage image = BoardRenderer.drawBoard(game.getBoard());
         return GameView.createGameOverView(result, statsResult, move, game, image);
     }
 
     private void makeBotMove(SlashCommandInteraction event, Game game) {
-        var currPlayer = game.getCurrentPlayer();
-        var depth = Player.Bot.getDepthFromId(currPlayer.id);
+        Player currPlayer = game.getCurrentPlayer();
+        int depth = Player.Bot.getDepthFromId(currPlayer.id);
 
         try {
             // queue an agent request which will find the best move, make the move, and send back a response
-            var future = state.getAgentDispatcher().findMove(game.getBoard(), depth);
-            var bestMove = future.get();
+            Future<Tile.Move> future = state.getAgentDispatcher().findMove(game.getBoard(), depth);
+            Tile.Move bestMove = future.get();
 
-            var newGame = state.getGameService().makeMove(currPlayer, bestMove.tile());
+            Game newGame = state.getGameService().makeMove(currPlayer, bestMove.tile());
 
-            var view = newGame.isOver() ?
+            GameView view = newGame.isOver() ?
                 handleGameOver(newGame, bestMove.tile()) :
                 GameView.createGameMoveView(game, bestMove.tile(), BoardRenderer.drawBoardMoves(game.getBoard()));
 
@@ -76,25 +82,25 @@ public class GameHandler {
     }
 
     public void handleMove(SlashCommandInteraction event) {
-        var strMove = Objects.requireNonNull(EventUtils.getStringParam(event, "move"));
-        var player = new Player(event.getUser());
+        String strMove = Objects.requireNonNull(EventUtils.getStringParam(event, "move"));
+        Player player = new Player(event.getUser());
 
-        var move = Tile.fromNotation(strMove);
+        Tile move = Tile.fromNotation(strMove);
         try {
-            var game = state.getGameService().makeMove(player, move);
+            Game game = state.getGameService().makeMove(player, move);
             LOGGER.info("{} made move on game {} to {}", player, game, move);
 
             if (game.isOver()) {
-                var view = handleGameOver(game, move);
+                GameView view = handleGameOver(game, move);
                 EventUtils.replyView(event, view);
             } else {
                 if (game.isAgainstBot()) {
-                    var view = GameView.createGameMoveView(game, BoardRenderer.drawBoardMoves(game.getBoard()));
+                    GameView view = GameView.createGameMoveView(game, BoardRenderer.drawBoardMoves(game.getBoard()));
                     EventUtils.replyView(event, view);
 
                     makeBotMove(event, game);
                 } else {
-                    var view = GameView.createGameMoveView(game, move, BoardRenderer.drawBoardMoves(game.getBoard()));
+                    GameView view = GameView.createGameMoveView(game, move, BoardRenderer.drawBoardMoves(game.getBoard()));
                     EventUtils.replyView(event, view);
                 }
             }
@@ -108,24 +114,24 @@ public class GameHandler {
     }
 
     public void handleForfeit(SlashCommandInteraction event) {
-        var gameService = state.getGameService();
-        var statsService = state.getStatsService();
+        GameService gameService = state.getGameService();
+        StatsService statsService = state.getStatsService();
 
-        var player = new Player(event.getUser());
+        Player player = new Player(event.getUser());
 
-        var game = gameService.getGame(player);
+        Game game = gameService.getGame(player);
         if (game == null) {
             event.reply("You're not currently in a game.").queue();
             return;
         }
 
         gameService.deleteGame(game);
-        var result = game.createForfeitResult(player);
+        Game.Result result = game.createForfeitResult(player);
 
-        var statsResult = statsService.writeStats(result);
+        Stats.Result statsResult = statsService.writeStats(result);
 
-        var image = BoardRenderer.drawBoard(game.getBoard());
-        var view = GameView.createForfeitView(result, statsResult, image);
+        BufferedImage image = BoardRenderer.drawBoard(game.getBoard());
+        GameView view = GameView.createForfeitView(result, statsResult, image);
         EventUtils.replyView(event, view);
 
         LOGGER.info("Player: {} has forfeited", player);

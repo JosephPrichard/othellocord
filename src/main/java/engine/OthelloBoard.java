@@ -42,7 +42,7 @@ public class OthelloBoard {
     }
 
     public static OthelloBoard initial() {
-        var board = new OthelloBoard(true);
+        OthelloBoard board = new OthelloBoard(true);
         board.setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2 - 1, WHITE);
         board.setSquare(getBoardSize() / 2, getBoardSize() / 2, WHITE);
         board.setSquare(getBoardSize() / 2 - 1, getBoardSize() / 2, BLACK);
@@ -68,8 +68,8 @@ public class OthelloBoard {
 
     public static List<Tile> tiles() {
         List<Tile> tiles = new ArrayList<>();
-        for (var row = 0; row < getBoardSize(); row++) {
-            for (var col = 0; col < getBoardSize(); col++) {
+        for (int row = 0; row < getBoardSize(); row++) {
+            for (int col = 0; col < getBoardSize(); col++) {
                 tiles.add(new Tile(row, col));
             }
         }
@@ -77,10 +77,10 @@ public class OthelloBoard {
     }
 
     public int countDiscs(byte color) {
-        var discs = 0;
+        int discs = 0;
         // iterate through each square and find the discs
-        for (var tile : TILES) {
-            var c = getSquare(tile);
+        for (Tile tile : TILES) {
+            byte c = getSquare(tile);
             if (c == color) {
                 discs++;
             }
@@ -102,18 +102,18 @@ public class OthelloBoard {
         int oppositeColor = color == BLACK ? WHITE : BLACK;
 
         // check each tile for potential flanks
-        for (var disc : TILES) {
+        for (Tile disc : TILES) {
             if (getSquare(disc) != color) {
                 // skip any discs of a different color
                 continue;
             }
             // check each direction from tile for potential flank
-            for (var direction : DIRECTIONS) {
-                var row = disc.row() + direction[0];
-                var col = disc.col() + direction[1];
+            for (int[] direction : DIRECTIONS) {
+                int row = disc.row() + direction[0];
+                int col = disc.col() + direction[1];
 
                 // iterate from tile to next opposite color
-                var count = 0;
+                int count = 0;
                 while (inBounds(row, col)) {
                     if (getSquare(row, col) != oppositeColor) {
                         break;
@@ -139,7 +139,7 @@ public class OthelloBoard {
     }
 
     public OthelloBoard skippedTurn() {
-        var copiedBoard = OthelloBoard.from(this);
+        OthelloBoard copiedBoard = OthelloBoard.from(this);
         copiedBoard.skipTurn();
         return copiedBoard;
     }
@@ -153,7 +153,7 @@ public class OthelloBoard {
     }
 
     public OthelloBoard makeMoved(Tile move) {
-        var copiedBoard = OthelloBoard.from(this);
+        OthelloBoard copiedBoard = OthelloBoard.from(this);
         copiedBoard.makeMove(move);
         return copiedBoard;
     }
@@ -161,20 +161,20 @@ public class OthelloBoard {
     // makes the move on the board, changing the state to a moved state
     // only flips the turn if the next color has moves - otherwise it will be current color turn again
     public void makeMove(Tile move) {
-        var oppositeColor = blackMove ? WHITE : BLACK;
-        var currentColor = blackMove ? BLACK : WHITE;
+        byte oppositeColor = blackMove ? WHITE : BLACK;
+        byte currentColor = blackMove ? BLACK : WHITE;
 
         setSquare(move.row(), move.col(), currentColor);
 
         // check each direction of new tile position
-        for (var direction : DIRECTIONS) {
-            var initialRow = move.row() + direction[0];
-            var initialCol = move.col() + direction[1];
+        for (int[] direction : DIRECTIONS) {
+            int initialRow = move.row() + direction[0];
+            int initialCol = move.col() + direction[1];
 
-            var row = initialRow;
-            var col = initialCol;
+            int row = initialRow;
+            int col = initialCol;
 
-            var flank = false;
+            boolean flank = false;
 
             // iterate from tile until first potential flank
             while (inBounds(row, col)) {
@@ -213,8 +213,8 @@ public class OthelloBoard {
 
     public void setSquare(int row, int col, byte color) {
         // calculate bit position
-        var p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
-        var clearMask = ~(1L << p) & ~(1L << (p + 1));
+        int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
+        long clearMask = ~(1L << p) & ~(1L << (p + 1));
         // clear bits then set bits
         if (row < HALF_SIZE) {
             boardA &= clearMask;
@@ -226,13 +226,13 @@ public class OthelloBoard {
     }
 
     public byte getSquare(int row, int col) {
-        var mask = (1 << 2) - 1;
-        var p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
+        int mask = (1 << 2) - 1;
+        int p = ((row < HALF_SIZE ? row : row - HALF_SIZE) * getBoardSize() + col) * 2;
         return row < HALF_SIZE ? (byte) (mask & (boardA >> p)) : (byte) (mask & (boardB >> p));
     }
 
     public void setSquare(String square, byte color) {
-        var tile = Tile.fromNotation(square);
+        Tile tile = Tile.fromNotation(square);
         setSquare(tile, color);
     }
 
@@ -245,7 +245,7 @@ public class OthelloBoard {
     }
 
     public byte getSquare(String square) {
-        var tile = Tile.fromNotation(square);
+        Tile tile = Tile.fromNotation(square);
         return getSquare(tile);
     }
 
@@ -259,17 +259,17 @@ public class OthelloBoard {
 
     @Override
     public String toString() {
-        var builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         builder.append("  ");
-        for (var i = 0; i < getBoardSize(); i++) {
+        for (int i = 0; i < getBoardSize(); i++) {
             builder.append((char) ('a' + (char) i));
             builder.append(" ");
         }
         builder.append("\n");
-        for (var row = 0; row < getBoardSize(); row++) {
+        for (int row = 0; row < getBoardSize(); row++) {
             builder.append(row + 1);
             builder.append(" ");
-            for (var col = 0; col < getBoardSize(); col++) {
+            for (int col = 0; col < getBoardSize(); col++) {
                 builder.append(getSquare(row, col));
                 builder.append(" ");
             }
@@ -279,10 +279,10 @@ public class OthelloBoard {
     }
 
     public static void main(String[] args) {
-        var board = OthelloBoard.initial();
-        for (var j = 0; j < 10; j++) {
-            var moves = board.findPotentialMoves();
-            for (var move : moves) {
+        OthelloBoard board = OthelloBoard.initial();
+        for (int j = 0; j < 10; j++) {
+            List<Tile> moves = board.findPotentialMoves();
+            for (Tile move : moves) {
                 System.out.print(move + " ");
             }
             System.out.println();

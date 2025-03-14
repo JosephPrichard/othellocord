@@ -44,13 +44,13 @@ public class BoardRenderer {
     }
 
     public static BufferedImage drawBoard(OthelloBoard board, List<Tile> moves) {
-        var boardImage = new BufferedImage(BACKGROUND_IMAGE.getWidth(), BACKGROUND_IMAGE.getHeight(), BACKGROUND_IMAGE.getType());
-        var g = drawBoardDiscs(board, boardImage);
+        BufferedImage boardImage = new BufferedImage(BACKGROUND_IMAGE.getWidth(), BACKGROUND_IMAGE.getHeight(), BACKGROUND_IMAGE.getType());
+        Graphics g = drawBoardDiscs(board, boardImage);
 
         // draw each move image onto the board
-        for (var move : moves) {
-            var x = SIDE_OFFSET + LINE_THICKNESS + move.col() * TILE_SIZE;
-            var y = SIDE_OFFSET + LINE_THICKNESS + move.row() * TILE_SIZE;
+        for (Tile move : moves) {
+            int x = SIDE_OFFSET + LINE_THICKNESS + move.col() * TILE_SIZE;
+            int y = SIDE_OFFSET + LINE_THICKNESS + move.row() * TILE_SIZE;
             g.drawImage(OUTLINE_IMAGE, x, y, null);
         }
 
@@ -59,17 +59,17 @@ public class BoardRenderer {
     }
 
     public static BufferedImage drawBoardAnalysis(OthelloBoard board, List<Tile.Move> bestMoves) {
-        var boardImage = new BufferedImage(BACKGROUND_IMAGE.getWidth(), BACKGROUND_IMAGE.getHeight(), BACKGROUND_IMAGE.getType());
-        var g = drawBoardDiscs(board, boardImage);
+        BufferedImage boardImage = new BufferedImage(BACKGROUND_IMAGE.getWidth(), BACKGROUND_IMAGE.getHeight(), BACKGROUND_IMAGE.getType());
+        Graphics g = drawBoardDiscs(board, boardImage);
 
         // draw each heuristic eval onto the board
-        for (var i = 0; i < bestMoves.size(); i++) {
-            var move = bestMoves.get(i);
-            var tile = move.tile();
+        for (int i = 0; i < bestMoves.size(); i++) {
+            Tile.Move move = bestMoves.get(i);
+            Tile tile = move.tile();
 
-            var h = move.heuristic();
-            var hText = Float.toString(h);
-            var end = Math.min(hText.length(), h >= 0 ? 4 : 5);
+            float h = move.heuristic();
+            String hText = Float.toString(h);
+            int end = Math.min(hText.length(), h >= 0 ? 4 : 5);
             hText = hText.substring(0, end);
 
             if (i == 0) {
@@ -78,9 +78,9 @@ public class BoardRenderer {
                 g.setColor(Color.YELLOW);
             }
 
-            var x = SIDE_OFFSET + tile.col() * TILE_SIZE;
-            var y = SIDE_OFFSET + tile.row() * TILE_SIZE;
-            var rect = new Rectangle(x, y, TILE_SIZE, TILE_SIZE);
+            int x = SIDE_OFFSET + tile.col() * TILE_SIZE;
+            int y = SIDE_OFFSET + tile.row() * TILE_SIZE;
+            Rectangle rect = new Rectangle(x, y, TILE_SIZE, TILE_SIZE);
             drawCenteredString(g, hText, rect, FONT);
         }
 
@@ -89,13 +89,13 @@ public class BoardRenderer {
     }
 
     private static Graphics drawBoardDiscs(OthelloBoard board, BufferedImage boardImage) {
-        var g = boardImage.getGraphics();
+        Graphics g = boardImage.getGraphics();
         g.drawImage(BACKGROUND_IMAGE, 0, 0, null);
 
         // draw discs onto board, either empty, black, or white
-        for (var tile : OthelloBoard.tiles()) {
-            var x = SIDE_OFFSET + LINE_THICKNESS + tile.col() * TILE_SIZE;
-            var y = SIDE_OFFSET + LINE_THICKNESS + tile.row() * TILE_SIZE;
+        for (Tile tile : OthelloBoard.tiles()) {
+            int x = SIDE_OFFSET + LINE_THICKNESS + tile.col() * TILE_SIZE;
+            int y = SIDE_OFFSET + LINE_THICKNESS + tile.row() * TILE_SIZE;
             // determine which bitmap belongs in the tile slot
             int color = board.getSquare(tile);
             if (color == OthelloBoard.BLACK) {
@@ -109,8 +109,8 @@ public class BoardRenderer {
     }
 
     private static BufferedImage drawBackground(int boardSize) {
-        var image = drawColoredBackground(boardSize);
-        var g = image.getGraphics();
+        BufferedImage image = drawColoredBackground(boardSize);
+        Graphics g = image.getGraphics();
         drawBackgroundDots(g);
         drawBackgroundText(g, boardSize);
         g.dispose();
@@ -118,33 +118,33 @@ public class BoardRenderer {
     }
 
     private static BufferedImage drawColoredBackground(int boardSize) {
-        var width = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
-        var height = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
+        int width = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
+        int height = TILE_SIZE * boardSize + LINE_THICKNESS + SIDE_OFFSET;
 
-        var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
         // drawing green background
-        for (var x = SIDE_OFFSET; x < image.getWidth(); x++) {
-            for (var y = SIDE_OFFSET; y < image.getHeight(); y++) {
+        for (int x = SIDE_OFFSET; x < image.getWidth(); x++) {
+            for (int y = SIDE_OFFSET; y < image.getHeight(); y++) {
                 image.setRGB(x, y, GREEN);
             }
         }
 
         // draw black horizontal lines
-        for (var i = 0; i < boardSize + 1; i++) {
-            for (var x = SIDE_OFFSET; x < image.getWidth(); x++) {
-                var y = i * TILE_SIZE + SIDE_OFFSET;
-                for (var j = 0; j < LINE_THICKNESS; j++) {
+        for (int i = 0; i < boardSize + 1; i++) {
+            for (int x = SIDE_OFFSET; x < image.getWidth(); x++) {
+                int y = i * TILE_SIZE + SIDE_OFFSET;
+                for (int j = 0; j < LINE_THICKNESS; j++) {
                     image.setRGB(x, y + j, BLACK);
                 }
             }
         }
 
         // draw black vertical lines
-        for (var i = 0; i < boardSize + 1; i++) {
-            for (var y = SIDE_OFFSET; y < image.getHeight(); y++) {
-                var x = i * TILE_SIZE + SIDE_OFFSET;
-                for (var j = 0; j < LINE_THICKNESS; j++) {
+        for (int i = 0; i < boardSize + 1; i++) {
+            for (int y = SIDE_OFFSET; y < image.getHeight(); y++) {
+                int x = i * TILE_SIZE + SIDE_OFFSET;
+                for (int j = 0; j < LINE_THICKNESS; j++) {
                     image.setRGB(x + j, y, BLACK);
                 }
             }
@@ -154,12 +154,12 @@ public class BoardRenderer {
 
     private static void drawBackgroundDots(Graphics g) {
         g.setColor(BLACK_FILL);
-        for (var location : DOT_LOCATIONS) {
+        for (int[] location : DOT_LOCATIONS) {
             // fills an oval, the x,y is subtracted by the dot size and line thickness to center it
-            var col = location[0];
-            var row = location[1];
-            var x = SIDE_OFFSET + col * TILE_SIZE - DOT_SIZE / 2 + LINE_THICKNESS / 2;
-            var y = SIDE_OFFSET + row * TILE_SIZE - DOT_SIZE / 2 + LINE_THICKNESS / 2;
+            int col = location[0];
+            int row = location[1];
+            int x = SIDE_OFFSET + col * TILE_SIZE - DOT_SIZE / 2 + LINE_THICKNESS / 2;
+            int y = SIDE_OFFSET + row * TILE_SIZE - DOT_SIZE / 2 + LINE_THICKNESS / 2;
             g.fillOval(x, y, DOT_SIZE, DOT_SIZE);
         }
 
@@ -168,26 +168,26 @@ public class BoardRenderer {
 
     private static void drawBackgroundText(Graphics g, int boardSize) {
         // draw letters on horizontal sidebar
-        for (var i = 0; i < boardSize; i++) {
-            var text = Character.toString(i + 'A');
-            var x = SIDE_OFFSET + i * TILE_SIZE;
-            var rect = new Rectangle(x, 0, TILE_SIZE, SIDE_OFFSET);
+        for (int i = 0; i < boardSize; i++) {
+            String text = Character.toString(i + 'A');
+            int x = SIDE_OFFSET + i * TILE_SIZE;
+            Rectangle rect = new Rectangle(x, 0, TILE_SIZE, SIDE_OFFSET);
             drawCenteredString(g, text, rect, FONT);
         }
 
         // draw numbers on vertical sidebar
-        for (var i = 0; i < boardSize; i++) {
-            var text = Integer.toString(i + 1);
-            var y = SIDE_OFFSET + i * TILE_SIZE;
-            var rect = new Rectangle(0, y, SIDE_OFFSET, TILE_SIZE);
+        for (int i = 0; i < boardSize; i++) {
+            String text = Integer.toString(i + 1);
+            int y = SIDE_OFFSET + i * TILE_SIZE;
+            Rectangle rect = new Rectangle(0, y, SIDE_OFFSET, TILE_SIZE);
             drawCenteredString(g, text, rect, FONT);
         }
     }
 
     private static BufferedImage drawDisc(Color fillColor, Stroke stroke) {
-        var image = new BufferedImage(DISC_SIZE, DISC_SIZE, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(DISC_SIZE, DISC_SIZE, BufferedImage.TYPE_INT_ARGB);
 
-        var graphics = image.createGraphics();
+        Graphics2D graphics = image.createGraphics();
         graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         graphics.setColor(fillColor);
         graphics.fillOval(TOP_LEFT, TOP_LEFT, DISC_SIZE - TOP_LEFT * 2, DISC_SIZE - TOP_LEFT * 2);
@@ -200,21 +200,21 @@ public class BoardRenderer {
     }
 
     public static void drawCenteredString(Graphics g, String text, Rectangle rect, Font font) {
-        var metrics = g.getFontMetrics(font);
+        FontMetrics metrics = g.getFontMetrics(font);
         // Determine the X coordinate for the text
-        var x = rect.x + (rect.width - metrics.stringWidth(text)) / 2;
+        int x = rect.x + (rect.width - metrics.stringWidth(text)) / 2;
         // Determine the Y coordinate for the text (note we add the ascent, as in java 2d 0 is top of the screen)
-        var y = rect.y + ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
+        int y = rect.y + ((rect.height - metrics.getHeight()) / 2) + metrics.getAscent();
         g.setFont(font);
         g.drawString(text, x, y);
     }
 
     // test driver function to see board image
     public static void main(String[] args) throws IOException {
-        var board = OthelloBoard.initial();
-        var image = drawBoardAnalysis(board, new OthelloAgent().findRankedMoves(board, 5));
+        OthelloBoard board = OthelloBoard.initial();
+        BufferedImage image = drawBoardAnalysis(board, new OthelloAgent().findRankedMoves(board, 5));
 
-        var outputFile = new File("test_board.png");
+        File outputFile = new File("test_board.png");
         ImageIO.write(image, "png", outputFile);
     }
 }
