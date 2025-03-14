@@ -24,7 +24,7 @@ public class AgentDispatcher {
     public AgentDispatcher(ThreadPoolExecutor cpuBndExecutor) {
         this(cpuBndExecutor, new LinkedBlockingQueue<>());
 
-        var agentCount = cpuBndExecutor.getMaximumPoolSize();
+        int agentCount = cpuBndExecutor.getMaximumPoolSize();
         assert agentCount > 0;
 
         for (int i = 0; i < agentCount; i++) {
@@ -36,10 +36,10 @@ public class AgentDispatcher {
         CompletableFuture<List<Tile.Move>> future = new CompletableFuture<>();
         cpuBndExecutor.submit(() -> {
             try {
-                var agent = agentsQueue.take();
+                OthelloAgent agent = agentsQueue.take();
                 LOGGER.info("Started agent ranked moves calculation of depth {}", depth);
 
-                var moves = agent.findRankedMoves(board, depth);
+                List<Tile.Move> moves = agent.findRankedMoves(board, depth);
                 agentsQueue.add(agent);
 
                 LOGGER.info("Finished agent ranked moves calculation of depth {}: {}", depth,
@@ -56,11 +56,11 @@ public class AgentDispatcher {
         CompletableFuture<Tile.Move> future = new CompletableFuture<>();
         cpuBndExecutor.submit(() -> {
             try {
-                var agent = agentsQueue.take();
+                OthelloAgent agent = agentsQueue.take();
 
                 LOGGER.info("Started agent best move calculation of depth {}", depth);
 
-                var move = agent.findBestMove(board, depth);
+                Tile.Move move = agent.findBestMove(board, depth);
                 agentsQueue.add(agent);
 
                 LOGGER.info("Finished agent best move calculation of depth {}: {}", depth, move);

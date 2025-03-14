@@ -8,8 +8,8 @@ package utils;
 public class StringUtils {
 
     public static String column(String str, int size, String tail) {
-        var builder = new StringBuilder();
-        var i = 0;
+        StringBuilder builder = new StringBuilder();
+        int i = 0;
         // output chars until amount
         for (; i < str.length() && i < size; i++) {
             builder.append(str.charAt(i));
@@ -27,11 +27,11 @@ public class StringUtils {
     }
 
     public static String leftPad(String str, int size) {
-        var builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         // output spaces first
         builder.append(" ".repeat(Math.max(0, size - str.length())));
         // output text until remaining amount
-        for (var i = 0; i < str.length(); i++) {
+        for (int i = 0; i < str.length(); i++) {
             builder.append(str.charAt(i));
         }
         return builder.toString();

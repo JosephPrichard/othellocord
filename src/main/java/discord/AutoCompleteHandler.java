@@ -5,10 +5,13 @@
 package discord;
 
 import engine.OthelloBoard;
+import engine.Tile;
 import lombok.AllArgsConstructor;
+import models.Game;
 import models.Player;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.CommandAutoCompleteInteraction;
+import services.GameService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,21 +21,21 @@ public class AutoCompleteHandler {
     private BotState state;
 
     public void handleMove(CommandAutoCompleteInteraction interaction) {
-        var gameService = state.getGameService();
+        GameService gameService = state.getGameService();
 
-        var player = new Player(interaction.getUser());
+        Player player = new Player(interaction.getUser());
 
-        var game = gameService.getGame(player);
+        Game game = gameService.getGame(player);
         if (game != null) {
-            var moves = game.findPotentialMoves();
+            List<Tile> moves = game.findPotentialMoves();
 
             // don't display duplicate moves
-            var duplicate = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
+            boolean[][] duplicate = new boolean[OthelloBoard.getBoardSize()][OthelloBoard.getBoardSize()];
 
             List<Command.Choice> choices = new ArrayList<>();
-            for (var tile : moves) {
-                var row = tile.row();
-                var col = tile.col();
+            for (Tile tile : moves) {
+                int row = tile.row();
+                int col = tile.col();
 
                 if (!duplicate[row][col]) {
                     choices.add(new Command.Choice(tile.toString(), tile.toString()));

@@ -28,12 +28,12 @@ public class ChallengeScheduler {
             challenges.remove(challenge);
             LOGGER.info("Challenge expired {} {}", challenge.getChallenged().getId(), challenge.getChallenger().getId());
         };
-        var future = scheduler.schedule(scheduled, 60, TimeUnit.SECONDS);
+        ScheduledFuture<?> future = scheduler.schedule(scheduled, 60, TimeUnit.SECONDS);
         challenges.put(challenge, future);
     }
 
     public boolean acceptChallenge(Challenge challenge) {
-        var future = challenges.remove(challenge);
+        ScheduledFuture<?> future = challenges.remove(challenge);
         if (future != null) {
             future.cancel(false);
             return true;

@@ -11,8 +11,8 @@ public record Tile(int row, int col) {
         if (square.length() != 2) {
             return new Tile(-1, -1);
         } else {
-            var row = Character.getNumericValue(square.charAt(1)) - 1;
-            var col = square.charAt(0) - 'a';
+            int row = Character.getNumericValue(square.charAt(1)) - 1;
+            int col = square.charAt(0) - 'a';
             return new Tile(row, col);
         }
     }
@@ -27,19 +27,19 @@ public record Tile(int row, int col) {
 
     @Override
     public String toString() {
-        var c = (char) (col + 'a');
-        var r = Integer.toString(row + 1);
+        char c = (char) (col + 'a');
+        String r = Integer.toString(row + 1);
         return c + r;
     }
 
     public boolean equalsNotation(String notation) {
-        var cNotLower = (char) (col + 'a');
-        var cNotUpper = (char) (col + 'A');
-        var rNot = (char) ((row + 1) + '0');
+        char cNotLower = (char) (col + 'a');
+        char cNotUpper = (char) (col + 'A');
+        char rNot = (char) ((row + 1) + '0');
 
         if (notation.length() == 2) {
-            var c = notation.charAt(0);
-            var r = notation.charAt(1);
+            char c = notation.charAt(0);
+            char r = notation.charAt(1);
             return (c == cNotUpper || c == cNotLower) && r == rNot;
         }
         return false;

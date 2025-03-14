@@ -48,12 +48,12 @@ public class GameView {
 
     public void editUsingHook(InteractionHook hook) {
         try {
-            var embed = getEmbed();
-            var message = getMessage();
+            EmbedBuilder embed = getEmbed();
+            String message = getMessage();
 
-            var os = new ByteArrayOutputStream();
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
             ImageIO.write(getImage(), "png", os);
-            var is = new ByteArrayInputStream(os.toByteArray());
+            ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
 
             embed.setImage("attachment://image.png");
 
@@ -78,29 +78,29 @@ public class GameView {
     }
 
     public static GameView createGameStartView(Game game, BufferedImage image) {
-        var desc = String.format("Black: %s\n White: %s\n Use `/view` to view the game and use `/move` to make a move.",
+        String desc = String.format("Black: %s\n White: %s\n Use `/view` to view the game and use `/move` to make a move.",
             game.getBlackPlayer().getName(),
             game.getWhitePlayer().getName());
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle("Game started!")
             .setDescription(desc);
         return new GameView(embed).setImage(image);
     }
 
     public static GameView createSimulationStartView(Game game, BufferedImage image) {
-        var desc = String.format("Black: %s\n White: %s", game.getBlackPlayer().getName(), game.getWhitePlayer().getName());
+        String desc = String.format("Black: %s\n White: %s", game.getBlackPlayer().getName(), game.getWhitePlayer().getName());
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle("Simulation started!")
             .setDescription(desc);
         return new GameView(embed).setImage(image);
     }
 
     public static GameView createGameMoveView(Game game, Tile move, BufferedImage image) {
-        var desc = String.format("%sYour opponent has moved: %s", getScoreText(game), move);
+        String desc = String.format("%sYour opponent has moved: %s", getScoreText(game), move);
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle("Your game with " + game.getOtherPlayer().getName())
             .setDescription(desc)
             .setFooter(game.isBlackMove() ? "Black to move" : "White to move");
@@ -111,10 +111,10 @@ public class GameView {
     }
 
     public static GameView createSimulationView(Game game, Tile move, BufferedImage image) {
-        var title = game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName();
-        var desc = getScoreText(game) + game.getOtherPlayer().getName() + " has moved: " + move;
+        String title = game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName();
+        String desc = getScoreText(game) + game.getOtherPlayer().getName() + " has moved: " + move;
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle(title)
             .setDescription(desc)
             .setFooter(game.isBlackMove() ? "Black to move" : "White to move");
@@ -131,10 +131,10 @@ public class GameView {
     }
 
     public static GameView createGameView(Game game, BufferedImage image, String message) {
-        var title = game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName();
-        var desc = getScoreText(game) + game.getCurrentPlayer().getName() + " to move";
+        String title = game.getBlackPlayer().getName() + " vs " + game.getWhitePlayer().getName();
+        String desc = getScoreText(game) + game.getCurrentPlayer().getName() + " to move";
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle(title)
             .setDescription(desc)
             .setFooter(game.isBlackMove() ? "Black to move" : "White to move");
@@ -145,9 +145,9 @@ public class GameView {
     }
 
     public static GameView createAnalysisView(Game game, BufferedImage image, long level, Player player) {
-        var desc = getScoreText(game);
+        String desc = getScoreText(game);
 
-        var embed = new EmbedBuilder()
+        EmbedBuilder embed = new EmbedBuilder()
             .setTitle("Game Analysis using bot level " + level)
             .setDescription(desc)
             .setFooter("Positive heuristics are better for black, and negative heuristics are better for white");
@@ -180,7 +180,7 @@ public class GameView {
     }
 
     private static String getTag(Game.Result result) {
-        var message = "";
+        String message = "";
         if (!result.winner().isBot()) {
             message = result.winner().toAtString();
         } else if (!result.loser().isBot()) {
@@ -190,9 +190,9 @@ public class GameView {
     }
 
     public static GameView createGameOverView(Game.Result result, Stats.Result statsResult, Tile move, Game game, BufferedImage image) {
-        var embed = new EmbedBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
 
-        var desc = getMoveMessage(result.winner(), move.toString())
+        String desc = getMoveMessage(result.winner(), move.toString())
             + getScoreMessage(game.getWhiteScore(), game.getBlackScore())
             + "\n"
             + getStatsMessage(result, statsResult);
@@ -205,9 +205,9 @@ public class GameView {
     }
 
     public static GameView createForfeitView(Game.Result result, Stats.Result statsResult, BufferedImage image) {
-        var embed = new EmbedBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
 
-        var desc = getForfeitMessage(result.winner()) + "\n" + getStatsMessage(result, statsResult);
+        String desc = getForfeitMessage(result.winner()) + "\n" + getStatsMessage(result, statsResult);
         embed.setDescription(desc);
 
         return new GameView(embed)
@@ -217,11 +217,11 @@ public class GameView {
     }
 
     public static GameView createResultSimulationView(Game game, Tile move, BufferedImage image) {
-        var result = game.createResult();
+        Game.Result result = game.createResult();
 
-        var embed = new EmbedBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
 
-        var desc = getMoveMessage(result.winner(), move.toString()) + getScoreMessage(game.getWhiteScore(), game.getBlackScore());
+        String desc = getMoveMessage(result.winner(), move.toString()) + getScoreMessage(game.getWhiteScore(), game.getBlackScore());
         embed.setDescription(desc);
 
         return new GameView(embed)

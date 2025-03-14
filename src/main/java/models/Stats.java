@@ -26,7 +26,7 @@ public class Stats {
     }
 
     public float winRate() {
-        var total = won + lost + drawn;
+        int total = won + lost + drawn;
         if (total == 0) {
             return 0f;
         }

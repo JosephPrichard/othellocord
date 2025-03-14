@@ -25,12 +25,12 @@ public class TTable {
         // each cache line has 2 elements, one being "replace by depth" and one being "replace always"
         this.cache = new Node[tableSize][2];
 
-        var tableLen = OthelloBoard.getBoardSize() * OthelloBoard.getBoardSize();
-        var generator = new Random();
+        int tableLen = OthelloBoard.getBoardSize() * OthelloBoard.getBoardSize();
+        Random generator = new Random();
         table = new int[tableLen][3];
-        for (var i = 0; i < tableLen; i++) {
-            for (var j = 0; j < 3; j++) {
-                var n = generator.nextInt();
+        for (int i = 0; i < tableLen; i++) {
+            for (int j = 0; j < 3; j++) {
+                int n = generator.nextInt();
                 table[i][j] = n >= 0 ? n : -n;
             }
         }
@@ -38,22 +38,22 @@ public class TTable {
 
     public long hash(OthelloBoard board) {
         long hash = 0;
-        for (var i = 0; i < table.length; i++) {
+        for (int i = 0; i < table.length; i++) {
             hash = hash ^ table[i][board.getSquare(i)];
         }
         return hash;
     }
 
     public void clear() {
-        for (var node : cache) {
+        for (Node[] node : cache) {
             node[0] = null;
             node[1] = null;
         }
     }
 
     public void put(Node node) {
-        var h = (int) (node.key() % cache.length);
-        var cacheLine = cache[h];
+        int h = (int) (node.key() % cache.length);
+        Node[] cacheLine = cache[h];
         // check if "replace by depth" is populated
         if (cacheLine[0] != null) {
             // populated, new node is better so we do replacement
@@ -72,10 +72,10 @@ public class TTable {
 
     @Nullable
     public Node get(long key) {
-        var h = (int) (key % cache.length);
-        var cacheLine = cache[h];
+        int h = (int) (key % cache.length);
+        Node[] cacheLine = cache[h];
 
-        for (var n : cacheLine) {
+        for (Node n : cacheLine) {
             if (n != null && n.key() == key) {
                 hits++;
                 return n;

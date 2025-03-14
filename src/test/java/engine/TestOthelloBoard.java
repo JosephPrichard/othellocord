@@ -23,7 +23,7 @@ public class TestOthelloBoard {
     @Test
     public void whenGetNotation_success() {
         othelloBoard.setSquare("c2", OthelloBoard.WHITE);
-        var color = othelloBoard.getSquare(1, 2);
+        byte color = othelloBoard.getSquare(1, 2);
 
         Assertions.assertEquals(OthelloBoard.WHITE, color);
     }
@@ -31,7 +31,7 @@ public class TestOthelloBoard {
     @Test
     public void whenSetNotation_success() {
         othelloBoard.setSquare(1, 2, OthelloBoard.WHITE);
-        var color = othelloBoard.getSquare("c2");
+        byte color = othelloBoard.getSquare("c2");
 
         Assertions.assertEquals(OthelloBoard.WHITE, color);
     }
@@ -39,7 +39,7 @@ public class TestOthelloBoard {
     @Test
     public void whenSetThenGet_success() {
         othelloBoard.setSquare(2, 3, OthelloBoard.WHITE);
-        var color = othelloBoard.getSquare(2, 3);
+        byte color = othelloBoard.getSquare(2, 3);
 
         Assertions.assertEquals(OthelloBoard.WHITE, color);
 
@@ -51,17 +51,17 @@ public class TestOthelloBoard {
 
     @Test
     public void whenGet_ifEmpty_beBlank() {
-        var color = othelloBoard.getSquare(2, 1);
+        byte color = othelloBoard.getSquare(2, 1);
 
         Assertions.assertEquals(OthelloBoard.EMPTY, color);
     }
 
     @Test
     public void whenFindPotentialMoves_success() {
-        var moves = othelloBoard.findPotentialMoves();
+        List<Tile> moves = othelloBoard.findPotentialMoves();
         moves.sort(Comparator.comparing(Tile::toString));
 
-        var expected = List.of(
+        List<Tile> expected = List.of(
             Tile.fromNotation("c4"),
             Tile.fromNotation("d3"),
             Tile.fromNotation("e6"),
@@ -72,8 +72,8 @@ public class TestOthelloBoard {
 
     @Test
     public void whenCountPotentialMoves_success() {
-        var whiteCount = othelloBoard.countPotentialMoves(OthelloBoard.WHITE);
-        var blackCount = othelloBoard.countPotentialMoves(OthelloBoard.BLACK);
+        int whiteCount = othelloBoard.countPotentialMoves(OthelloBoard.WHITE);
+        int blackCount = othelloBoard.countPotentialMoves(OthelloBoard.BLACK);
 
         Assertions.assertEquals(4, whiteCount);
         Assertions.assertEquals(4, blackCount);
@@ -81,8 +81,8 @@ public class TestOthelloBoard {
 
     @Test
     public void whenCountDiscs_success() {
-        var whiteCount = othelloBoard.countDiscs(OthelloBoard.WHITE);
-        var blackCount = othelloBoard.countDiscs(OthelloBoard.BLACK);
+        int whiteCount = othelloBoard.countDiscs(OthelloBoard.WHITE);
+        int blackCount = othelloBoard.countDiscs(OthelloBoard.BLACK);
 
         Assertions.assertEquals(2, whiteCount);
         Assertions.assertEquals(2, blackCount);

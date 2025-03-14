@@ -38,7 +38,7 @@ public class Game {
     }
 
     public static Game from(Game game) {
-        var copiedGame = new Game(OthelloBoard.from(game.board), game.blackPlayer, game.whitePlayer);
+        Game copiedGame = new Game(OthelloBoard.from(game.board), game.blackPlayer, game.whitePlayer);
         copiedGame.currPotentialMoves = game.currPotentialMoves;
         return copiedGame;
     }
@@ -67,7 +67,7 @@ public class Game {
         if (currPotentialMoves != null) {
             return currPotentialMoves;
         }
-        var potentialMoves = board.findPotentialMoves();
+        List<Tile> potentialMoves = board.findPotentialMoves();
         currPotentialMoves = potentialMoves;
         return potentialMoves;
     }
@@ -91,7 +91,7 @@ public class Game {
     }
 
     public Result createResult() {
-        var diff = getBlackScore() - getWhiteScore();
+        int diff = getBlackScore() - getWhiteScore();
         if (diff > 0) {
             return Result.WinLoss(blackPlayer, whitePlayer);
         } else if (diff < 0) {

@@ -6,19 +6,21 @@ package discord;
 
 import engine.BoardRenderer;
 import engine.OthelloBoard;
+import engine.Tile;
 import lombok.AllArgsConstructor;
 import models.Game;
 import models.Player;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import services.AgentDispatcher;
+import services.GameService;
 import utils.EventUtils;
 
+import java.awt.image.BufferedImage;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static models.Player.Bot.MAX_BOT_LEVEL;
 import static utils.LogUtils.LOGGER;
@@ -31,10 +33,10 @@ public class AgentHandler {
     private BotState state;
 
     public void handleAnalyze(SlashCommandInteraction event) {
-        var gameService = state.getGameService();
-        var agentDispatcher = state.getAgentDispatcher();
+        GameService gameService = state.getGameService();
+        AgentDispatcher agentDispatcher = state.getAgentDispatcher();
 
-        var level = EventUtils.getLongParam(event, "level");
+        Long level = EventUtils.getLongParam(event, "level");
         if (level == null) {
             level = 3L;
         }
@@ -45,27 +47,27 @@ public class AgentHandler {
             return;
         }
 
-        var player = new Player(event.getUser());
+        Player player = new Player(event.getUser());
 
-        var game = gameService.getGame(player);
+        Game game = gameService.getGame(player);
         if (game == null) {
             event.reply("You're not currently in a game.").queue();
             return;
         }
 
         // send starting message, then add queue an agent request, send back the results in a message when it's done
-        var depth = Player.Bot.getDepthFromId(level);
-        final var finalLevel = level;
+        int depth = Player.Bot.getDepthFromId(level);
+        final Long finalLevel = level;
         event.reply("Analyzing... Wait a second...")
             .queue(hook -> {
                 LOGGER.info("Starting board state analysis");
 
                 try {
-                    var future = agentDispatcher.findMoves(game.getBoard(), depth);
-                    var rankedMoves = future.get();
+                    Future<List<Tile.Move>> future = agentDispatcher.findMoves(game.getBoard(), depth);
+                    List<Tile.Move> rankedMoves = future.get();
 
-                    var image = BoardRenderer.drawBoardAnalysis(game.getBoard(), rankedMoves);
-                    var view = GameView.createAnalysisView(game, image, finalLevel, player);
+                    BufferedImage image = BoardRenderer.drawBoardAnalysis(game.getBoard(), rankedMoves);
+                    GameView view = GameView.createAnalysisView(game, image, finalLevel, player);
 
                     view.editUsingHook(hook);
                     LOGGER.info("Finished board state analysis");
@@ -79,29 +81,29 @@ public class AgentHandler {
         int depth = Player.Bot.getDepthFromId(initialGame.getCurrentPlayer().getId());
 
         state.getTaskExecutor().submit(() -> {
-            var game = initialGame;
+            Game game = initialGame;
 
-            var finished = false;
+            boolean finished = false;
             while (!finished) {
                 try {
-                    var board = game.getBoard();
-                    var future = state.getAgentDispatcher().findMove(board, depth);
-                    var bestMove = future.get();
+                    OthelloBoard board = game.getBoard();
+                    Future<Tile.Move> future = state.getAgentDispatcher().findMove(board, depth);
+                    Tile.Move bestMove = future.get();
 
-                    var nextGame = Game.from(game);
+                    Game nextGame = Game.from(game);
                     nextGame.makeMove(bestMove.tile());
 
-                    var image = BoardRenderer.drawBoardMoves(nextGame.getBoard());
+                    BufferedImage image = BoardRenderer.drawBoardMoves(nextGame.getBoard());
 
                     if (nextGame.isOver()) {
-                        var view = GameView.createResultSimulationView(nextGame, bestMove.tile(), image);
+                        GameView view = GameView.createResultSimulationView(nextGame, bestMove.tile(), image);
                         queue.put(Optional.of(view));
                         queue.put(Optional.empty());
 
                         LOGGER.info("Finished the game simulation: {}", id);
                         finished = true;
                     } else {
-                        var view = GameView.createSimulationView(nextGame, bestMove.tile(), image);
+                        GameView view = GameView.createSimulationView(nextGame, bestMove.tile(), image);
                         queue.put(Optional.of(view));
                         game = nextGame;
                     }
@@ -115,7 +117,7 @@ public class AgentHandler {
     private void simulationWaitLoop(BlockingQueue<Optional<GameView>> queue, long delay, InteractionHook hook) {
         Runnable scheduled = () -> {
             try {
-                var optView = queue.take();
+                Optional<GameView> optView = queue.take();
                 if (optView.isPresent()) {
                     // each completion callback will recursively schedule the next action
                     optView.get().editUsingHook(hook);
@@ -132,17 +134,17 @@ public class AgentHandler {
     }
 
     public void handleSimulate(SlashCommandInteraction event) {
-        var blackLevel = EventUtils.getLongParam(event, "black-level");
+        Long blackLevel = EventUtils.getLongParam(event, "black-level");
         if (blackLevel == null) {
             blackLevel = 3L;
         }
 
-        var whiteLevel = EventUtils.getLongParam(event, "white-level");
+        Long whiteLevel = EventUtils.getLongParam(event, "white-level");
         if (whiteLevel == null) {
             whiteLevel = 3L;
         }
 
-        var delay = EventUtils.getLongParam(event, "delay");
+        Long delay = EventUtils.getLongParam(event, "delay");
         if (delay == null) {
             delay = 1500L;
         }
@@ -153,13 +155,13 @@ public class AgentHandler {
             return;
         }
 
-        var startGame = new Game(OthelloBoard.initial(), Player.Bot.create(blackLevel), Player.Bot.create(whiteLevel));
+        Game startGame = new Game(OthelloBoard.initial(), Player.Bot.create(blackLevel), Player.Bot.create(whiteLevel));
 
-        var id = UUID.randomUUID().toString();
+        String id = UUID.randomUUID().toString();
         LOGGER.info("Starting the game simulation: {}", id);
 
-        var image = BoardRenderer.drawBoardMoves(startGame.getBoard());
-        var startView = GameView.createSimulationStartView(startGame, image);
+        BufferedImage image = BoardRenderer.drawBoardMoves(startGame.getBoard());
+        GameView startView = GameView.createSimulationStartView(startGame, image);
 
         EventUtils.replyView(event, startView, (hook) -> {
             BlockingQueue<Optional<GameView>> queue = new LinkedBlockingQueue<>();

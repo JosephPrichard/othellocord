@@ -2,6 +2,7 @@
  * Copyright (c) Joseph Prichard 2024.
  */
 
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -9,15 +10,17 @@ import utils.ConfigUtils;
 
 import javax.security.auth.login.LoginException;
 
+import java.io.InputStream;
+
 import static utils.LogUtils.LOGGER;
 
 public class UpdateCommands {
 
     public static void main(String[] args) throws LoginException, InterruptedException {
-        var envFile = Main.class.getResourceAsStream(".env");
-        var botToken = ConfigUtils.readJDAToken(envFile);
+        InputStream envFile = Main.class.getResourceAsStream(".env");
+        String botToken = ConfigUtils.readJDAToken(envFile);
 
-        var jda = JDABuilder.createLight(botToken, GatewayIntent.GUILD_MESSAGES)
+        JDA jda = JDABuilder.createLight(botToken, GatewayIntent.GUILD_MESSAGES)
             .addEventListeners(new OthelloBot())
             .setActivity(Activity.playing("Othello"))
             .build();

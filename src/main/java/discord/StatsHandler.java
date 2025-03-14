@@ -6,10 +6,14 @@ package discord;
 
 import lombok.AllArgsConstructor;
 import models.Player;
+import models.Stats;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
 
 import java.awt.*;
+import java.util.List;
 
 import static utils.LogUtils.LOGGER;
 import static utils.StringUtils.leftPad;
@@ -20,14 +24,14 @@ public class StatsHandler {
     private BotState state;
 
     public void handleLeaderboard(SlashCommandInteraction event) {
-        var statsList = state.getStatsService().readTopStats();
+        List<Stats> statsList = state.getStatsService().readTopStats();
 
-        var embed = new EmbedBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
 
-        var desc = new StringBuilder();
+        StringBuilder desc = new StringBuilder();
         desc.append("```");
-        var count = 1;
-        for (var stats : statsList) {
+        int count = 1;
+        for (Stats stats : statsList) {
             desc.append(rightPad(count + ")", 4))
                 .append(leftPad(stats.getPlayer().getName(), 32))
                 .append(leftPad(String.format("%.2f", stats.elo), 12))
@@ -45,14 +49,14 @@ public class StatsHandler {
     }
 
     public void handleStats(SlashCommandInteraction event) {
-        var userOpt = event.getOption("player");
-        var user = userOpt != null ? userOpt.getAsUser() : event.getUser();
+        OptionMapping userOpt = event.getOption("player");
+        User user = userOpt != null ? userOpt.getAsUser() : event.getUser();
 
-        var player = new Player(user);
+        Player player = new Player(user);
 
-        var stats = state.getStatsService().readStats(player);
+        Stats stats = state.getStatsService().readStats(player);
 
-        var embed = new EmbedBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
         embed.setColor(Color.GREEN)
             .setTitle(stats.player.getName() + "'s stats")
             .addField("Rating", Float.toString(stats.elo), false)
