@@ -5,10 +5,12 @@
 package models;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
+@Data
 @Entity
 @Table(name = "Stats", indexes = {@Index(name = "idx_elo", columnList = "elo")})
 @NoArgsConstructor
@@ -16,15 +18,23 @@ import javax.persistence.*;
 public class StatsEntity {
 
     @Id
-    public Long playerId;
+    private Long playerId;
     @Column(nullable = false)
-    public Float elo;
+    private Float elo;
     @Column(nullable = false)
-    public Integer won;
+    private Integer won;
     @Column(nullable = false)
-    public Integer lost;
+    private Integer lost;
     @Column(nullable = false)
-    public Integer drawn;
+    private Integer drawn;
+
+    public void incrementWon() {
+        won++;
+    }
+
+    public void incrementLost() {
+        lost++;
+    }
 
     public StatsEntity(Long playerId) {
         this(playerId, 0f, 0, 0, 0);

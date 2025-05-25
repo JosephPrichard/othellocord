@@ -10,6 +10,6 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class Challenge {
-    public Player challenged;
-    public Player challenger;
+    private Player challenged;
+    private Player challenger;
 }

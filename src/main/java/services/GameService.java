@@ -112,7 +112,7 @@ public class GameService {
     }
 
     public boolean isPlaying(Player player) {
-        return games.get(player.id).isPresent();
+        return games.get(player.getId()).isPresent();
     }
 
     // Responsible for making the given move on the player's game. Updates the game in the storage if

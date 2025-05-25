@@ -58,7 +58,7 @@ public class GameHandler {
 
     private void makeBotMove(SlashCommandInteraction event, Game game) {
         Player currPlayer = game.getCurrentPlayer();
-        int depth = Player.Bot.getDepthFromId(currPlayer.id);
+        int depth = Player.Bot.getDepthFromId(currPlayer.getId());
 
         try {
             // queue an agent request which will find the best move, make the move, and send back a response

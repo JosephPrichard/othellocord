@@ -34,7 +34,7 @@ public class StatsHandler {
         for (Stats stats : statsList) {
             desc.append(rightPad(count + ")", 4))
                 .append(leftPad(stats.getPlayer().getName(), 32))
-                .append(leftPad(String.format("%.2f", stats.elo), 12))
+                .append(leftPad(String.format("%.2f", stats.getElo()), 12))
                 .append("\n");
             count++;
         }
@@ -58,16 +58,16 @@ public class StatsHandler {
 
         EmbedBuilder embed = new EmbedBuilder();
         embed.setColor(Color.GREEN)
-            .setTitle(stats.player.getName() + "'s stats")
-            .addField("Rating", Float.toString(stats.elo), false)
+            .setTitle(stats.getPlayer().getName() + "'s stats")
+            .addField("Rating", Float.toString(stats.getElo()), false)
             .addField("Win Rate", stats.winRate() + "%", false)
-            .addField("Won", Integer.toString(stats.won), true)
-            .addField("Lost", Integer.toString(stats.lost), true)
-            .addField("Drawn", Integer.toString(stats.drawn), true)
+            .addField("Won", Integer.toString(stats.getWon()), true)
+            .addField("Lost", Integer.toString(stats.getLost()), true)
+            .addField("Drawn", Integer.toString(stats.getDrawn()), true)
             .setThumbnail(user.getAvatarUrl());
 
         event.replyEmbeds(embed.build()).queue();
 
-        LOGGER.info("Retrieved stats for {}", stats.player);
+        LOGGER.info("Retrieved stats for {}", stats.getPlayer());
     }
 }

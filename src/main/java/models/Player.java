@@ -12,11 +12,11 @@ import net.dv8tion.jda.api.entities.User;
 @Data
 @AllArgsConstructor
 public class Player {
-    public long id;
+    private long id;
     @EqualsAndHashCode.Exclude
-    public String name;
+    private String name;
 
-    public Player(long id) {
+    private Player(long id) {
         this(id, "");
     }
 

@@ -10,19 +10,19 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class Stats {
-    public Player player;
-    public float elo;
-    public int won;
-    public int lost;
-    public int drawn;
+    private Player player;
+    private float elo;
+    private int won;
+    private int lost;
+    private int drawn;
 
     public Stats(Player player) {
         this(player, 0f, 0, 0, 0);
     }
 
     public Stats(StatsEntity statsEntity, String playerName) {
-        this(new Player(statsEntity.playerId, playerName), statsEntity.elo,
-            statsEntity.won, statsEntity.lost, statsEntity.drawn);
+        this(new Player(statsEntity.getPlayerId(), playerName), statsEntity.getElo(),
+            statsEntity.getWon(), statsEntity.getLost(), statsEntity.getDrawn());
     }
 
     public float winRate() {

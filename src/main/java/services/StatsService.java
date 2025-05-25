@@ -24,9 +24,9 @@ public class StatsService {
     private final UserFetcher userFetcher;
 
     public Stats readStats(Player player) {
-        StatsEntity statsEntity = statsDao.getOrSaveStats(player.id);
+        StatsEntity statsEntity = statsDao.getOrSaveStats(player.getId());
         // we assume the tag can be loaded, so we throw an exception if it cannot be read
-        String tag = userFetcher.fetchUsername(statsEntity.playerId).join();
+        String tag = userFetcher.fetchUsername(statsEntity.getPlayerId()).join();
         return new Stats(statsEntity, tag);
     }
 
@@ -36,8 +36,8 @@ public class StatsService {
         // fetch each tag and wait til each fetch operation is complete
         List<CompletableFuture<String>> futures = statsEntityList
             .stream()
-            .map((entity) -> Player.Bot.isBotId(entity.playerId)
-                ? CompletableFuture.<String>completedFuture(null) : userFetcher.fetchUsername(entity.playerId))
+            .map((entity) -> Player.Bot.isBotId(entity.getPlayerId())
+                ? CompletableFuture.<String>completedFuture(null) : userFetcher.fetchUsername(entity.getPlayerId()))
             .toList();
 
         List<Stats> statsList = new ArrayList<>();
@@ -47,7 +47,7 @@ public class StatsService {
 
             String tag = future.join();
             if (tag == null) {
-                tag = Player.Bot.name(statsEntity.playerId);
+                tag = Player.Bot.name(statsEntity.getPlayerId());
             }
 
             statsList.add(new Stats(statsEntity, tag));
@@ -69,29 +69,29 @@ public class StatsService {
     }
 
     public Stats.Result writeStats(Game.Result result) {
-        StatsEntity win = statsDao.getOrSaveStats(result.winner().id);
-        StatsEntity loss = statsDao.getOrSaveStats(result.loser().id);
+        StatsEntity win = statsDao.getOrSaveStats(result.winner().getId());
+        StatsEntity loss = statsDao.getOrSaveStats(result.loser().getId());
 
         if (result.isDraw() || result.winner().equals(result.loser())) {
             // draw games don't need to update the elo, nor do games against self
-            Stats.Result stats = new Stats.Result(win.elo, loss.elo, 0, 0);
+            Stats.Result stats = new Stats.Result(win.getElo(), loss.getElo(), 0, 0);
             LOGGER.info("Wrote stats with result: {}", stats);
             return stats;
         }
 
-        Float winEloBefore = win.elo;
-        Float lossEloBefore = loss.elo;
-        win.elo = eloWon(win.elo, probability(loss.elo, win.elo));
-        loss.elo = eloLost(loss.elo, probability(win.elo, loss.elo));
-        win.won += 1;
-        loss.lost += 1;
+        Float winEloBefore = win.getElo();
+        Float lossEloBefore = loss.getElo();
+        win.setElo(eloWon(win.getElo(), probability(loss.getElo(), win.getElo())));
+        loss.setElo(eloLost(loss.getElo(), probability(win.getElo(), loss.getElo())));
+        win.incrementWon();
+        loss.incrementLost();
 
         statsDao.updateStats(win, loss);
 
-        float winDiff = win.elo - winEloBefore;
-        float lossDiff = loss.elo - lossEloBefore;
+        float winDiff = win.getElo() - winEloBefore;
+        float lossDiff = loss.getElo() - lossEloBefore;
 
-        Stats.Result stats = new Stats.Result(win.elo, loss.elo, winDiff, lossDiff);
+        Stats.Result stats = new Stats.Result(win.getElo(), loss.getElo(), winDiff, lossDiff);
         LOGGER.info("Wrote stats with result: {}", stats);
         return stats;
     }
