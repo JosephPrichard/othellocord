@@ -18,11 +18,9 @@ import java.util.List;
 
 @AllArgsConstructor
 public class AutoCompleteHandler {
-    private BotState state;
+    private GameService gameService;
 
     public void handleMove(CommandAutoCompleteInteraction interaction) {
-        GameService gameService = state.getGameService();
-
         Player player = new Player(interaction.getUser());
 
         Game game = gameService.getGame(player);

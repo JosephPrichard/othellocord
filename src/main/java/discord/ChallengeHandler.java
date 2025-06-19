@@ -21,12 +21,10 @@ import static utils.LogUtils.LOGGER;
 
 @AllArgsConstructor
 public class ChallengeHandler {
-    private BotState state;
+    private GameService gameService;
+    private ChallengeScheduler challengeScheduler;
 
     public void handleAccept(SlashCommandInteraction event) {
-        GameService gameService = state.getGameService();
-        ChallengeScheduler challengeScheduler = state.getChallengeScheduler();
-
         Player opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "challenger"));
         Player player = new Player(event.getUser());
 
@@ -57,8 +55,6 @@ public class ChallengeHandler {
     }
 
     private void handleBotChallenge(SlashCommandInteraction event) {
-        GameService gameService = state.getGameService();
-
         Long level = EventUtils.getLongParam(event, "level");
         if (level == null) {
             level = 3L;
@@ -85,8 +81,6 @@ public class ChallengeHandler {
     }
 
     private void handleUserChallenge(SlashCommandInteraction event) {
-        ChallengeScheduler challengeScheduler = state.getChallengeScheduler();
-
         Player opponent = Objects.requireNonNull(EventUtils.getPlayerParam(event, "opponent"));
 
         Player player = new Player(event.getUser());

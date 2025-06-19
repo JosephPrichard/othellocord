@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import services.StatsService;
 
 import java.awt.*;
 import java.util.List;
@@ -21,10 +22,10 @@ import static utils.StringUtils.rightPad;
 
 @AllArgsConstructor
 public class StatsHandler {
-    private BotState state;
+    private StatsService statsService;
 
     public void handleLeaderboard(SlashCommandInteraction event) {
-        List<Stats> statsList = state.getStatsService().readTopStats();
+        List<Stats> statsList = statsService.readTopStats();
 
         EmbedBuilder embed = new EmbedBuilder();
 
@@ -54,7 +55,7 @@ public class StatsHandler {
 
         Player player = new Player(user);
 
-        Stats stats = state.getStatsService().readStats(player);
+        Stats stats = statsService.readStats(player);
 
         EmbedBuilder embed = new EmbedBuilder();
         embed.setColor(Color.GREEN)

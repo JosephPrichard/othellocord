@@ -12,6 +12,7 @@ import models.Game;
 import models.Player;
 import models.Stats;
 import net.dv8tion.jda.api.interactions.commands.SlashCommandInteraction;
+import services.AgentDispatcher;
 import services.GameService;
 import services.StatsService;
 import utils.EventUtils;
@@ -26,10 +27,12 @@ import static utils.LogUtils.LOGGER;
 
 @AllArgsConstructor
 public class GameHandler {
-    private BotState state;
+    private GameService gameService;
+    private StatsService statsService;
+    private AgentDispatcher agentDispatcher;
 
     public void handleView(SlashCommandInteraction event) {
-        GameService gameService = state.getGameService();
+
         Player player = new Player(event.getUser());
 
         Game game = gameService.getGame(player);
@@ -50,7 +53,7 @@ public class GameHandler {
 
     private GameView handleGameOver(Game game, Tile move) {
         Game.Result result = game.createResult();
-        Stats.Result statsResult = state.getStatsService().writeStats(result);
+        Stats.Result statsResult = statsService.writeStats(result);
 
         BufferedImage image = BoardRenderer.drawBoard(game.getBoard());
         return GameView.createGameOverView(result, statsResult, move, game, image);
@@ -62,10 +65,10 @@ public class GameHandler {
 
         try {
             // queue an agent request which will find the best move, make the move, and send back a response
-            Future<Tile.Move> future = state.getAgentDispatcher().findMove(game.getBoard(), depth);
+            Future<Tile.Move> future = agentDispatcher.findMove(game.getBoard(), depth);
             Tile.Move bestMove = future.get();
 
-            Game newGame = state.getGameService().makeMove(currPlayer, bestMove.tile());
+            Game newGame = gameService.makeMove(currPlayer, bestMove.tile());
 
             GameView view = newGame.isOver() ?
                 handleGameOver(newGame, bestMove.tile()) :
@@ -87,7 +90,7 @@ public class GameHandler {
 
         Tile move = Tile.fromNotation(strMove);
         try {
-            Game game = state.getGameService().makeMove(player, move);
+            Game game = gameService.makeMove(player, move);
             LOGGER.info("{} made move on game {} to {}", player, game, move);
 
             if (game.isOver()) {
@@ -114,9 +117,6 @@ public class GameHandler {
     }
 
     public void handleForfeit(SlashCommandInteraction event) {
-        GameService gameService = state.getGameService();
-        StatsService statsService = state.getStatsService();
-
         Player player = new Player(event.getUser());
 
         Game game = gameService.getGame(player);

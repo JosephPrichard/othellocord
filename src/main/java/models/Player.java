@@ -16,8 +16,12 @@ public class Player {
     @EqualsAndHashCode.Exclude
     private String name;
 
-    private Player(long id) {
+    public Player(long id) {
         this(id, "");
+    }
+
+    public Player(int id) {
+        this((long) id);
     }
 
     public Player(User user) {

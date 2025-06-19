@@ -82,8 +82,8 @@ public class TestStatsService {
         Stats.Result statsRes = statsService.writeStats(result);
 
         verify(mock_statsDao).updateStats(
-            argThat((arg) -> arg.won == 2 && arg.lost == 1),
-            argThat((arg) -> arg.won == 1 && arg.lost == 2));
+            argThat((arg) -> arg.getWon() == 2 && arg.getLost() == 1),
+            argThat((arg) -> arg.getWon() == 1 && arg.getLost() == 2));
 
         Assertions.assertEquals(1015f, statsRes.winnerElo() - statsRes.winnerEloDiff());
         Assertions.assertEquals(1015f, statsRes.loserElo() - statsRes.loserEloDiff());

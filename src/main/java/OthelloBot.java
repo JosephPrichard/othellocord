@@ -12,18 +12,22 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import services.*;
 
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static discord.AgentHandler.MAX_DELAY;
 import static discord.AgentHandler.MIN_DELAY;
 import static models.Player.Bot.MAX_BOT_LEVEL;
 import static utils.LogUtils.LOGGER;
+import static utils.ThreadUtils.CORES;
+import static utils.ThreadUtils.createThreadFactory;
 
 public class OthelloBot extends ListenerAdapter {
 
-    private BotState state;
+    private ExecutorService taskExecutor;
     private StatsHandler statsHandler;
     private GameHandler gameHandler;
     private AgentHandler agentHandler;
@@ -31,12 +35,25 @@ public class OthelloBot extends ListenerAdapter {
     private AutoCompleteHandler autoCompleteHandler;
 
     public void init(JDA jda) {
-        state = new BotState(jda);
-        statsHandler = new StatsHandler(state);
-        gameHandler = new GameHandler(state);
-        agentHandler = new AgentHandler(state);
-        challengeHandler = new ChallengeHandler(state);
-        autoCompleteHandler = new AutoCompleteHandler(state);
+        DataSource dataSource = new DataSource();
+        ThreadPoolExecutor cpuBndExecutor = new ThreadPoolExecutor(CORES / 2, CORES / 2,
+                0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), createThreadFactory("CPU-Bnd-Pool"));
+        StatsDao statsDao = new StatsDao(dataSource);
+
+        taskExecutor = Executors.newCachedThreadPool(createThreadFactory("Task-Pool"));
+
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, createThreadFactory("Schedule-Pool"));
+        UserFetcher userFetcher = UserFetcher.usingDiscord(jda);
+        AgentDispatcher agentDispatcher = new AgentDispatcher(cpuBndExecutor);
+        StatsService statsService = new StatsService(statsDao, userFetcher);
+        GameService gameService = new GameService(statsService);
+        ChallengeScheduler challengeScheduler = new ChallengeScheduler();
+
+        statsHandler = new StatsHandler(statsService);
+        gameHandler = new GameHandler(gameService, statsService, agentDispatcher);
+        agentHandler = new AgentHandler(gameService, agentDispatcher, scheduler, taskExecutor);
+        challengeHandler = new ChallengeHandler(gameService, challengeScheduler);
+        autoCompleteHandler = new AutoCompleteHandler(gameService);
     }
 
     public static List<SlashCommandData> getCommandData() {
@@ -102,7 +119,7 @@ public class OthelloBot extends ListenerAdapter {
         };
 
         if (handler != null) {
-            state.getTaskExecutor().submit(() -> {
+            taskExecutor.submit(() -> {
                 try {
                     handler.accept(event);
                 } catch (Exception ex) {

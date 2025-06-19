@@ -30,12 +30,12 @@ public class AgentHandler {
     public static final long MAX_DELAY = 5000L;
     public static final long MIN_DELAY = 1000L;
 
-    private BotState state;
+    private GameService gameService;
+    private AgentDispatcher agentDispatcher;
+    private ScheduledExecutorService scheduler;
+    private ExecutorService taskExecutor;
 
     public void handleAnalyze(SlashCommandInteraction event) {
-        GameService gameService = state.getGameService();
-        AgentDispatcher agentDispatcher = state.getAgentDispatcher();
-
         Long level = EventUtils.getLongParam(event, "level");
         if (level == null) {
             level = 3L;
@@ -80,14 +80,14 @@ public class AgentHandler {
     private void simulationGameLoop(Game initialGame, BlockingQueue<Optional<GameView>> queue, String id) {
         int depth = Player.Bot.getDepthFromId(initialGame.getCurrentPlayer().getId());
 
-        state.getTaskExecutor().submit(() -> {
+        taskExecutor.submit(() -> {
             Game game = initialGame;
 
             boolean finished = false;
             while (!finished) {
                 try {
                     OthelloBoard board = game.getBoard();
-                    Future<Tile.Move> future = state.getAgentDispatcher().findMove(board, depth);
+                    Future<Tile.Move> future = agentDispatcher.findMove(board, depth);
                     Tile.Move bestMove = future.get();
 
                     Game nextGame = Game.from(game);
@@ -130,7 +130,7 @@ public class AgentHandler {
             }
         };
         // wait at least 1 second before we process each element to avoid overloading a Discord text channel
-        state.getScheduler().schedule(scheduled, delay, TimeUnit.MILLISECONDS);
+        scheduler.schedule(scheduled, delay, TimeUnit.MILLISECONDS);
     }
 
     public void handleSimulate(SlashCommandInteraction event) {
