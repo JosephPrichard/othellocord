@@ -21,7 +21,7 @@ type Tile struct {
 
 type Move struct {
 	Tile
-	piece byte
+	H float64
 }
 
 type Board struct {
