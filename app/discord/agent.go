@@ -2,7 +2,7 @@ package discord
 
 import (
 	"log/slog"
-	"othellocord-go/app/othello"
+	"othellocord/app/othello"
 )
 
 const (

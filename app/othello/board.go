@@ -221,9 +221,9 @@ func (b *Board) GetSquare(row, col int) byte {
 	if row >= HalfSize {
 		x = row - HalfSize
 	}
-	p := (x*BoardSize + col) * 2
+	p := uint64((x*BoardSize + col) * 2)
 
-	mask := byte((1 << 2) - 1)
+	mask := uint64((1 << 2) - 1)
 	if row < HalfSize {
 		return byte((b.boardA >> p) & mask)
 	}

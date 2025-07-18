@@ -1,6 +1,7 @@
 package othello
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/golang/freetype/truetype"
 	"github.com/llgcode/draw2d"
@@ -13,46 +14,47 @@ import (
 	"strconv"
 )
 
+//go:embed fonts/Courier.ttf
+var TtfFont []byte
+
 const (
 	DiscSize      = 100
 	LineThickness = 4
 	SideOffset    = 40
-	TileSize      = DiscSize * LineThickness
-	DotSize       = 16
-	TopLeft       = 5
+	TileSize      = DiscSize + LineThickness
+	DotSize       = 8
+	TopLeft       = 4
+	SideFont      = 25.0
+	AnalysisFont  = 23.0
 )
 
 var (
 	GreenColor   = color.RGBA{R: 82, G: 127, B: 85, A: 255}
 	BlackColor   = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	CyanColor    = color.RGBA{R: 255, G: 255, B: 0, A: 255}
-	YellowColor  = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+	CyanColor    = color.RGBA{R: 0, G: 255, B: 255, A: 255}
+	YellowColor  = color.RGBA{R: 255, G: 255, B: 0, A: 255}
 	OutlineColor = color.RGBA{R: 40, G: 40, B: 40, A: 255}
 	BlackFill    = color.RGBA{R: 20, G: 20, B: 20, A: 255}
 	WhiteFill    = color.RGBA{R: 250, G: 250, B: 250, A: 255}
-	NoFill       = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	FontSize     = 28.0
+	NoFill       = color.RGBA{R: 0, G: 0, B: 0, A: 0}
+	FontData     = draw2d.FontData{Name: "Courier"}
 	DotLocations = [][]int{{2, 2}, {6, 6}, {2, 6}, {6, 2}}
 )
 
 type Fonts struct {
-	Font        *truetype.Font
-	FontExtents draw2dimg.FontExtents
+	Font     *truetype.Font
+	FontData draw2d.FontData
 }
 
-func NewFonts() Fonts {
-	fontData := draw2d.FontData{Name: "Courier", Family: draw2d.FontFamilyMono, Style: draw2d.FontStyleBold}
-	font := draw2d.GetFont(fontData)
-	if font == nil {
-		panic(fmt.Sprintf("could not get font: %v", fontData))
+func init() {
+	font, err := truetype.Parse(TtfFont)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create font: %v", err))
 	}
-	return Fonts{
-		Font:        font,
-		FontExtents: draw2dimg.Extents(font, FontSize),
-	}
+	draw2d.RegisterFont(FontData, font)
 }
 
-type Renderer struct {
+type RenderCache struct {
 	whiteDisc  image.Image
 	blackDisc  image.Image
 	noDisc     image.Image
@@ -60,46 +62,45 @@ type Renderer struct {
 	fonts      Fonts
 }
 
-func NewRenderer() Renderer {
-	fonts := NewFonts()
-	return Renderer{
-		whiteDisc:  drawDisc(WhiteFill, 1.0),
-		blackDisc:  drawDisc(BlackFill, 1.0),
-		noDisc:     drawDisc(NoFill, 2.0),
-		background: drawBackground(fonts, BoardSize),
-		fonts:      fonts,
+func NewRenderCache() RenderCache {
+	return RenderCache{
+		whiteDisc:  DrawDisc(WhiteFill, 2.0),
+		blackDisc:  DrawDisc(BlackFill, 2.0),
+		noDisc:     DrawDisc(NoFill, 3.0),
+		background: drawBackground(BoardSize),
 	}
 }
 
-func (r Renderer) DrawBoard(board Board) image.Image {
-	return r.DrawBoardMoves(board, nil)
+func DrawBoard(r RenderCache, board Board) image.Image {
+	return DrawBoardMoves(r, board, nil)
 }
 
-func (r Renderer) DrawBoardMoves(board Board, moves []Tile) image.Image {
+func DrawBoardMoves(r RenderCache, board Board, moves []Tile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
-	r.DrawBoardDiscs(board, img)
+	DrawBoardDiscs(r, board, img)
 
 	// draw each move image onto the board
 	for _, move := range moves {
-		x := SideOffset + LineThickness + move.Col*TileSize
-		y := SideOffset + LineThickness + move.Row*TileSize
-		draw.Draw(img, r.noDisc.Bounds(), r.noDisc, image.Point{X: x, Y: y}, draw.Over)
+		x := SideOffset + move.Col*TileSize - (LineThickness / 2)
+		y := SideOffset + move.Row*TileSize - (LineThickness / 2)
+		rect := image.Rect(x, y, x+r.noDisc.Bounds().Dx(), y+r.noDisc.Bounds().Dy())
+		draw.Draw(img, rect, r.noDisc, image.Point{X: 0, Y: 0}, draw.Over)
 	}
 
 	return img
 }
 
-func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []Move) image.Image {
+func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []Move) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
-	r.DrawBoardDiscs(board, img)
+	DrawBoardDiscs(r, board, img)
 
 	g := draw2dimg.NewGraphicContext(img)
 
 	// draw each heuristic eval onto the board
 	for i, move := range bestMoves {
-		hText := fmt.Sprintf("%f", move.H)
+		hText := fmt.Sprintf("%.1f", move.H)
 		minLen := 5.0
 		if move.H >= 0.0 {
 			minLen = 4.0
@@ -115,78 +116,86 @@ func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []Move) image.Image {
 
 		x := SideOffset + move.Col*TileSize
 		y := SideOffset + move.Row*TileSize
-		drawCenterString(g, r.fonts, hText, x, y, TileSize, TileSize)
+		drawCenterString(g, AnalysisFont, hText, x, y, TileSize, TileSize)
 	}
 
 	return img
 }
 
-func (r Renderer) DrawBoardDiscs(board Board, img draw.Image) {
+func DrawBoardDiscs(r RenderCache, board Board, img draw.Image) {
 	draw.Draw(img, r.background.Bounds(), r.background, image.Point{X: 0, Y: 0}, draw.Over)
 
 	// draw discs onto board, either empty, black, or white
 	for _, tile := range tiles {
-		point := image.Point{
-			X: SideOffset + LineThickness + tile.Col*TileSize,
-			Y: SideOffset + LineThickness + tile.Row*TileSize,
-		}
+		x := SideOffset + tile.Col*TileSize - (LineThickness / 2)
+		y := SideOffset + tile.Row*TileSize - (LineThickness / 2)
 		// determine which bitmap belongs in the tile slot
 		disc := board.GetSquareByTile(tile)
+
+		var discImg image.Image
 		if disc == Black {
-			draw.Draw(img, r.blackDisc.Bounds(), r.blackDisc, point, draw.Over)
+			discImg = r.blackDisc
 		} else if disc == White {
-			draw.Draw(img, r.whiteDisc.Bounds(), r.whiteDisc, point, draw.Over)
+			discImg = r.whiteDisc
+		}
+
+		if discImg != nil {
+			rect := image.Rect(x, y, x+discImg.Bounds().Dx(), y+discImg.Bounds().Dy())
+			draw.Draw(img, rect, discImg, image.Point{X: 0, Y: 0}, draw.Over)
 		}
 	}
 }
 
-func drawBackground(fonts Fonts, boardSize int) image.Image {
+func drawBackground(boardSize int) image.Image {
 	width := TileSize*boardSize + LineThickness + SideOffset
 	height := TileSize*boardSize + LineThickness + SideOffset
 
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	g := draw2dimg.NewGraphicContext(img)
 
-	for x := SideOffset; x < width; x++ {
-		for y := SideOffset; y < height; y++ {
-			img.Set(x, y, GreenColor)
-		}
-	}
+	g.SetFillColor(BlackColor)
+	draw2dkit.Rectangle(g, 0, 0, float64(width), float64(height))
+	g.FillStroke()
+
+	g.SetFillColor(GreenColor)
+	draw2dkit.Rectangle(g, SideOffset, SideOffset, float64(width-LineThickness), float64(height-LineThickness))
+	g.FillStroke()
+
+	g.SetLineWidth(LineThickness)
+	g.SetFillColor(BlackColor)
 
 	// draw black horizontal lines
 	for i := 0; i < boardSize+1; i++ {
-		for x := SideOffset; x < width; x++ {
-			y := i*TileSize + SideOffset
-			for j := 0; j < LineThickness; j++ {
-				img.Set(x, y+j, BlackColor)
-			}
-		}
+		y := float64(i*TileSize + SideOffset)
+		g.MoveTo(SideOffset, y)
+		g.LineTo(float64(width), y)
+		g.Close()
+		g.FillStroke()
 	}
 
 	// draw black vertical lines
 	for i := 0; i < boardSize+1; i++ {
-		for y := SideOffset; y < height; y++ {
-			x := i*TileSize + SideOffset
-			for j := 0; j < LineThickness; j++ {
-				img.Set(x+j, y, BlackColor)
-			}
-		}
+		x := float64(i*TileSize + SideOffset)
+		g.MoveTo(x, SideOffset)
+		g.LineTo(x, float64(height))
+		g.Close()
+		g.FillStroke()
 	}
 
-	g := draw2dimg.NewGraphicContext(img)
 	g.SetFillColor(WhiteFill)
 
 	// draw letters on horizontal sidebar
 	for i := 0; i < boardSize; i++ {
 		text := string(rune(i) + 'A')
 		x := SideOffset + i*TileSize
-		drawCenterString(g, fonts, text, x, 0, TileSize, SideOffset)
+		drawCenterString(g, SideFont, text, x, 0, TileSize, SideOffset)
 	}
 
 	// draw numbers on vertical sidebar
 	for i := 0; i < boardSize; i++ {
 		text := strconv.Itoa(i + 1)
 		y := SideOffset + i*TileSize
-		drawCenterString(g, fonts, text, 0, y, SideOffset, TileSize)
+		drawCenterString(g, SideFont, text, 0, y, SideOffset, TileSize)
 	}
 
 	g.SetFillColor(BlackFill)
@@ -194,37 +203,42 @@ func drawBackground(fonts Fonts, boardSize int) image.Image {
 		// fills an oval, the x,y is subtracted by the dot size and line thickness to center it
 		col := location[0]
 		row := location[1]
-		x := SideOffset + col*TileSize - DotSize/2 + LineThickness/2
-		y := SideOffset + row*TileSize - DotSize/2 + LineThickness/2
+		x := SideOffset + col*TileSize
+		y := SideOffset + row*TileSize
+
 		draw2dkit.Circle(g, float64(x), float64(y), DotSize)
+		g.FillStroke()
 	}
 
 	return img
 }
 
-func drawCenterString(g *draw2dimg.GraphicContext, fonts Fonts, text string, x, y, width, height int) {
-	g.SetFont(fonts.Font)
-	g.SetFontSize(FontSize)
+func drawCenterString(g *draw2dimg.GraphicContext, fontSize float64, text string, x, y, width, height int) {
+	g.SetFontData(FontData)
+	g.SetFontSize(fontSize)
 
-	left, _, right, _ := g.GetStringBounds(text)
+	left, top, right, bottom := g.GetStringBounds(text)
 	strWidth := right - left
+	strHeight := top - bottom
 	// Determine the X coordinate for the text
 	xDraw := float64(x) + (float64(width)-strWidth)/2
-	// Determine the Y coordinate for the text (note we add the ascent, as in java 2d 0 is top of the screen)
-	yDraw := float64(y) + ((float64(height) - fonts.FontExtents.Height) / 2) + fonts.FontExtents.Ascent
+	// Determine the Y coordinate for the text (note we add the ascent, as 2d 0 is top of the screen)
+	yDraw := float64(y) + ((float64(height) - strHeight) / 2)
 
 	g.FillStringAt(text, xDraw, yDraw)
 }
 
-func drawDisc(fillColor color.RGBA, thickness float64) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, DiscSize, DiscSize))
+func DrawDisc(fillColor color.RGBA, thickness float64) image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, TileSize, TileSize))
 
 	g := draw2dimg.NewGraphicContext(img)
 
 	g.SetFillColor(fillColor)
 	g.SetStrokeColor(OutlineColor)
 	g.SetLineWidth(thickness)
-	draw2dkit.Circle(g, float64(TopLeft), float64(TopLeft), DiscSize-TopLeft*2)
+
+	draw2dkit.Circle(g, float64(LineThickness/2+TileSize/2), LineThickness/2+float64(TileSize/2), TileSize/2-6)
+	g.FillStroke()
 
 	return img
 }

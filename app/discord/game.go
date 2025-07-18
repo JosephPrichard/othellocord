@@ -8,7 +8,7 @@ import (
 	"github.com/allegro/bigcache/v2"
 	cache2 "github.com/eko/gocache/lib/v4/cache"
 	"log/slog"
-	"othellocord-go/app/othello"
+	"othellocord/app/othello"
 	"sync"
 )
 
