@@ -18,6 +18,10 @@ type Stats struct {
 	Lost   int
 }
 
+func (s Stats) WinRate() string {
+	return fmt.Sprintf("%%%0.2f", float64(s.Won)/float64(s.Won+s.Lost+s.Drawn)*100)
+}
+
 func InsertOrIgnoreStats(ctx context.Context, db *sql.DB, stats Stats) error {
 	trace := ctx.Value("trace")
 
@@ -42,7 +46,7 @@ type Query interface {
 	Query(query string, args ...any) (*sql.Rows, error)
 }
 
-func GetStats(ctx context.Context, q Query, playerId uint64) (Stats, error) {
+func GetStats(ctx context.Context, q Query, playerId string) (Stats, error) {
 	trace := ctx.Value("trace")
 
 	rows, err := q.Query("SELECT player_id, Elo, Won, Lost, Drawn) FROM stats WHERE player_id = ?;", playerId)
@@ -68,7 +72,7 @@ func GetStats(ctx context.Context, q Query, playerId uint64) (Stats, error) {
 	return stats, nil
 }
 
-func GetOrInsertStats(ctx context.Context, db *sql.DB, playerId uint64) (Stats, error) {
+func GetOrInsertStats(ctx context.Context, db *sql.DB, playerId string) (Stats, error) {
 	defaultStats := Stats{
 		Player: Player{Id: playerId},
 		Elo:    0,
@@ -214,7 +218,7 @@ func eloLost(rating, probability float64) float64 {
 	return rating - EloK*probability
 }
 
-func ReadStats(ctx context.Context, db *sql.DB, c UserCache, playerId uint64) (Stats, error) {
+func ReadStats(ctx context.Context, db *sql.DB, c UserCache, playerId string) (Stats, error) {
 	stats, err := GetOrInsertStats(ctx, db, playerId)
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to read stats: %v", err)

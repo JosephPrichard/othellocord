@@ -12,44 +12,51 @@ import (
 )
 
 type Player struct {
-	Id   uint64
+	Id   string
 	Name string
 }
 
 const MaxBotLevel = 6
 
-func GetBotName(playerId uint64) string {
-	if playerId <= MaxBotLevel {
-		return fmt.Sprintf("OthelloBot level %d", playerId)
+func GetBotName(playerId string) string {
+	if id, err := strconv.Atoi(playerId); err != nil && id <= MaxBotLevel {
+		return fmt.Sprintf("OthelloBot level %d", id)
 	}
 	return ""
 }
 
 type UserCache struct {
-	cache *cache2.Cache[string]
+	cache *cache2.Cache[*discordgo.User]
 	d     *discordgo.Session
 }
 
-func FetchUsername(ctx context.Context, c UserCache, playerId uint64) (string, error) {
+func FetchUsername(ctx context.Context, c UserCache, playerId string) (string, error) {
+	user, err := FetchUser(ctx, c, playerId)
+	if err != nil || user == nil {
+		return "", err
+	}
+	return user.Username, nil
+}
+
+func FetchUser(ctx context.Context, c UserCache, playerId string) (*discordgo.User, error) {
 	trace := ctx.Value("trace")
 
-	idStr := strconv.FormatUint(playerId, 10)
-	username, err := c.cache.Get(ctx, idStr)
+	user, err := c.cache.Get(ctx, playerId)
 
-	if errors.Is(err, bigcache.ErrEntryNotFound) {
-		user, err := c.d.User(idStr)
+	if errors.Is(err, bigcache.ErrEntryNotFound) || user == nil {
+		user, err := c.d.User(playerId)
 		if err != nil {
-			slog.Error("failed to fetch username from discord", "trace", trace, "error", err)
-			return "", err
+			slog.Error("failed to fetch user from discord", "trace", trace, "error", err)
+			return nil, err
 		}
-		if err := c.cache.Set(ctx, idStr, user.Username); err != nil {
-			slog.Error("failed to set username in cache", "trace", trace, "error", err)
+		if err := c.cache.Set(ctx, playerId, user); err != nil {
+			slog.Error("failed to set user in cache", "trace", trace, "error", err)
 		}
-		return user.Username, nil
+		return user, nil
 	} else if err != nil {
-		slog.Error("failed to get username from cache", "trace", trace, "error", err)
-		return username, err
+		slog.Error("failed to get user from cache", "trace", trace, "error", err)
+		return user, err
 	}
 
-	return username, nil
+	return user, nil
 }
