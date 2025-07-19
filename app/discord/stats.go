@@ -19,20 +19,25 @@ type Stats struct {
 }
 
 func (s Stats) WinRate() string {
-	return fmt.Sprintf("%%%0.2f", float64(s.Won)/float64(s.Won+s.Lost+s.Drawn)*100)
+	wr := 0.0
+	total := s.Won + s.Lost + s.Drawn
+	if total > 0 {
+		wr = float64(s.Won) / float64(s.Won+s.Lost+s.Drawn)
+	}
+	return fmt.Sprintf("%%%0.2f", wr)
 }
 
 func InsertOrIgnoreStats(ctx context.Context, db *sql.DB, stats Stats) error {
 	trace := ctx.Value("trace")
 
-	_, err := db.Exec("INSERT OR IGNORE INTO STATS (player_id, Elo, Won, Lost, Drawn) (?, ?, ?, ?, ?);",
+	_, err := db.Exec("INSERT OR IGNORE INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
 		stats.Player.Id,
 		stats.Elo,
 		stats.Won,
 		stats.Lost,
 		stats.Drawn)
 	if err != nil {
-		slog.Error("failed to insert stats", "trace", trace, "stats ", stats, "error", err)
+		slog.Error("failed to insert stats", "trace", trace, "stats", stats, "error", err)
 		return err
 	}
 
@@ -49,7 +54,7 @@ type Query interface {
 func GetStats(ctx context.Context, q Query, playerId string) (Stats, error) {
 	trace := ctx.Value("trace")
 
-	rows, err := q.Query("SELECT player_id, Elo, Won, Lost, Drawn) FROM stats WHERE player_id = ?;", playerId)
+	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = ?;", playerId)
 	if err != nil {
 		slog.Error("failed to get stats", "trace", trace, "playerId", playerId, "error", err)
 		return Stats{}, err
@@ -75,7 +80,7 @@ func GetStats(ctx context.Context, q Query, playerId string) (Stats, error) {
 func GetOrInsertStats(ctx context.Context, db *sql.DB, playerId string) (Stats, error) {
 	defaultStats := Stats{
 		Player: Player{Id: playerId},
-		Elo:    0,
+		Elo:    1500,
 		Won:    0,
 		Drawn:  0,
 		Lost:   0,
@@ -93,7 +98,7 @@ func GetOrInsertStats(ctx context.Context, db *sql.DB, playerId string) (Stats, 
 func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
 	trace := ctx.Value("trace")
 
-	rows, err := db.Query("SELECT player_id, Elo, Won, Lost, Drawn) FROM stats ORDER BY Elo DESC LIMIT ?;", amount)
+	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT ?;", amount)
 	if err != nil {
 		slog.Error("failed to get top stats", "trace", trace, "error", err)
 		return nil, err
@@ -117,7 +122,7 @@ func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
 }
 
 func updateStat(ctx context.Context, tx *sql.Tx, stats Stats) error {
-	_, err := tx.Exec("UPDATE stats SET Elo = ?, Won = ?, Lost = ?, Drawn = ? WHERE player_id = ?;",
+	_, err := tx.Exec("UPDATE stats SET elo = ?, won = ?, lost = ?, drawn = ? WHERE player_id = ?;",
 		stats.Elo,
 		stats.Won,
 		stats.Lost,
@@ -134,6 +139,22 @@ type StatsResult struct {
 	LoserElo      float64
 	WinnerEloDiff float64
 	LoserEloDiff  float64
+}
+
+func formatElo(elo float64) string {
+	prefix := ""
+	if elo >= 0 {
+		prefix = "+"
+	}
+	return fmt.Sprintf("%s%.2f", prefix, elo)
+}
+
+func (s StatsResult) FormatWinnerEloDiff() string {
+	return formatElo(s.WinnerEloDiff)
+}
+
+func (s StatsResult) FormatLoserEloDiff() string {
+	return formatElo(s.LoserEloDiff)
 }
 
 func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, error) {

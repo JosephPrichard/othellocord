@@ -1,21 +1,79 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
+	"log"
+	"log/slog"
+	_ "modernc.org/sqlite"
+	"os"
+	"os/signal"
+	"othellocord/app/discord"
+	"othellocord/app/othello"
+	"syscall"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
+var CreateSchema = `
+	CREATE TABLE IF NOT EXISTS stats (
+	    player_id TEXT PRIMARY KEY,
+		elo    FLOAT,
+		won    INTEGER,
+		drawn  INTEGER,
+		lost   INTEGER
+	);`
 
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
-
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+	// read environment variables into memory
+	if err := godotenv.Load(); err != nil {
+		panic("failed to load .env file")
 	}
+
+	token := os.Getenv("DISCORD_TOKEN")
+
+	// create the database client
+	db, err := sql.Open("sqlite", "./othellocord.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			slog.Error("failed to close database", "error", err)
+		}
+	}()
+	if _, err := db.Exec(CreateSchema); err != nil {
+		log.Fatalf("failed to create schema: %v", err)
+	}
+
+	// construct the discord client
+	dg, err := discordgo.New(fmt.Sprintf("Bot %s", token))
+	if err != nil {
+		log.Fatalf("failed to construct discord client: %v", err)
+	}
+	defer func() {
+		if err := dg.Close(); err != nil {
+			slog.Error("failed to close discord dg", "error", err)
+		}
+	}()
+
+	// create the commands object and subscribe
+	c := discord.Handler{
+		Db: db,
+		Uc: discord.NewUserCache(dg),
+		Rc: othello.NewRenderCache(),
+	}
+
+	dg.AddHandler(c.HandleCommand)
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+	slog.Info("starting othellocord bot")
+	if err = dg.Open(); err != nil {
+		log.Fatalf("failed to connect to discord: %v", err)
+	}
+
+	slog.Info("othellocord bot is listening for events")
+	<-signalChan
 }

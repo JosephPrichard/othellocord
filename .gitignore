@@ -1,5 +1,6 @@
-src/main/resources/.env
+.env
 .idea
 /target
 /test_board.png
 /test_disc.png
+/othellocord.db

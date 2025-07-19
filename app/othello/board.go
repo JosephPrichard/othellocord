@@ -1,6 +1,7 @@
 package othello
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -17,6 +18,18 @@ var tiles = makeTiles()
 type Tile struct {
 	Row int
 	Col int
+}
+
+func TileFromNotation(s string) Tile {
+	// Example "a1" → Col: 0, Row: 0 (assuming standard board)
+	col := int(s[0] - 'a')
+	row := int(s[1] - '1')
+	return Tile{Row: row, Col: col}
+}
+
+func (t Tile) String() string {
+	// Example Tile{Row: 0, Col: 0} → "a1", Tile{Row: 2, Col: 3} → "d3"
+	return fmt.Sprintf("%c%d", rune(t.Col)+'a', t.Row+1)
 }
 
 type Move struct {
@@ -236,13 +249,6 @@ func (b *Board) SetSquareByPosition(position int, color byte) {
 
 func (b *Board) GetSquareByPosition(position int) byte {
 	return b.GetSquare(position/BoardSize, position%BoardSize)
-}
-
-func TileFromNotation(s string) Tile {
-	// Example "a1" → Col: 0, Row: 0 (assuming standard board)
-	col := int(s[0] - 'a')
-	row := int(s[1] - '1')
-	return Tile{Row: row, Col: col}
 }
 
 func (b *Board) SetSquareByTile(tile Tile, color byte) {

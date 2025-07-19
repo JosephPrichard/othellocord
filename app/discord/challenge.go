@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/allegro/bigcache/v2"
+	"github.com/coocood/freecache"
 	cache2 "github.com/eko/gocache/lib/v4/cache"
 	"log/slog"
 	"time"
@@ -22,9 +22,9 @@ func CreateChallenge(ctx context.Context, c ChallengeCache, challenge Challenge,
 
 	stopChan := make(chan struct{}, 1)
 
-	key := fmt.Sprintf("%d,%d", challenge.Challenged.Id, challenge.Challenger.Id)
+	key := fmt.Sprintf("%s,%s", challenge.Challenged.Id, challenge.Challenger.Id)
 	if err := c.Set(ctx, key, stopChan); err != nil {
-		slog.Error("failed to set challenge into cache", "trace", trace, "key", key, "err", err)
+		slog.Error("failed to set challenge into Store", "trace", trace, "key", key, "err", err)
 		return err
 	}
 
@@ -47,21 +47,21 @@ var ChallengeNotFound = fmt.Errorf("challenge not found")
 func AcceptChallenge(ctx context.Context, c ChallengeCache, challenge Challenge) error {
 	trace := ctx.Value("trace")
 
-	key := fmt.Sprintf("%d,%d", challenge.Challenged.Id, challenge.Challenger.Id)
+	key := fmt.Sprintf("%s,%s", challenge.Challenged.Id, challenge.Challenger.Id)
 
 	stopChan, err := c.Get(ctx, key)
-	if errors.Is(err, bigcache.ErrEntryNotFound) {
+	if errors.Is(err, freecache.ErrNotFound) {
 		return ChallengeNotFound
 	}
 	if err != nil {
-		slog.Error("failed to get challenge from cache", "trace", trace, "key", key, "err", err)
+		slog.Error("failed to get challenge from Store", "trace", trace, "key", key, "err", err)
 		return err
 	}
 	if stopChan != nil {
 		stopChan <- struct{}{}
 	}
 	if err := c.Delete(ctx, key); err != nil {
-		slog.Error("failed to delete challenge in cache", "trace", trace, "key", key, "err", err)
+		slog.Error("failed to delete challenge in Store", "trace", trace, "key", key, "err", err)
 	}
 	return nil
 }
