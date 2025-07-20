@@ -49,7 +49,7 @@ type Fonts struct {
 func init() {
 	font, err := truetype.Parse(TtfFont)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create font: %v", err))
+		panic(fmt.Sprintf("failed to create font: %w", err))
 	}
 	draw2d.RegisterFont(FontData, font)
 }

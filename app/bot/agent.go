@@ -1,4 +1,4 @@
-package discord
+package bot
 
 import (
 	"log/slog"
@@ -10,10 +10,11 @@ const (
 	GetMoveRequest
 )
 
-const MaxQueueSize = 32
-const Workers = 4
+const MaxAqSize = 16
+const AgentCount = 4
 
 type AgentRequest struct {
+	ID       string
 	board    othello.Board
 	depth    int
 	t        int
@@ -41,17 +42,15 @@ type AgentQueue struct {
 }
 
 func NewAgentQueue() AgentQueue {
-	agentChan := make(chan AgentRequest, MaxQueueSize)
-	for w := range Workers {
+	agentChan := make(chan AgentRequest, MaxAqSize)
+	for w := range AgentCount {
 		go ListenAgentRequests(w, agentChan)
 	}
-	return AgentQueue{
-		agentChan: agentChan,
-	}
+	return AgentQueue{agentChan: agentChan}
 }
 
 func (q *AgentQueue) Push(request AgentRequest) bool {
-	if len(q.agentChan) >= MaxQueueSize {
+	if len(q.agentChan) >= MaxAqSize {
 		return false
 	}
 	q.agentChan <- request

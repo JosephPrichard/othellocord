@@ -1,4 +1,4 @@
-package discord
+package bot
 
 import (
 	"context"
@@ -14,44 +14,38 @@ type Challenge struct {
 }
 
 func (c Challenge) Key() string {
-	return fmt.Sprintf("%s,%s", c.Challenged.Id, c.Challenger.Id)
-}
-
-type ChalValue struct {
-	stopChan   chan struct{}
-	expireChan chan struct{}
+	return fmt.Sprintf("%s,%s", c.Challenged.ID, c.Challenger.ID)
 }
 
 type ChallengeCache struct {
-	cache *ttlcache.Cache[string, ChalValue]
+	cache *ttlcache.Cache[string, chan struct{}]
 }
 
 func NewChallengeCache() ChallengeCache {
 	return ChallengeCache{
-		cache: ttlcache.New[string, ChalValue](),
+		cache: ttlcache.New[string, chan struct{}](),
 	}
 }
 
 var ChallengeTTl = time.Second * 60
 
-func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge, expireChan chan struct{}) {
+func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge, onExpire func()) {
 	trace := ctx.Value("trace")
 
 	stopChan := make(chan struct{}, 1)
 
 	key := challenge.Key()
-	_ = c.cache.Set(key, ChalValue{stopChan: stopChan, expireChan: expireChan}, ChallengeTTl)
+	_ = c.cache.Set(key, stopChan, ChallengeTTl)
 	slog.Info("set challenge into challenge cache", "trace", trace, "key", key, "challenge", challenge)
 
 	go func() {
-		defer close(expireChan)
 		defer c.cache.Delete(key)
 
 		timer := time.NewTimer(ChallengeTTl)
 		select {
 		case <-timer.C:
 			slog.Info("expired challenge", "trace", trace, "key", key, "challenge", challenge)
-			expireChan <- struct{}{}
+			onExpire()
 			return
 		case <-stopChan:
 			slog.Info("stopped challenge", "trace", trace, "key", key, "challenge", challenge)
@@ -63,16 +57,16 @@ func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge
 func (c ChallengeCache) AcceptChallenge(ctx context.Context, challenge Challenge) bool {
 	trace := ctx.Value("trace")
 
-	key := fmt.Sprintf("%s,%s", challenge.Challenged.Id, challenge.Challenger.Id)
+	key := fmt.Sprintf("%s,%s", challenge.Challenged.ID, challenge.Challenger.ID)
 
 	item := c.cache.Get(challenge.Key())
 	if item == nil {
 		return false
 	}
 
-	value := item.Value()
-	if value.stopChan != nil {
-		value.stopChan <- struct{}{}
+	stopChan := item.Value()
+	if stopChan != nil {
+		stopChan <- struct{}{}
 	}
 
 	slog.Info("accepted challenge from challenge cache", "trace", trace, "key", key, "challenge", challenge)

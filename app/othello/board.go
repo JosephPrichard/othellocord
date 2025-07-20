@@ -1,6 +1,7 @@
 package othello
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -20,11 +21,21 @@ type Tile struct {
 	Col int
 }
 
-func TileFromNotation(s string) Tile {
+var ErrInvalidTile = errors.New("invalid tile")
+
+func TileFromNotation(s string) (Tile, error) {
+	if len(s) != 2 {
+		return Tile{}, ErrInvalidTile
+	}
+
 	// Example "a1" → Col: 0, Row: 0 (assuming standard board)
 	col := int(s[0] - 'a')
 	row := int(s[1] - '1')
-	return Tile{Row: row, Col: col}
+
+	if row < 1 || row > 8 || col < 1 || col > 8 {
+		return Tile{}, ErrInvalidTile
+	}
+	return Tile{Row: row, Col: col}, nil
 }
 
 func (t Tile) String() string {
@@ -45,6 +56,7 @@ type Board struct {
 
 func InitialBoard() Board {
 	var b Board
+	b.IsBlackMove = true
 	b.SetSquare(BoardSize/2-1, BoardSize/2-1, White)
 	b.SetSquare(BoardSize/2, BoardSize/2, White)
 	b.SetSquare(BoardSize/2-1, BoardSize/2, Black)
@@ -257,14 +269,6 @@ func (b *Board) SetSquareByTile(tile Tile, color byte) {
 
 func (b *Board) GetSquareByTile(tile Tile) byte {
 	return b.GetSquare(tile.Row, tile.Col)
-}
-
-func (b *Board) SetSquareByString(square string, color byte) {
-	b.SetSquareByTile(TileFromNotation(square), color)
-}
-
-func (b *Board) GetSquareByString(square string) byte {
-	return b.GetSquareByTile(TileFromNotation(square))
 }
 
 func (b *Board) String() string {

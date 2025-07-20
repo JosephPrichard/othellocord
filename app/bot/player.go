@@ -1,4 +1,4 @@
-package discord
+package bot
 
 import (
 	"context"
@@ -10,10 +10,11 @@ import (
 	"time"
 )
 
-const MaxBotLevel = 6
+const MinBotLevel = 1
+const MaxBotLevel = 10
 
 type Player struct {
-	Id   string
+	ID   string
 	Name string
 }
 
@@ -21,7 +22,7 @@ func PlayerFromUser(user *discordgo.User) Player {
 	if user == nil {
 		panic("expected user to be non nil when creating player")
 	}
-	return Player{Id: user.ID, Name: user.Username}
+	return Player{ID: user.ID, Name: user.Username}
 }
 
 func GetBotName(playerId string) string {
@@ -32,7 +33,7 @@ func GetBotName(playerId string) string {
 }
 
 func IsValidBotLevel(level int) bool {
-	return level >= 0 && level <= MaxBotLevel
+	return level >= MinBotLevel && level <= MaxBotLevel
 }
 
 func GetBotLevel(level int) string {
@@ -80,7 +81,7 @@ func (uc UserCache) FetchUser(ctx context.Context, playerId string) (*discordgo.
 		u := item.Value()
 		user = &u
 	} else {
-		user, err = uc.Dg.User(playerId)
+		user, err = uc.Dg.User(playerId, discordgo.WithContext(ctx))
 		if err != nil {
 			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerId, "error", err)
 			return nil, err

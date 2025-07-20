@@ -10,7 +10,7 @@ import (
 	_ "modernc.org/sqlite"
 	"os"
 	"os/signal"
-	"othellocord/app/discord"
+	"othellocord/app/bot"
 	"othellocord/app/othello"
 	"syscall"
 )
@@ -57,19 +57,19 @@ func main() {
 		}
 	}()
 
-	agentChan := discord.NewAgentQueue()
+	agentChan := bot.NewAgentQueue()
 
 	// create the commands object and subscribe
-	c := discord.Handler{
+	h := bot.Handler{
 		Db: db,
-		Cc: discord.NewChallengeCache(),
-		Gs: discord.NewGameStore(db),
-		Uc: discord.NewUserCache(dg),
+		Cc: bot.NewChallengeCache(),
+		Gs: bot.NewGameStore(db),
+		Uc: bot.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
 		Aq: agentChan,
 	}
 
-	dg.AddHandler(c.HandleCommand)
+	dg.AddHandler(h.HandleCommand)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)

@@ -1,4 +1,4 @@
-package discord
+package bot
 
 import (
 	"bytes"
@@ -56,6 +56,15 @@ func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discor
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{embed},
 			Files:  files,
+		},
+	}
+}
+
+func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
+	return &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
 		},
 	}
 }
@@ -146,7 +155,7 @@ func CreateAnalysisEmbed(game Game, level int) *discordgo.MessageEmbed {
 	}
 }
 
-func CreateGameOverEmbed(result GameResult, statsResult StatsResult, move othello.Tile, game Game) *discordgo.MessageEmbed {
+func CreateGameOverEmbed(game Game, result GameResult, statsResult StatsResult, move othello.Tile) *discordgo.MessageEmbed {
 	desc := fmt.Sprintf("%s%s\n%s",
 		getMoveMessage(result.Winner, move.String()),
 		getScoreMessage(game.WhiteScore(), game.BlackScore()),

@@ -1,4 +1,4 @@
-package discord
+package bot
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type Game struct {
 	othello.Board
 	WhitePlayer        Player
 	BlackPlayer        Player
-	CurrPotentialMoves []othello.Tile
+	CurrPotentialMoves []othello.Tile // do not mutate this directly, instead call LoadPotentialMoves which will reassign
 }
 
 func (g *Game) LoadPotentialMoves() []othello.Tile {
@@ -55,9 +55,9 @@ func (g *Game) CreateResult() GameResult {
 }
 
 func (g *Game) CreateForfeitResult(forfeitId string) GameResult {
-	if g.WhitePlayer.Id == forfeitId {
+	if g.WhitePlayer.ID == forfeitId {
 		return GameResult{Winner: g.BlackPlayer, Loser: g.WhitePlayer, IsDraw: false}
-	} else if g.BlackPlayer.Id == forfeitId {
+	} else if g.BlackPlayer.ID == forfeitId {
 		return GameResult{Winner: g.WhitePlayer, Loser: g.BlackPlayer, IsDraw: false}
 	} else {
 		return GameResult{IsDraw: true}
@@ -99,8 +99,8 @@ var ErrAlreadyPlaying = errors.New("one or more players are already in a game")
 func (s GameStore) CreateGame(ctx context.Context, blackPlayer Player, whitePlayer Player) (Game, error) {
 	trace := ctx.Value("trace")
 
-	itemB := s.cache.Get(whitePlayer.Id)
-	itemW := s.cache.Get(blackPlayer.Id)
+	itemB := s.cache.Get(whitePlayer.ID)
+	itemW := s.cache.Get(blackPlayer.ID)
 	if itemB != nil || itemW != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
@@ -108,8 +108,8 @@ func (s GameStore) CreateGame(ctx context.Context, blackPlayer Player, whitePlay
 	game := Game{WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: othello.InitialBoard()}
 	state := &GameState{Game: game}
 
-	s.cache.Set(whitePlayer.Id, state, GameStoreTtl)
-	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
+	s.cache.Set(whitePlayer.ID, state, GameStoreTtl)
+	s.cache.Set(blackPlayer.ID, state, GameStoreTtl)
 
 	slog.Info("created game and set into store", "trace", trace, "game", game)
 	return game, nil
@@ -118,19 +118,19 @@ func (s GameStore) CreateGame(ctx context.Context, blackPlayer Player, whitePlay
 func (s GameStore) CreateBotGame(ctx context.Context, blackPlayer Player, level int) (Game, error) {
 	trace := ctx.Value("trace")
 
-	itemB := s.cache.Get(blackPlayer.Id)
+	itemB := s.cache.Get(blackPlayer.ID)
 	if itemB != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
 
 	game := Game{
-		WhitePlayer: Player{Id: strconv.Itoa(level), Name: GetBotLevel(level)},
+		WhitePlayer: Player{ID: strconv.Itoa(level), Name: GetBotLevel(level)},
 		BlackPlayer: blackPlayer,
 		Board:       othello.InitialBoard(),
 	}
 	state := &GameState{Game: game}
 
-	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
+	s.cache.Set(blackPlayer.ID, state, GameStoreTtl)
 
 	slog.Info("created bot game and set into store", "trace", trace, "game", game)
 	return game, nil
@@ -155,12 +155,14 @@ func (s GameStore) GetGame(ctx context.Context, playerId string) (Game, error) {
 	defer state.mu.Unlock()
 
 	slog.Info("retrieved game from store", "trace", trace, "game", state.Game)
+
+	// it is safe to copy this across boundaries, CurrPotentialMoves is reassigned but never modified directly
 	return state.Game, nil
 }
 
 func (s GameStore) DeleteGame(game Game) {
-	s.cache.Delete(game.WhitePlayer.Id)
-	s.cache.Delete(game.BlackPlayer.Id)
+	s.cache.Delete(game.WhitePlayer.ID)
+	s.cache.Delete(game.BlackPlayer.ID)
 }
 
 var ErrTurn = errors.New("not players turn")
@@ -182,24 +184,28 @@ func (s GameStore) MakeMove(ctx context.Context, playerId string, move othello.T
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	if state.CurrentPlayer().Id != playerId {
+	if state.CurrentPlayer().ID != playerId {
 		return Game{}, ErrTurn
 	}
 
-	state.LoadPotentialMoves()
 	for _, m := range state.LoadPotentialMoves() {
 		if m == move {
 			state.MakeMove(move)
 			state.CurrPotentialMoves = nil
 
 			if len(state.LoadPotentialMoves()) == 0 {
+				// skip turn
 				state.IsBlackMove = !state.IsBlackMove
+				// reset the moves
 				state.CurrPotentialMoves = nil
 			}
 
+			// no moves twice in a row means the game is over
 			if len(state.LoadPotentialMoves()) == 0 {
 				s.DeleteGame(state.Game)
 			}
+
+			// it is safe to copy this across boundaries, CurrPotentialMoves is reassigned but never modified directly
 			return state.Game, nil
 		}
 	}
@@ -207,7 +213,7 @@ func (s GameStore) MakeMove(ctx context.Context, playerId string, move othello.T
 }
 
 func ExpireGame(db *sql.DB, game Game) {
-	trace := fmt.Sprintf("expire-game-task-%s-%s", game.WhitePlayer.Id, game.BlackPlayer.Id)
+	trace := fmt.Sprintf("expire-game-task-%s-%s", game.WhitePlayer.ID, game.BlackPlayer.ID)
 	ctx := context.WithValue(context.Background(), "trace", trace)
 
 	gr := GameResult{Winner: game.CurrentPlayer(), Loser: game.CurrentPlayer(), IsDraw: false}
