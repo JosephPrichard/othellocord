@@ -3,7 +3,6 @@ package discord
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
@@ -27,31 +26,12 @@ func (s Stats) WinRate() string {
 	return fmt.Sprintf("%%%0.2f", wr)
 }
 
-func InsertOrIgnoreStats(ctx context.Context, db *sql.DB, stats Stats) error {
-	trace := ctx.Value("trace")
-
-	_, err := db.Exec("INSERT OR IGNORE INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
-		stats.Player.Id,
-		stats.Elo,
-		stats.Won,
-		stats.Lost,
-		stats.Drawn)
-	if err != nil {
-		slog.Error("failed to insert stats", "trace", trace, "stats", stats, "error", err)
-		return err
-	}
-
-	slog.Info("inserted stats", "trace", trace, "stats", stats)
-	return nil
-}
-
-var ErrStatsNotFound = errors.New("stats not found")
-
 type Query interface {
 	Query(query string, args ...any) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
 }
 
-func GetStats(ctx context.Context, q Query, playerId string) (Stats, error) {
+func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, error) {
 	trace := ctx.Value("trace")
 
 	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = ?;", playerId)
@@ -70,28 +50,23 @@ func GetStats(ctx context.Context, q Query, playerId string) (Stats, error) {
 			return Stats{}, err
 		}
 	} else {
-		return Stats{}, ErrStatsNotFound
+		stats = Stats{
+			Player: Player{Id: playerId},
+			Elo:    1500,
+			Won:    0,
+			Drawn:  0,
+			Lost:   0,
+		}
+		_, err := q.Exec("INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
+			stats.Player.Id, stats.Elo, stats.Won, stats.Lost, stats.Drawn)
+		if err != nil {
+			slog.Error("failed to insert stats", "trace", trace, "stats", stats, "error", err)
+			return Stats{}, err
+		}
+		slog.Info("inserted stats", "trace", trace, "stats", stats)
 	}
 
 	slog.Info("selected stats for Player Id", "trace", trace, "playerId", playerId, "stats", stats)
-	return stats, nil
-}
-
-func GetOrInsertStats(ctx context.Context, db *sql.DB, playerId string) (Stats, error) {
-	defaultStats := Stats{
-		Player: Player{Id: playerId},
-		Elo:    1500,
-		Won:    0,
-		Drawn:  0,
-		Lost:   0,
-	}
-	if err := InsertOrIgnoreStats(ctx, db, defaultStats); err != nil {
-		return Stats{}, err
-	}
-	stats, err := GetStats(ctx, db, playerId)
-	if err != nil {
-		return Stats{}, err
-	}
 	return stats, nil
 }
 
@@ -169,11 +144,11 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 		_ = tx.Rollback()
 	}()
 
-	winner, err := GetStats(ctx, tx, gr.Winner.Id)
+	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.Id)
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get winner stats: %v", err)
 	}
-	loser, err := GetStats(ctx, tx, gr.Loser.Id)
+	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.Id)
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get loser stats: %v", err)
 	}
@@ -205,24 +180,10 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 
 	winDiff := winner.Elo - winEloBefore
 	lossDiff := loser.Elo - lossEloBefore
-
 	sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinnerEloDiff: winDiff, LoserEloDiff: lossDiff}
 
 	slog.Info("updated stats tx executed", "trace", trace, "game", gr, "stats", sr)
 	return sr, nil
-}
-
-func DeleteStats(ctx context.Context, db *sql.DB, playerId uint64) error {
-	trace := ctx.Value("trace")
-
-	_, err := db.Exec("DELETE FROM stats WHERE player_id = ?;", playerId)
-	if err != nil {
-		slog.Error("failed to delete stats", "trace", trace, "player", playerId, "error", err)
-		return err
-	}
-
-	slog.Info("delete stats by Id", "trace", trace, "player", playerId)
-	return nil
 }
 
 const EloK = 30
@@ -244,7 +205,7 @@ func ReadStats(ctx context.Context, db *sql.DB, c UserCache, playerId string) (S
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to read stats: %v", err)
 	}
-	username, err := FetchUsername(ctx, c, playerId)
+	username, err := c.FetchUsername(ctx, playerId)
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to read stats: %v", err)
 	}
@@ -262,13 +223,15 @@ func ReadTopStats(ctx context.Context, db *sql.DB, c UserCache) ([]Stats, error)
 
 	var eg errgroup.Group
 
-	for _, stat := range stats {
-		if name := GetBotName(stat.Player.Id); name != "" {
+	for i := range stats {
+		stat := &stats[i] // we need to modify each stat when we fetch the player
+		name := GetBotName(stat.Player.Id)
+		if name != "" {
 			stat.Player.Name = name
 			continue
 		}
 		eg.Go(func() error {
-			if stat.Player.Name, err = FetchUsername(ctx, c, stat.Player.Id); err != nil {
+			if stat.Player.Name, err = c.FetchUsername(ctx, stat.Player.Id); err != nil {
 				return err
 			}
 			return nil

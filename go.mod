@@ -3,11 +3,8 @@ module othellocord
 go 1.24
 
 require (
-	github.com/allegro/bigcache v1.2.1
-	github.com/allegro/bigcache/v2 v2.2.5
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/eko/gocache/lib/v4 v4.2.0
-	github.com/eko/gocache/store/bigcache/v4 v4.2.2
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/joho/godotenv v1.5.1
 	github.com/llgcode/draw2d v0.0.0-20240627062922-0ed1ff131195
@@ -24,6 +21,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/jellydator/ttlcache/v3 v3.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/prometheus/client_golang v1.19.0 // indirect

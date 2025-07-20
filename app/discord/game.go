@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/coocood/freecache"
-	cache2 "github.com/eko/gocache/lib/v4/cache"
+	"github.com/jellydator/ttlcache/v3"
 	"log/slog"
 	"othellocord/app/othello"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Game struct {
@@ -20,49 +20,47 @@ type Game struct {
 	CurrPotentialMoves []othello.Tile
 }
 
-func (game *Game) LoadPotentialMoves() []othello.Tile {
-	if game.CurrPotentialMoves == nil {
-		game.CurrPotentialMoves = game.FindCurrentMoves()
+func (g *Game) LoadPotentialMoves() []othello.Tile {
+	if g.CurrPotentialMoves == nil {
+		g.CurrPotentialMoves = g.FindCurrentMoves()
 	}
-	return game.CurrPotentialMoves
+	return g.CurrPotentialMoves
 }
 
-func (game *Game) CurrentPlayer() Player {
-	if game.Board.IsBlackMove {
-		return game.BlackPlayer
+func (g *Game) CurrentPlayer() Player {
+	if g.Board.IsBlackMove {
+		return g.BlackPlayer
 	} else {
-		return game.WhitePlayer
+		return g.WhitePlayer
 	}
 }
 
-func (game *Game) OtherPlayer() Player {
-	if game.Board.IsBlackMove {
-		return game.WhitePlayer
+func (g *Game) OtherPlayer() Player {
+	if g.Board.IsBlackMove {
+		return g.WhitePlayer
 	} else {
-		return game.BlackPlayer
+		return g.BlackPlayer
 	}
 }
 
-func (game *Game) CreateResult() GameResult {
-	diff := game.BlackScore() - game.WhiteScore()
+func (g *Game) CreateResult() GameResult {
+	diff := g.BlackScore() - g.WhiteScore()
 	if diff > 0 {
-		return GameResult{Winner: game.BlackPlayer, Loser: game.WhitePlayer, IsDraw: false}
+		return GameResult{Winner: g.BlackPlayer, Loser: g.WhitePlayer, IsDraw: false}
 	} else if diff < 0 {
-		return GameResult{Winner: game.WhitePlayer, Loser: game.BlackPlayer, IsDraw: false}
+		return GameResult{Winner: g.WhitePlayer, Loser: g.BlackPlayer, IsDraw: false}
 	} else {
-		return GameResult{Winner: game.BlackPlayer, Loser: game.WhitePlayer, IsDraw: true}
+		return GameResult{Winner: g.BlackPlayer, Loser: g.WhitePlayer, IsDraw: true}
 	}
 }
 
-var ErrForfeit = errors.New("player is not a member of game, cannot forfeit")
-
-func (game *Game) CreateForfeitResult(forfeitId string) (GameResult, error) {
-	if game.WhitePlayer.Id == forfeitId {
-		return GameResult{Winner: game.BlackPlayer, Loser: game.WhitePlayer, IsDraw: false}, nil
-	} else if game.BlackPlayer.Id == forfeitId {
-		return GameResult{Winner: game.WhitePlayer, Loser: game.BlackPlayer, IsDraw: false}, nil
+func (g *Game) CreateForfeitResult(forfeitId string) GameResult {
+	if g.WhitePlayer.Id == forfeitId {
+		return GameResult{Winner: g.BlackPlayer, Loser: g.WhitePlayer, IsDraw: false}
+	} else if g.BlackPlayer.Id == forfeitId {
+		return GameResult{Winner: g.WhitePlayer, Loser: g.BlackPlayer, IsDraw: false}
 	} else {
-		return GameResult{}, ErrForfeit
+		return GameResult{IsDraw: true}
 	}
 }
 
@@ -77,40 +75,51 @@ type GameResult struct {
 	IsDraw bool
 }
 
-type GameStore = cache2.Cache[*GameState]
+var GameStoreTtl = time.Hour * 24
+
+type GameStore struct {
+	cache *ttlcache.Cache[string, *GameState]
+}
+
+func NewGameStore(db *sql.DB) GameStore {
+	cache := ttlcache.New[string, *GameState]()
+	cache.OnEviction(func(ctx context.Context, r ttlcache.EvictionReason, item *ttlcache.Item[string, *GameState]) {
+		state := item.Value()
+
+		state.mu.Lock()
+		defer state.mu.Unlock()
+
+		ExpireGame(db, state.Game)
+	})
+	return GameStore{cache: cache}
+}
 
 var ErrAlreadyPlaying = errors.New("one or more players are already in a game")
 
-func CreateGame(ctx context.Context, s GameStore, blackPlayer Player, whitePlayer Player) (Game, error) {
+func (s GameStore) CreateGame(ctx context.Context, blackPlayer Player, whitePlayer Player) (Game, error) {
 	trace := ctx.Value("trace")
 
-	_, errB := s.Get(ctx, whitePlayer.Id)
-	_, errW := s.Get(ctx, blackPlayer.Id)
-	if !errors.Is(errW, freecache.ErrNotFound) || !errors.Is(errB, freecache.ErrNotFound) {
+	itemB := s.cache.Get(whitePlayer.Id)
+	itemW := s.cache.Get(blackPlayer.Id)
+	if itemB != nil || itemW != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
 
 	game := Game{WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: othello.InitialBoard()}
 	state := &GameState{Game: game}
 
-	if err := s.Set(ctx, whitePlayer.Id, state); err != nil {
-		slog.Error("failed to set game state for whitePlayer in Store", "trace", trace, "error", err)
-		return Game{}, err
-	}
-	if err := s.Set(ctx, blackPlayer.Id, state); err != nil {
-		slog.Error("failed to set game state for blackPlayer in Store", "trace", trace, "error", err)
-		_ = s.Delete(ctx, whitePlayer.Id)
-		return Game{}, err
-	}
+	s.cache.Set(whitePlayer.Id, state, GameStoreTtl)
+	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
 
+	slog.Info("created game and set into cache", "trace", trace, "game", game)
 	return game, nil
 }
 
-func CreateBotGame(ctx context.Context, s GameStore, blackPlayer Player, level int) (Game, error) {
+func (s GameStore) CreateBotGame(ctx context.Context, blackPlayer Player, level int) (Game, error) {
 	trace := ctx.Value("trace")
 
-	_, errW := s.Get(ctx, blackPlayer.Id)
-	if !errors.Is(errW, freecache.ErrNotFound) {
+	itemB := s.cache.Get(blackPlayer.Id)
+	if itemB != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
 
@@ -121,55 +130,53 @@ func CreateBotGame(ctx context.Context, s GameStore, blackPlayer Player, level i
 	}
 	state := &GameState{Game: game}
 
-	if err := s.Set(ctx, blackPlayer.Id, state); err != nil {
-		slog.Error("failed to set game state for blackPlayer in Store", "trace", trace, "error", err)
-		return Game{}, err
-	}
+	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
 
+	slog.Info("created bot game and set into cache", "trace", trace, "game", game)
 	return game, nil
 }
 
 var ErrGameNotFound = errors.New("game not found")
 
-func GetGame(ctx context.Context, s GameStore, playerId uint64) (Game, error) {
+func (s GameStore) GetGame(ctx context.Context, playerId string) (Game, error) {
 	trace := ctx.Value("trace")
 
-	state, err := s.Get(ctx, playerId)
-	if errors.Is(err, freecache.ErrNotFound) {
+	item := s.cache.Get(playerId)
+	if item == nil {
 		return Game{}, ErrGameNotFound
 	}
-	if err != nil || state == nil {
-		slog.Error("failed to get game state from Store", "trace", trace, "player", playerId, "state", state, "error", err)
-		return Game{}, err
+	state := item.Value()
+	if state == nil {
+		slog.Error("expected game state to not nil", "trace", trace, "player", playerId, "state", state)
+		return Game{}, fmt.Errorf("game not found")
 	}
 
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
+	slog.Info("retrieved game from cache", "trace", trace, "game", state.Game)
 	return state.Game, nil
 }
 
-func DeleteGame(ctx context.Context, s GameStore, game Game) {
-	trace := ctx.Value("trace")
-	if err := s.Delete(ctx, game.WhitePlayer.Id); err != nil {
-		slog.Error("failed to delete game from Store", "trace", trace, "player", game.WhitePlayer.Id, "error", err)
-	}
-	if err := s.Delete(ctx, game.BlackPlayer.Id); err != nil {
-		slog.Error("failed to delete game state from Store", "trace", trace, "player", game.BlackPlayer.Id, "error", err)
-	}
+func (s GameStore) DeleteGame(game Game) {
+	s.cache.Delete(game.WhitePlayer.Id)
+	s.cache.Delete(game.BlackPlayer.Id)
 }
 
-var ErrNotPlaying = errors.New("not playing")
 var ErrTurn = errors.New("not players turn")
 var ErrInvalidMove = errors.New("invalid move")
 
-func MakeMove(ctx context.Context, s GameStore, playerId string, move othello.Tile) (Game, error) {
+func (s GameStore) MakeMove(ctx context.Context, playerId string, move othello.Tile) (Game, error) {
 	trace := ctx.Value("trace")
 
-	state, err := s.Get(ctx, playerId)
-	if err != nil || state == nil {
-		slog.Error("failed to get game state from Store", "trace", trace, "player", playerId, "state", state, "error", err)
-		return Game{}, ErrNotPlaying
+	item := s.cache.Get(playerId)
+	if item == nil {
+		return Game{}, ErrGameNotFound
+	}
+	state := item.Value()
+	if state == nil {
+		slog.Error("expected game state to not nil", "trace", trace, "player", playerId, "state", state)
+		return Game{}, ErrGameNotFound
 	}
 
 	state.mu.Lock()
@@ -191,18 +198,16 @@ func MakeMove(ctx context.Context, s GameStore, playerId string, move othello.Ti
 			}
 
 			if len(state.LoadPotentialMoves()) == 0 {
-				DeleteGame(ctx, s, state.Game)
+				s.DeleteGame(state.Game)
 			}
-
 			return state.Game, nil
 		}
 	}
-
 	return Game{}, ErrInvalidMove
 }
 
 func ExpireGame(db *sql.DB, game Game) {
-	trace := fmt.Sprintf("expire-game-task-%Dg-%Dg", game.WhitePlayer.Id, game.BlackPlayer.Id)
+	trace := fmt.Sprintf("expire-game-task-%s-%s", game.WhitePlayer.Id, game.BlackPlayer.Id)
 	ctx := context.WithValue(context.Background(), "trace", trace)
 
 	gr := GameResult{Winner: game.CurrentPlayer(), Loser: game.CurrentPlayer(), IsDraw: false}
@@ -210,5 +215,5 @@ func ExpireGame(db *sql.DB, game Game) {
 	if err != nil {
 		slog.Error("failed to update stats in expire game task", "trace", trace, "error", err)
 	}
-	slog.Info("updated sr in expire game task with result", "trace", trace, "result", sr)
+	slog.Info("updated stats result in expire game task with result", "trace", trace, "result", sr)
 }

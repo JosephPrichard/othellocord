@@ -16,7 +16,7 @@ type AgentRequest struct {
 	board    othello.Board
 	depth    int
 	t        int
-	respChan []othello.Move
+	respChan chan []othello.Move
 }
 
 func ListenAgentRequests(w int, agentChan chan AgentRequest) {
@@ -29,6 +29,8 @@ func ListenAgentRequests(w int, agentChan chan AgentRequest) {
 	for {
 		request := <-agentChan
 		slog.Info("received an agent request on worker", "worker", w, "request", request)
+
+		request.respChan <- []othello.Move{}
 	}
 }
 

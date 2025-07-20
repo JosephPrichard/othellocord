@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	GreenColor   = color.RGBA{R: 82, G: 127, B: 85, A: 255}
+	GreenColor   = color.RGBA{R: 88, G: 184, B: 91, A: 255}
 	BlackColor   = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	CyanColor    = color.RGBA{R: 0, G: 255, B: 255, A: 255}
 	YellowColor  = color.RGBA{R: 255, G: 255, B: 0, A: 255}

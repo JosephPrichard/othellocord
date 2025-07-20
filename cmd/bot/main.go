@@ -60,6 +60,8 @@ func main() {
 	// create the commands object and subscribe
 	c := discord.Handler{
 		Db: db,
+		Cc: discord.NewChallengeCache(),
+		Gs: discord.NewGameStore(db),
 		Uc: discord.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
 	}
