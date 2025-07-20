@@ -111,7 +111,7 @@ func (s GameStore) CreateGame(ctx context.Context, blackPlayer Player, whitePlay
 	s.cache.Set(whitePlayer.Id, state, GameStoreTtl)
 	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
 
-	slog.Info("created game and set into cache", "trace", trace, "game", game)
+	slog.Info("created game and set into store", "trace", trace, "game", game)
 	return game, nil
 }
 
@@ -132,7 +132,7 @@ func (s GameStore) CreateBotGame(ctx context.Context, blackPlayer Player, level 
 
 	s.cache.Set(blackPlayer.Id, state, GameStoreTtl)
 
-	slog.Info("created bot game and set into cache", "trace", trace, "game", game)
+	slog.Info("created bot game and set into store", "trace", trace, "game", game)
 	return game, nil
 }
 
@@ -154,7 +154,7 @@ func (s GameStore) GetGame(ctx context.Context, playerId string) (Game, error) {
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	slog.Info("retrieved game from cache", "trace", trace, "game", state.Game)
+	slog.Info("retrieved game from store", "trace", trace, "game", state.Game)
 	return state.Game, nil
 }
 

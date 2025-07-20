@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	GetMoves = iota
-	GetMove
+	GetMovesRequest = iota
+	GetMoveRequest
 )
 
+const MaxQueueSize = 32
 const Workers = 4
 
 type AgentRequest struct {
@@ -31,13 +32,28 @@ func ListenAgentRequests(w int, agentChan chan AgentRequest) {
 		slog.Info("received an agent request on worker", "worker", w, "request", request)
 
 		request.respChan <- []othello.Move{}
+		close(request.respChan)
 	}
 }
 
-func SpawnAgents() chan AgentRequest {
-	agentChan := make(chan AgentRequest)
+type AgentQueue struct {
+	agentChan chan AgentRequest
+}
+
+func NewAgentQueue() AgentQueue {
+	agentChan := make(chan AgentRequest, MaxQueueSize)
 	for w := range Workers {
 		go ListenAgentRequests(w, agentChan)
 	}
-	return agentChan
+	return AgentQueue{
+		agentChan: agentChan,
+	}
+}
+
+func (q *AgentQueue) Push(request AgentRequest) bool {
+	if len(q.agentChan) >= MaxQueueSize {
+		return false
+	}
+	q.agentChan <- request
+	return true
 }

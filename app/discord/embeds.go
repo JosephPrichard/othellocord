@@ -1,12 +1,75 @@
 package discord
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"image"
+	"image/jpeg"
+	"log/slog"
 	"othellocord/app/othello"
 )
 
 var GreenColor = 0x00ff00
+
+func createStringResponse(msg string) *discordgo.InteractionResponse {
+	return &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: msg,
+		},
+	}
+}
+
+func createStringEdit(msg string) *discordgo.WebhookEdit {
+	return &discordgo.WebhookEdit{Content: &msg}
+}
+
+func addEmbedFiles(embed *discordgo.MessageEmbed, img image.Image) []*discordgo.File {
+	var files []*discordgo.File
+
+	if img != nil {
+		var buf bytes.Buffer
+		if err := jpeg.Encode(&buf, img, nil); err != nil {
+			// we can't really do anything if this fails, it would be an issue with the board renderer
+			slog.Error("failed to encode image", "error", err)
+			return nil
+		}
+		file := &discordgo.File{
+			Name:        "image.png",
+			ContentType: "image/png",
+			Reader:      &buf,
+		}
+		files = append(files, file)
+
+		// this removes any previous attachments to the embed and makes sure it matches the file being sent in the response
+		embed.Image = &discordgo.MessageEmbedImage{URL: "attachment://image.png"}
+	}
+
+	return files
+}
+
+func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discordgo.InteractionResponse {
+	files := addEmbedFiles(embed, img)
+	return &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{embed},
+			Files:  files,
+		},
+	}
+}
+
+var EmptyEdit = ""
+
+func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
+	files := addEmbedFiles(embed, img)
+	return &discordgo.WebhookEdit{
+		Embeds:  &[]*discordgo.MessageEmbed{embed},
+		Files:   files,
+		Content: &EmptyEdit,
+	}
+}
 
 func CreateGameStartEmbed(game Game) *discordgo.MessageEmbed {
 	desc := fmt.Sprintf(
@@ -72,7 +135,7 @@ func CreateGameEmbed(game Game) *discordgo.MessageEmbed {
 	}
 }
 
-func CreateAnalysisEmbed(game Game, level int64) *discordgo.MessageEmbed {
+func CreateAnalysisEmbed(game Game, level int) *discordgo.MessageEmbed {
 	desc := getScoreText(game)
 	title := fmt.Sprintf("Game Analysis using bot level %d", level)
 	footer := "Positive heuristics are better for black, and negative heuristics are better for white"

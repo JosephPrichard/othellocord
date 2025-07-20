@@ -57,6 +57,8 @@ func main() {
 		}
 	}()
 
+	agentChan := discord.NewAgentQueue()
+
 	// create the commands object and subscribe
 	c := discord.Handler{
 		Db: db,
@@ -64,6 +66,7 @@ func main() {
 		Gs: discord.NewGameStore(db),
 		Uc: discord.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
+		Aq: agentChan,
 	}
 
 	dg.AddHandler(c.HandleCommand)

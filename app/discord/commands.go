@@ -1,19 +1,17 @@
 package discord
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
-	"image"
-	"image/jpeg"
 	"log/slog"
 	"othellocord/app/othello"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Handler struct {
@@ -22,6 +20,7 @@ type Handler struct {
 	Cc ChallengeCache
 	Gs GameStore
 	Rc othello.RenderCache
+	Aq AgentQueue
 }
 
 type OptError struct {
@@ -99,6 +98,8 @@ func (h Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, i *
 }
 
 func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
+	trace := ctx.Value("trace")
+
 	level, err := getNumericOpt(options, "level", 3)
 	if err != nil {
 		return err
@@ -117,7 +118,7 @@ func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Se
 	game, err := h.Gs.CreateBotGame(ctx, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
 		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game.")); err != nil {
-			slog.Error("failed to respond embed in handle bot challenge command", err)
+			slog.Error("failed to respond already in a game string", "trace", trace, "error", err)
 		}
 		return nil
 	}
@@ -128,11 +129,15 @@ func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Se
 	embed := CreateGameStartEmbed(game)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.FindCurrentMoves())
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond game starts", "trace", trace, "error", err)
+	}
 	return nil
 }
 
 func (h Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
+	trace := ctx.Value("trace")
+
 	opponent, err := h.getPlayerOpt(ctx, options, "opponent")
 	if err != nil {
 		return fmt.Errorf("failed to get plater opt: %v", err)
@@ -151,20 +156,22 @@ func (h Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.S
 	go func() {
 		_, ok := <-expireChan
 		if ok {
-			if _, err := dg.ChannelMessageSend(i.ChannelID, fmt.Sprintf("<@%s> Challenge timed out!", player.Id)); err != nil {
-				slog.Error("failed to send expiration message in handle user challenge command", err)
-			}
+			_, _ = dg.ChannelMessageSend(i.ChannelID, fmt.Sprintf("<@%s> Challenge timed out!", player.Id))
 		}
 	}()
-	msg := fmt.Sprintf("<@%s>, %s has challenged you to a game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.Id, player.Name, player.Id)
-	_ = dg.InteractionRespond(i.Interaction, createStringResponse(msg))
 
+	msg := fmt.Sprintf("<@%s>, %s has challenged you to a game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.Id, player.Name, player.Id)
+	if err := dg.InteractionRespond(i.Interaction, createStringResponse(msg)); err != nil {
+		slog.Error("failed to respond user challenge string", "trace", trace, "error", err)
+	}
 	return nil
 }
 
 var ErrUnknownChallenge = errors.New("attempted to accept an invalid or unknown challenge")
 
 func (h Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
 	cmd := i.ApplicationCommandData()
 	player := PlayerFromUser(i.Interaction.Member.User)
 
@@ -185,11 +192,15 @@ func (h Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *dis
 	embed := CreateGameStartEmbed(game)
 	img := othello.DrawBoard(h.Rc, game.Board)
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond game start embed", "trace", trace, "error", err)
+	}
 	return nil
 }
 
 func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
 	var user *discordgo.User
 	if i.Interaction.Member != nil {
 		user = i.Interaction.Member.User
@@ -199,7 +210,9 @@ func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disco
 
 	game, err := h.Gs.GetGame(ctx, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a game."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game.")); err != nil {
+			slog.Error("failed to respond already in a game string", "trace", trace, "error", err)
+		}
 		return nil
 	}
 	if err != nil {
@@ -209,7 +222,9 @@ func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disco
 	embed := CreateGameEmbed(game)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.FindCurrentMoves())
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond game view embed", "trace", trace, "error", err)
+	}
 	return nil
 }
 
@@ -218,6 +233,8 @@ func (h Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disco
 }
 
 func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
 	var user *discordgo.User
 	if i.Interaction.Member != nil {
 		user = i.Interaction.Member.User
@@ -227,7 +244,9 @@ func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *di
 
 	game, err := h.Gs.GetGame(ctx, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a game."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game.")); err != nil {
+			slog.Error("failed to respond already in a game string", "trace", trace, "error", err)
+		}
 		return nil
 	}
 	if err != nil {
@@ -243,11 +262,70 @@ func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *di
 	embed := CreateForfeitEmbed(gr, sr)
 	img := othello.DrawBoard(h.Rc, game.Board)
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond game forfeit embed", "trace", trace, "error", err)
+	}
 	return nil
 }
 
 func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second*60))
+	defer cancel()
+
+	level, err := getNumericOpt(i.ApplicationCommandData().Options, "level", 3)
+	if err != nil {
+		return err
+	}
+	if !IsValidBotLevel(level) {
+		return OptError{Name: "level", InvalidValue: level}
+	}
+	var user *discordgo.User
+	if i.Interaction.Member != nil {
+		user = i.Interaction.Member.User
+	} else {
+		return UserNotProvided
+	}
+
+	game, err := h.Gs.GetGame(ctx, user.ID)
+	if errors.Is(err, ErrGameNotFound) {
+		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a game."))
+		return nil
+	}
+
+	respChan := make(chan []othello.Move, 1)
+	request := AgentRequest{
+		board:    game.Board,
+		depth:    level,
+		t:        GetMovesRequest,
+		respChan: respChan,
+	}
+	if ok := h.Aq.Push(request); !ok {
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("Server is overloaded, try again later.")); err != nil {
+			slog.Error("failed to respond rate limit string", "trace", trace, "error", err)
+		}
+		return nil
+	}
+	if err := dg.InteractionRespond(i.Interaction, createStringResponse("Analyzing... Wait a second...")); err != nil {
+		slog.Error("failed to respond waiting string", "trace", trace, "error", err)
+	}
+
+	select {
+	case resp, ok := <-respChan:
+		if ok {
+			embed := CreateAnalysisEmbed(game, level)
+			img := othello.DrawBoardAnalysis(h.Rc, game.Board, resp)
+
+			if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img)); err != nil {
+				slog.Error("failed to edit analysis", "trace", trace, "error", err)
+			}
+		}
+	case <-ctx.Done():
+		if _, err := dg.InteractionResponseEdit(i.Interaction, createStringEdit("Timed out while waiting for a response.")); err != nil {
+			slog.Error("failed to edit timeout response", "trace", trace, "error", err)
+		}
+	}
 	return nil
 }
 
@@ -258,6 +336,8 @@ func (h Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *d
 var UserNotProvided = errors.New("user not provided")
 
 func (h Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
 	cmd := i.ApplicationCommandData()
 
 	var user *discordgo.User
@@ -297,11 +377,15 @@ func (h Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *disc
 		Color: GreenColor,
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil)); err != nil {
+		slog.Error("failed to respond stats", "trace", trace, "error", err)
+	}
 	return nil
 }
 
 func (h Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+
 	var stats []Stats
 	var err error
 
@@ -325,8 +409,45 @@ func (h Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, i
 		Color:       GreenColor,
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil)); err != nil {
+		slog.Error("failed to respond leaderboard", "trace", trace, "error", err)
+	}
 	return nil
+}
+
+var sentinelMap = map[string]string{
+	ErrUnknownChallenge.Error(): "Challenge against this player does not exist.",
+	ErrAlreadyPlaying.Error():   "One or more players in this challenge are already in a game.",
+	ErrUnknownChallenge.Error(): "Challenge from this player does not exist.",
+}
+
+func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, err error) {
+	trace := ctx.Value("trace")
+	slog.Error("error when handling command", "trace", trace, "error", err)
+
+	content := "An unexpected error occurred"
+
+	errMsg, ok := sentinelMap[err.Error()]
+	if ok {
+		content = errMsg
+	} else {
+		switch err.(type) {
+		case *SubCmdError:
+			content = err.Error()
+		case *OptError:
+			content = err.Error()
+		}
+	}
+
+	resp := &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: content,
+		},
+	}
+	if err := dg.InteractionRespond(i.Interaction, resp); err != nil {
+		slog.Error("failed to respond interaction error", "trace", trace, "error", err)
+	}
 }
 
 func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.ApplicationCommandInteractionDataOption) {
@@ -366,75 +487,4 @@ func getNumericOpt(options []*discordgo.ApplicationCommandInteractionDataOption,
 		return int(value), nil
 	}
 	return defaultInt, nil
-}
-
-func createStringResponse(msg string) *discordgo.InteractionResponse {
-	return &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: msg,
-		},
-	}
-}
-
-func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discordgo.InteractionResponse {
-	var files []*discordgo.File
-
-	if img != nil {
-		var buf bytes.Buffer
-		if err := jpeg.Encode(&buf, img, nil); err != nil {
-			// we can't really do anything if this fails, it would be an issue with the board renderer
-			slog.Error("failed to encode image", "error", err)
-		}
-		file := &discordgo.File{
-			Name:        "image.png",
-			ContentType: "image/png",
-			Reader:      &buf,
-		}
-		files = append(files, file)
-
-		// this removes any previous attachments to the embed and makes sure it matches the file being sent in the response
-		embed.Image = &discordgo.MessageEmbedImage{URL: "attachment://image.png"}
-	}
-
-	return &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embed},
-			Files:  files,
-		},
-	}
-}
-
-var sentinelMap = map[string]string{
-	ErrUnknownChallenge.Error(): "Challenge against this player does not exist.",
-	ErrAlreadyPlaying.Error():   "One or more players in this challenge are already in a game.",
-	ErrUnknownChallenge.Error(): "Challenge from this player does not exist.",
-}
-
-func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, err error) {
-	trace := ctx.Value("trace")
-	slog.Error("error when handling command", "trace", trace, "error", err)
-
-	content := "An unexpected error occurred"
-
-	errMsg, ok := sentinelMap[err.Error()]
-	if ok {
-		content = errMsg
-	} else {
-		switch err.(type) {
-		case *SubCmdError:
-			content = err.Error()
-		case *OptError:
-			content = err.Error()
-		}
-	}
-
-	resp := &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: content,
-		},
-	}
-	_ = dg.InteractionRespond(i.Interaction, resp)
 }
