@@ -64,7 +64,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
 				Name:         "move",
-				Description:  fmt.Sprintf("Move to make on the board, should %s", ExpectedTileValue),
+				Description:  fmt.Sprintf("Move to make on the Board, should %s", ExpectedTileValue),
 				Required:     true,
 				Autocomplete: true,
 			},
@@ -76,7 +76,7 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "analyze",
-		Description: "Runs an analysis of the board",
+		Description: "Runs an analysis of the Board",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionInteger,

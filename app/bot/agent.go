@@ -10,30 +10,37 @@ const (
 	GetMoveRequest
 )
 
-const MaxAqSize = 16
+const AqSize = 16
 const AgentCount = 4
 
 type AgentRequest struct {
 	ID       string
-	board    othello.Board
-	depth    int
-	t        int
-	respChan chan []othello.Move
+	Board    othello.Board
+	Depth    int
+	T        int
+	RespChan chan []othello.Move
 }
 
 func ListenAgentRequests(w int, agentChan chan AgentRequest) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("panic in agent worker, restarting", "worker", w)
-			go ListenAgentRequests(w, agentChan)
-		}
-	}()
+	agent := othello.NewOthelloAgent()
 	for {
 		request := <-agentChan
 		slog.Info("received an agent request on worker", "worker", w, "request", request)
 
-		request.respChan <- []othello.Move{}
-		close(request.respChan)
+		var moves []othello.Move
+		switch request.T {
+		case GetMovesRequest:
+			moves = agent.FindRankedMoves(request.Board, request.Depth)
+		case GetMoveRequest:
+			if move, ok := agent.FindBestMove(request.Board, request.Depth); ok {
+				moves = append(moves, move)
+			}
+		default:
+			slog.Warn("invalid request type", "worker", w, "request", request)
+		}
+
+		request.RespChan <- moves
+		close(request.RespChan)
 	}
 }
 
@@ -42,17 +49,22 @@ type AgentQueue struct {
 }
 
 func NewAgentQueue() AgentQueue {
-	agentChan := make(chan AgentRequest, MaxAqSize)
+	agentChan := make(chan AgentRequest, AqSize)
 	for w := range AgentCount {
 		go ListenAgentRequests(w, agentChan)
 	}
 	return AgentQueue{agentChan: agentChan}
 }
 
-func (q *AgentQueue) Push(request AgentRequest) bool {
-	if len(q.agentChan) >= MaxAqSize {
+func (q *AgentQueue) PushChecked(request AgentRequest) bool {
+	if len(q.agentChan) >= AqSize {
 		return false
 	}
-	q.agentChan <- request
+	q.Push(request)
 	return true
+}
+
+func (q *AgentQueue) Push(request AgentRequest) {
+	slog.Info("dispatched an agent request", "request", request)
+	q.agentChan <- request
 }

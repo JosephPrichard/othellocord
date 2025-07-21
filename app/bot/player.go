@@ -27,7 +27,7 @@ func PlayerFromUser(user *discordgo.User) Player {
 
 func GetBotName(playerId string) string {
 	if id, err := strconv.Atoi(playerId); err == nil && IsValidBotLevel(id) {
-		return GetBotLevel(id)
+		return GetBotLevelFmt(id)
 	}
 	return ""
 }
@@ -36,8 +36,13 @@ func IsValidBotLevel(level int) bool {
 	return level >= MinBotLevel && level <= MaxBotLevel
 }
 
-func GetBotLevel(level int) string {
+func GetBotLevelFmt(level int) string {
 	return fmt.Sprintf("OthelloBot level %d", level)
+}
+
+func GetBotLevel(playerId string) int {
+	id, _ := strconv.Atoi(playerId)
+	return id
 }
 
 type UserCache struct {

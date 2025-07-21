@@ -124,7 +124,7 @@ func (s GameStore) CreateBotGame(ctx context.Context, blackPlayer Player, level 
 	}
 
 	game := Game{
-		WhitePlayer: Player{ID: strconv.Itoa(level), Name: GetBotLevel(level)},
+		WhitePlayer: Player{ID: strconv.Itoa(level), Name: GetBotLevelFmt(level)},
 		BlackPlayer: blackPlayer,
 		Board:       othello.InitialBoard(),
 	}
@@ -168,18 +168,12 @@ func (s GameStore) DeleteGame(game Game) {
 var ErrTurn = errors.New("not players turn")
 var ErrInvalidMove = errors.New("invalid move")
 
-func (s GameStore) MakeMove(ctx context.Context, playerId string, move othello.Tile) (Game, error) {
-	trace := ctx.Value("trace")
-
+func (s GameStore) MakeMoveValidated(playerId string, move othello.Tile) (Game, error) {
 	item := s.cache.Get(playerId)
 	if item == nil {
 		return Game{}, ErrGameNotFound
 	}
 	state := item.Value()
-	if state == nil {
-		slog.Error("expected game state to not nil", "trace", trace, "player", playerId, "state", state)
-		return Game{}, ErrGameNotFound
-	}
 
 	state.mu.Lock()
 	defer state.mu.Unlock()
@@ -190,26 +184,48 @@ func (s GameStore) MakeMove(ctx context.Context, playerId string, move othello.T
 
 	for _, m := range state.LoadPotentialMoves() {
 		if m == move {
-			state.MakeMove(move)
-			state.CurrPotentialMoves = nil
-
-			if len(state.LoadPotentialMoves()) == 0 {
-				// skip turn
-				state.IsBlackMove = !state.IsBlackMove
-				// reset the moves
-				state.CurrPotentialMoves = nil
-			}
-
-			// no moves twice in a row means the game is over
-			if len(state.LoadPotentialMoves()) == 0 {
-				s.DeleteGame(state.Game)
-			}
-
-			// it is safe to copy this across boundaries, CurrPotentialMoves is reassigned but never modified directly
-			return state.Game, nil
+			return s.MakeMoveState(state, move), nil
 		}
 	}
 	return Game{}, ErrInvalidMove
+}
+
+func (s GameStore) MakeMoveUnchecked(playerId string, move othello.Tile) Game {
+	item := s.cache.Get(playerId)
+	if item == nil {
+		panic(fmt.Sprintf("expected game state to be found for provided player=%v", playerId))
+	}
+	state := item.Value()
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	for _, m := range state.LoadPotentialMoves() {
+		if m == move {
+			return s.MakeMoveState(state, move)
+		}
+	}
+	panic(fmt.Sprintf("attempted to make a move=%v on game=%v that was not valid", move, state.Game))
+}
+
+func (s GameStore) MakeMoveState(state *GameState, move othello.Tile) Game {
+	state.MakeMove(move)
+	state.CurrPotentialMoves = nil
+
+	if len(state.LoadPotentialMoves()) == 0 {
+		// skip turn
+		state.IsBlackMove = !state.IsBlackMove
+		// reset the moves
+		state.CurrPotentialMoves = nil
+	}
+
+	// no moves twice in a row means the game is over
+	if len(state.LoadPotentialMoves()) == 0 {
+		s.DeleteGame(state.Game)
+	}
+
+	// it is safe to copy this across boundaries, CurrPotentialMoves is reassigned but never modified directly
+	return state.Game
 }
 
 func ExpireGame(db *sql.DB, game Game) {

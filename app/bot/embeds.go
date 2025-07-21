@@ -31,7 +31,7 @@ func addEmbedFiles(embed *discordgo.MessageEmbed, img image.Image) []*discordgo.
 	if img != nil {
 		var buf bytes.Buffer
 		if err := jpeg.Encode(&buf, img, nil); err != nil {
-			// we can't really do anything if this fails, it would be an issue with the board renderer
+			// we can't do anything if this fails, it would be an issue with the Board renderer
 			slog.Error("failed to encode image", "error", err)
 			return nil
 		}
@@ -60,6 +60,13 @@ func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discor
 	}
 }
 
+func createEmbedSend(embed *discordgo.MessageEmbed, img image.Image) *discordgo.MessageSend {
+	files := addEmbedFiles(embed, img)
+	return &discordgo.MessageSend{
+		Embeds: []*discordgo.MessageEmbed{embed},
+		Files:  files,
+	}
+}
 func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
