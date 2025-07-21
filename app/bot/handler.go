@@ -310,8 +310,7 @@ func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Gam
 	_, _ = dg.ChannelMessageSendComplex(channelID, createEmbedSend(embed, img))
 
 	// make another move if it is still the bot's move
-	isBot := GetBotName(game.CurrentPlayer().ID) != ""
-	if isBot {
+	if game.CurrentPlayer().isBot() {
 		h.handleBotMove(dg, channelID, game)
 	}
 }
@@ -351,7 +350,7 @@ func (h Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disco
 			return err
 		}
 	} else {
-		isBot := GetBotName(game.CurrentPlayer().ID) != ""
+		isBot := game.CurrentPlayer().isBot()
 		if isBot {
 			embed = CreateGameEmbed(game)
 			go h.handleBotMove(dg, i.ChannelID, game)

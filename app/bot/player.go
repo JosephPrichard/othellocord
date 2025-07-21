@@ -32,6 +32,10 @@ func GetBotName(playerId string) string {
 	return ""
 }
 
+func (player Player) isBot() bool {
+	return GetBotName(player.ID) != ""
+}
+
 func IsValidBotLevel(level int) bool {
 	return level >= MinBotLevel && level <= MaxBotLevel
 }
