@@ -241,7 +241,7 @@ func ExpireGame(db *sql.DB, game Game) {
 	gr := GameResult{Winner: game.CurrentPlayer(), Loser: game.CurrentPlayer(), IsDraw: false}
 	sr, err := UpdateStats(ctx, db, gr)
 	if err != nil {
-		slog.Error("failed to update stats in expire game task", "trace", trace, "error", err)
+		slog.Error("failed to update stats in expire game task", "trace", trace, "err", err)
 	}
 	slog.Info("updated stats result in expire game task with result", "trace", trace, "result", sr)
 }

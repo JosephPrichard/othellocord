@@ -24,8 +24,7 @@ type AgentRequest struct {
 
 func ListenAgentRequests(w int, agentChan chan AgentRequest) {
 	agent := othello.NewOthelloAgent()
-	for {
-		request := <-agentChan
+	for request := range agentChan {
 		slog.Info("received an agent request on worker", "worker", w, "request", request)
 
 		var moves []othello.Move

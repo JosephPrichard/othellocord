@@ -32,7 +32,7 @@ func addEmbedFiles(embed *discordgo.MessageEmbed, img image.Image) []*discordgo.
 		var buf bytes.Buffer
 		if err := jpeg.Encode(&buf, img, nil); err != nil {
 			// we can't do anything if this fails, it would be an issue with the Board renderer
-			slog.Error("failed to encode image", "error", err)
+			slog.Error("failed to encode image", "err", err)
 			return nil
 		}
 		file := &discordgo.File{

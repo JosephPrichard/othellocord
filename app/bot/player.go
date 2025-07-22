@@ -117,7 +117,7 @@ func (uc UserCache) FetchUser(ctx context.Context, playerId string) (*discordgo.
 	} else {
 		user, err = uc.Dg.User(playerId, discordgo.WithContext(ctx))
 		if err != nil {
-			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerId, "error", err)
+			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerId, "err", err)
 			return nil, err
 		}
 		uc.Cache.Set(playerId, *user, UserCacheTTl)

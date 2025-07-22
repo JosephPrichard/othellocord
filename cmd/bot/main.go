@@ -39,7 +39,7 @@ func main() {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			slog.Error("failed to close database", "error", err)
+			slog.Error("failed to close database", "err", err)
 		}
 	}()
 	if _, err := db.Exec(CreateSchema); err != nil {
@@ -53,7 +53,7 @@ func main() {
 	}
 	defer func() {
 		if err := dg.Close(); err != nil {
-			slog.Error("failed to close discord dg", "error", err)
+			slog.Error("failed to close discord dg", "err", err)
 		}
 	}()
 

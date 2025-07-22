@@ -25,7 +25,7 @@ func main() {
 	}
 	defer func() {
 		if err := dg.Close(); err != nil {
-			slog.Error("failed to close discord dg", "error", err)
+			slog.Error("failed to close discord dg", "err", err)
 		}
 	}()
 

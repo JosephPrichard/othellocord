@@ -36,7 +36,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, err
 
 	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = ?;", playerId)
 	if err != nil {
-		slog.Error("failed to get stats", "trace", trace, "playerId", playerId, "error", err)
+		slog.Error("failed to get stats", "trace", trace, "playerId", playerId, "err", err)
 		return Stats{}, err
 	}
 	defer func() {
@@ -46,7 +46,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, err
 	var stats Stats
 	if rows.Next() {
 		if err := rows.Scan(&stats.Player.ID, &stats.Elo, &stats.Won, &stats.Lost, &stats.Drawn); err != nil {
-			slog.Error("failed to scan stats", "trace", trace, "error", err)
+			slog.Error("failed to scan stats", "trace", trace, "err", err)
 			return Stats{}, err
 		}
 	} else {
@@ -65,7 +65,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, err
 			stats.Lost,
 			stats.Drawn)
 		if err != nil {
-			slog.Error("failed to insert stats", "trace", trace, "stats", stats, "error", err)
+			slog.Error("failed to insert stats", "trace", trace, "stats", stats, "err", err)
 			return Stats{}, err
 		}
 		slog.Info("inserted stats", "trace", trace, "stats", stats)
@@ -80,7 +80,7 @@ func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
 
 	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT ?;", amount)
 	if err != nil {
-		slog.Error("failed to get top stats", "trace", trace, "error", err)
+		slog.Error("failed to get top stats", "trace", trace, "err", err)
 		return nil, err
 	}
 	defer func() {
@@ -91,7 +91,7 @@ func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
 	for rows.Next() {
 		var stat Stats
 		if err := rows.Scan(&stat.Player.ID, &stat.Elo, &stat.Won, &stat.Lost, &stat.Drawn); err != nil {
-			slog.Error("failed to scan stats", "trace", trace, "error", err)
+			slog.Error("failed to scan stats", "trace", trace, "err", err)
 			return nil, err
 		}
 		stats = append(stats, stat)
@@ -110,7 +110,7 @@ func updateStat(ctx context.Context, tx *sql.Tx, stats Stats) error {
 		stats.Drawn,
 		stats.Player.ID)
 	if err != nil {
-		slog.Error("failed to exec update stats", "trace", ctx.Value("trace"), "stats", stats, "error", err)
+		slog.Error("failed to exec update stats", "trace", ctx.Value("trace"), "stats", stats, "err", err)
 	}
 	return nil
 }
@@ -143,7 +143,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		slog.Error("failed to open update stats tx", "trace", trace, "error", err)
+		slog.Error("failed to open update stats tx", "trace", trace, "err", err)
 		return StatsResult{}, err
 	}
 	defer func() {
@@ -180,7 +180,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 	}
 
 	if err := tx.Commit(); err != nil {
-		slog.Error("failed to commit update stats tx", "trace", trace, "error", err)
+		slog.Error("failed to commit update stats tx", "trace", trace, "err", err)
 		return StatsResult{}, err
 	}
 
@@ -245,7 +245,7 @@ func ReadTopStats(ctx context.Context, db *sql.DB, c UserCache) ([]Stats, error)
 	}
 
 	if err := eg.Wait(); err != nil {
-		slog.Error("error occurred in fetch username tasks", "trace", trace, "error", err)
+		slog.Error("error occurred in fetch username tasks", "trace", trace, "err", err)
 		return nil, err
 	}
 	return stats, nil

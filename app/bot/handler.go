@@ -125,7 +125,9 @@ func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Se
 
 	game, err := h.Gs.CreateBotGame(ctx, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game.")); err != nil {
+			slog.Error("failed to respond to already playing game for bot challenge", "err", err)
+		}
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to create bot game with level=%d, player=%v cmd: %w", level, player, err)
@@ -134,7 +136,9 @@ func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Se
 	embed := CreateGameStartEmbed(game)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to bot challenge", "err", err)
+	}
 	return nil
 }
 
@@ -153,12 +157,17 @@ func (h Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.S
 
 	channelID := i.ChannelID
 	onExpire := func() {
-		_, _ = dg.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> Challenge timed out!", player.ID))
+		if _, err = dg.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> Challenge timed out!", player.ID)); err != nil {
+			slog.Error("failed to send user challenge expire", "err", err)
+		}
 	}
 	h.Cc.CreateChallenge(ctx, Challenge{Challenger: player, Challenged: opponent}, onExpire)
 
 	msg := fmt.Sprintf("<@%s>, %s has challenged you to a game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
-	_ = dg.InteractionRespond(i.Interaction, createStringResponse(msg))
+
+	if err := dg.InteractionRespond(i.Interaction, createStringResponse(msg)); err != nil {
+		slog.Error("failed to respond to user challenge", "err", err)
+	}
 	return nil
 }
 
@@ -173,7 +182,9 @@ func (h Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *dis
 
 	didAccept := h.Cc.AcceptChallenge(ctx, Challenge{Challenged: player, Challenger: opponent})
 	if !didAccept {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("Cannot accept a challenge that does not exist."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("Cannot accept a challenge that does not exist.")); err != nil {
+			slog.Error("failed to respond to denied accept", "err", err)
+		}
 		return nil
 	}
 	game, err := h.Gs.CreateGame(ctx, opponent, player)
@@ -184,7 +195,9 @@ func (h Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *dis
 	embed := CreateGameStartEmbed(game)
 	img := othello.DrawBoard(h.Rc, game.Board)
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to accept", "err", err)
+	}
 	return nil
 }
 
@@ -198,7 +211,9 @@ func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disco
 
 	game, err := h.Gs.GetGame(ctx, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not playing a game."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're not playing a game.")); err != nil {
+			slog.Error("failed to respond to not found view", "err", err)
+		}
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to get game for player=%s: %w", user.ID, err)
@@ -207,7 +222,9 @@ func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disco
 	embed := CreateGameEmbed(game)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to view", "err", err)
+	}
 	return nil
 }
 
@@ -236,7 +253,9 @@ func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *di
 	embed := CreateForfeitEmbed(gr, sr)
 	img := othello.DrawBoard(h.Rc, game.Board)
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to forfeit", "err", err)
+	}
 	return nil
 }
 
@@ -262,7 +281,9 @@ func (h Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Sessi
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{Name: tileStr, Value: tileStr})
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createAutocompleteResponse(choices))
+	if err := dg.InteractionRespond(i.Interaction, createAutocompleteResponse(choices)); err != nil {
+		slog.Error("failed to respond to move autocomplete", "err", err)
+	}
 }
 
 func (h Handler) handleGameOver(ctx context.Context, game Game, move othello.Tile) (*discordgo.MessageEmbed, image.Image, error) {
@@ -292,7 +313,7 @@ func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Gam
 	moves := <-request.RespChan
 	slog.Info("received agent response", "moves", moves)
 	if len(moves) != 1 {
-		panic("expected exactly one agent response")
+		panic("expected exactly one agent response in bot move") // we already checked for game over in the caller, we can expect exactly one move
 	}
 	move := moves[0].Tile
 
@@ -301,7 +322,9 @@ func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Gam
 	embed := CreateGameMoveEmbed(game, move)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
 
-	_, _ = dg.ChannelMessageSendComplex(channelID, createEmbedSend(embed, img))
+	if _, err := dg.ChannelMessageSendComplex(channelID, createEmbedSend(embed, img)); err != nil {
+		slog.Error("failed to send bot move", "err", err)
+	}
 
 	// make another move if it is still the bot's move
 	if game.CurrentPlayer().isBot() {
@@ -353,7 +376,9 @@ func (h Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disco
 		img = othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to move", "err", err)
+	}
 	return nil
 }
 
@@ -390,18 +415,24 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 		_ = dg.InteractionRespond(i.Interaction, createStringResponse("Server is overloaded, try again later."))
 		return nil
 	}
-	
-	_ = dg.InteractionRespond(i.Interaction, createStringResponse("Analyzing... Wait a second..."))
+
+	if err := dg.InteractionRespond(i.Interaction, createStringResponse("Analyzing... Wait a second...")); err != nil {
+		slog.Error("failed to respond to analyze", "err", err)
+	}
 
 	select {
 	case resp := <-request.RespChan:
 		embed := CreateAnalysisEmbed(game, level)
 		img := othello.DrawBoardAnalysis(h.Rc, game.Board, resp)
 
-		_, _ = dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img))
+		if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img)); err != nil {
+			slog.Error("failed to edit analyze", "err", err)
+		}
 	case <-ctx.Done():
 		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
-		_, _ = dg.InteractionResponseEdit(i.Interaction, createStringEdit("Timed out while waiting for a response."))
+		if _, err := dg.InteractionResponseEdit(i.Interaction, createStringEdit("Timed out while waiting for a response.")); err != nil {
+			slog.Error("failed to edit analyze", "err", err)
+		}
 	}
 	return nil
 }
@@ -480,7 +511,9 @@ func (h Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *d
 	embed := CreateSimulationStartEmbed(initialGame)
 	img := othello.DrawBoard(h.Rc, initialGame.Board)
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
+		slog.Error("failed to respond to simulate", "err", err)
+	}
 
 	simChan := make(chan SimMsg, othello.BoardSize*othello.BoardSize) // maximum number of possible simulation states
 	go h.Simulation(ctx, initialGame, simChan)
@@ -490,7 +523,9 @@ func (h Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *d
 	ticker := time.NewTicker(delay)
 	for sim := range simChan {
 		<-ticker.C
-		_, _ = dg.ChannelMessageSendComplex(i.ChannelID, createEmbedSend(sim.embed, sim.img))
+		if _, err := dg.ChannelMessageSendComplex(i.ChannelID, createEmbedSend(sim.embed, sim.img)); err != nil {
+			slog.Error("failed to message simulate", "err", err)
+		}
 	}
 
 	slog.Info("simulation receiver complete", "trace", trace)
@@ -535,7 +570,9 @@ func (h Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *disc
 		Color: GreenColor,
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil)); err != nil {
+		slog.Error("failed to respond to stats", "err", err)
+	}
 	return nil
 }
 
@@ -563,7 +600,9 @@ func (h Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, i
 		Color:       GreenColor,
 	}
 
-	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil))
+	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, nil)); err != nil {
+		slog.Error("failed to respond to leaderboard", "err", err)
+	}
 	return nil
 }
 
@@ -580,7 +619,7 @@ func createMessage(m string) string {
 
 func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, err error) {
 	trace := ctx.Value("trace")
-	slog.Error("error when handling command", "trace", trace, "error", err)
+	slog.Error("error when handling command", "trace", trace, "err", err)
 
 	content := "an unexpected error occurred"
 

@@ -24,7 +24,7 @@ func main() {
 	imgBoard := othello.DrawBoardAnalysis(rc, othello.InitialBoard(), moves)
 
 	if err := os.Remove(pathBoard); err != nil {
-		slog.Error("failed to remove file", "error", err)
+		slog.Error("failed to remove file", "err", err)
 	}
 	if err := draw2dimg.SaveToPngFile(pathBoard, imgBoard); err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func main() {
 	imgDisc := othello.DrawDisc(othello.WhiteFill, 1)
 
 	if err := os.Remove(pathDisc); err != nil {
-		slog.Error("failed to remove file", "error", err)
+		slog.Error("failed to remove file", "err", err)
 	}
 	if err := draw2dimg.SaveToPngFile(pathDisc, imgDisc); err != nil {
 		panic(err)
