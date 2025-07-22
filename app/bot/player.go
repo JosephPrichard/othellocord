@@ -11,11 +11,29 @@ import (
 )
 
 const MinBotLevel = 1
-const MaxBotLevel = 10
+const MaxBotLevel = 6
 
 type Player struct {
 	ID   string
 	Name string
+}
+
+func LevelToDepth(level int) int {
+	switch level {
+	case 1:
+		return 3
+	case 2:
+		return 5
+	case 3:
+		return 9
+	case 4:
+		return 10
+	case 5:
+		return 12
+	case 6:
+		return 13
+	}
+	return 0
 }
 
 func PlayerFromUser(user *discordgo.User) Player {
@@ -23,6 +41,10 @@ func PlayerFromUser(user *discordgo.User) Player {
 		panic("expected user to be non nil when creating player")
 	}
 	return Player{ID: user.ID, Name: user.Username}
+}
+
+func PlayerFromLevel(level int) Player {
+	return Player{ID: strconv.Itoa(level), Name: GetBotLevelFmt(level)}
 }
 
 func GetBotName(playerId string) string {
@@ -45,7 +67,10 @@ func GetBotLevelFmt(level int) string {
 }
 
 func GetBotLevel(playerId string) int {
-	id, _ := strconv.Atoi(playerId)
+	id, err := strconv.Atoi(playerId)
+	if err != nil {
+		panic(fmt.Sprintf("expected bot player id to be a number, got %#v", playerId))
+	}
 	return id
 }
 

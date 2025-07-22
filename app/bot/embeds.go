@@ -98,6 +98,7 @@ func CreateGameStartEmbed(game Game) *discordgo.MessageEmbed {
 		Color:       GreenColor,
 	}
 }
+
 func CreateSimulationStartEmbed(game Game) *discordgo.MessageEmbed {
 	desc := fmt.Sprintf("Black: %s\n White: %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
 	return &discordgo.MessageEmbed{

@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"github.com/google/uuid"
 	"log/slog"
 	"othellocord/app/othello"
 )
@@ -65,6 +66,7 @@ func (q *AgentQueue) PushChecked(request AgentRequest) bool {
 }
 
 func (q *AgentQueue) Push(request AgentRequest) {
+	request.ID = uuid.NewString()
 	slog.Info("dispatched an agent request", "request", request)
 	q.agentChan <- request
 }

@@ -50,6 +50,8 @@ func (t *TTable) Hash(board Board) uint64 {
 }
 
 func (t *TTable) Clear() {
+	t.hits = 0
+	t.misses = 0
 	for i := range t.cache {
 		t.cache[i][0] = Node{}
 		t.cache[i][1] = Node{}

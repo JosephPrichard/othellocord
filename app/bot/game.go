@@ -27,6 +27,17 @@ func (g *Game) LoadPotentialMoves() []othello.Tile {
 	return g.CurrPotentialMoves
 }
 
+func (g *Game) TrySkipTurn() {
+	if len(g.LoadPotentialMoves()) == 0 {
+		g.IsBlackMove = !g.IsBlackMove
+		g.CurrPotentialMoves = nil
+	}
+}
+
+func (g *Game) IsGameOver() bool {
+	return len(g.LoadPotentialMoves()) == 0
+}
+
 func (g *Game) CurrentPlayer() Player {
 	if g.Board.IsBlackMove {
 		return g.BlackPlayer
@@ -212,12 +223,7 @@ func (s GameStore) MakeMoveState(state *GameState, move othello.Tile) Game {
 	state.MakeMove(move)
 	state.CurrPotentialMoves = nil
 
-	if len(state.LoadPotentialMoves()) == 0 {
-		// skip turn
-		state.IsBlackMove = !state.IsBlackMove
-		// reset the moves
-		state.CurrPotentialMoves = nil
-	}
+	state.TrySkipTurn()
 
 	// no moves twice in a row means the game is over
 	if len(state.LoadPotentialMoves()) == 0 {

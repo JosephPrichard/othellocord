@@ -57,8 +57,13 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, err
 			Drawn:  0,
 			Lost:   0,
 		}
-		_, err := q.Exec("INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
-			stats.Player.ID, stats.Elo, stats.Won, stats.Lost, stats.Drawn)
+		_, err := q.Exec(
+			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
+			stats.Player.ID,
+			stats.Elo,
+			stats.Won,
+			stats.Lost,
+			stats.Drawn)
 		if err != nil {
 			slog.Error("failed to insert stats", "trace", trace, "stats", stats, "error", err)
 			return Stats{}, err
@@ -97,7 +102,8 @@ func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
 }
 
 func updateStat(ctx context.Context, tx *sql.Tx, stats Stats) error {
-	_, err := tx.Exec("UPDATE stats SET elo = ?, won = ?, lost = ?, drawn = ? WHERE player_id = ?;",
+	_, err := tx.Exec(
+		"UPDATE stats SET elo = ?, won = ?, lost = ?, drawn = ? WHERE player_id = ?;",
 		stats.Elo,
 		stats.Won,
 		stats.Lost,

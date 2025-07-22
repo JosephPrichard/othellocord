@@ -5,8 +5,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const MinDelay = 1
+const MaxDelay = 5
+
 var LevelDesc = fmt.Sprintf("Level of the bot between %d and %d", MinBotLevel, MaxBotLevel)
 var ExpectedTileValue = "be a string of the form 'a1' where 'a' is the column and '1' is the row"
+var DelayDesc = fmt.Sprintf("Delay between moves in seconds between %d and %d secs", MinDelay, MaxDelay)
 
 var Commands = []*discordgo.ApplicationCommand{
 	{
@@ -105,7 +109,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:        discordgo.ApplicationCommandOptionInteger,
 				Name:        "delay",
-				Description: "Delay between moves in seconds between 0 and 5000 ms",
+				Description: DelayDesc,
 				Required:    false,
 			},
 		},

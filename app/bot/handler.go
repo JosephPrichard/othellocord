@@ -111,7 +111,7 @@ func (h Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, i *
 }
 
 func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
-	level, err := getLevelOpt(options, "level", 3)
+	level, err := getLevelOpt(options, "level")
 	if err != nil {
 		return err
 	}
@@ -259,11 +259,7 @@ func (h Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Sessi
 		duplicateMoves[move.Row][move.Col] = true
 
 		tileStr := move.String()
-		choice := &discordgo.ApplicationCommandOptionChoice{
-			Name:  tileStr,
-			Value: tileStr,
-		}
-		choices = append(choices, choice)
+		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{Name: tileStr, Value: tileStr})
 	}
 
 	_ = dg.InteractionRespond(i.Interaction, createAutocompleteResponse(choices))
@@ -286,21 +282,19 @@ func (h Handler) handleGameOver(ctx context.Context, game Game, move othello.Til
 
 func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Game) {
 	request := AgentRequest{
-		ID:       uuid.NewString(),
 		Board:    game.Board,
-		Depth:    GetBotLevel(game.CurrentPlayer().ID),
+		Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
 		T:        GetMoveRequest,
 		RespChan: make(chan []othello.Move, 1),
 	}
 	h.Aq.Push(request)
 
-	resp := <-request.RespChan
-	slog.Info("received agent response", "resp", resp)
-
-	if len(resp) != 1 {
+	moves := <-request.RespChan
+	slog.Info("received agent response", "moves", moves)
+	if len(moves) != 1 {
 		panic("expected exactly one agent response")
 	}
-	move := resp[0].Tile
+	move := moves[0].Tile
 
 	game = h.Gs.MakeMoveUnchecked(game.OtherPlayer().ID, move) // game will be stored at the ID of the player that is NOT the bot
 
@@ -344,8 +338,7 @@ func (h Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disco
 	var embed *discordgo.MessageEmbed
 	var img image.Image
 
-	isGameOver := len(game.LoadPotentialMoves()) == 0
-	if isGameOver {
+	if game.IsGameOver() {
 		if embed, img, err = h.handleGameOver(ctx, game, move); err != nil {
 			return err
 		}
@@ -370,7 +363,7 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*2))
 	defer cancel()
 
-	level, err := getLevelOpt(i.ApplicationCommandData().Options, "level", 3)
+	level, err := getLevelOpt(i.ApplicationCommandData().Options, "level")
 	if err != nil {
 		return err
 	}
@@ -388,9 +381,8 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 	}
 
 	request := AgentRequest{
-		ID:       uuid.NewString(),
 		Board:    game.Board,
-		Depth:    level,
+		Depth:    LevelToDepth(level),
 		T:        GetMovesRequest,
 		RespChan: make(chan []othello.Move, 1),
 	}
@@ -414,17 +406,102 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 	return nil
 }
 
+type SimMsg struct {
+	embed *discordgo.MessageEmbed
+	img   image.Image
+}
+
+func (h Handler) Simulation(ctx context.Context, initialGame Game, simChan chan SimMsg) {
+	trace := ctx.Value("trace")
+
+	var game = initialGame
+	var move othello.Tile
+
+	for i := 0; ; i++ {
+		request := AgentRequest{
+			Board:    game.Board,
+			Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
+			T:        GetMoveRequest,
+			RespChan: make(chan []othello.Move, 1),
+		}
+		h.Aq.Push(request)
+
+		moves := <-request.RespChan
+		slog.Info("received agent response in simulation", "trace", trace, "moves", moves)
+
+		if len(moves) > 0 {
+			move = moves[0].Tile
+			slog.Info("completed simulation iteration", "index", i, "trace", trace, "move", move)
+
+			game.MakeMove(move)
+			game.TrySkipTurn()
+
+			embed := CreateGameEmbed(game)
+			img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
+
+			simChan <- SimMsg{img: img, embed: embed}
+		} else {
+			slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
+
+			embed := CreateSimulationEmbed(game, move)
+			img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
+
+			simChan <- SimMsg{img: img, embed: embed}
+			close(simChan)
+			return
+		}
+	}
+}
+
 func (h Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+	trace := ctx.Value("trace")
+	cmd := i.ApplicationCommandData()
+
+	var whiteLevel int
+	var blackLevel int
+	var delay time.Duration
+	var err error
+
+	if whiteLevel, err = getLevelOpt(cmd.Options, "white-level"); err != nil {
+		return err
+	}
+	if blackLevel, err = getLevelOpt(cmd.Options, "black-level"); err != nil {
+		return err
+	}
+	if delay, err = getDelayOpt(cmd.Options, "delay"); err != nil {
+		return err
+	}
+
+	initialGame := Game{
+		WhitePlayer: PlayerFromLevel(whiteLevel),
+		BlackPlayer: PlayerFromLevel(blackLevel),
+		Board:       othello.InitialBoard(),
+	}
+	embed := CreateSimulationStartEmbed(initialGame)
+	img := othello.DrawBoard(h.Rc, initialGame.Board)
+
+	_ = dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img))
+
+	simChan := make(chan SimMsg, othello.BoardSize*othello.BoardSize) // maximum number of possible simulation states
+	go h.Simulation(ctx, initialGame, simChan)
+
+	slog.Info("simulation receiver started", "delay", delay, "trace", trace)
+
+	ticker := time.NewTicker(delay)
+	for sim := range simChan {
+		<-ticker.C
+		_, _ = dg.ChannelMessageSendComplex(i.ChannelID, createEmbedSend(sim.embed, sim.img))
+	}
+
+	slog.Info("simulation receiver complete", "trace", trace)
 	return nil
 }
 
 func (h Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cmd := i.ApplicationCommandData()
-
 	var user *discordgo.User
 	var err error
 
-	userOpt := cmd.GetOption("player")
+	userOpt := i.ApplicationCommandData().GetOption("player")
 	if userOpt != nil {
 		if user, err = h.Uc.FetchUser(ctx, userOpt.Value.(string)); err != nil {
 			return err

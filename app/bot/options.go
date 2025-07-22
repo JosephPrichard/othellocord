@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"othellocord/app/othello"
 	"strings"
+	"time"
 )
 
 func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.ApplicationCommandInteractionDataOption) {
@@ -33,7 +34,9 @@ func (h Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applicat
 	return Player{}, OptError{Name: name}
 }
 
-func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string, defaultInt int) (int, error) {
+const DefaultLevel = 5
+
+func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, error) {
 	for _, opt := range options {
 		if opt.Name != name {
 			continue
@@ -48,7 +51,27 @@ func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 		}
 		return level, nil
 	}
-	return defaultInt, nil
+	return DefaultLevel, nil
+}
+
+const DefaultDelay = time.Second * 2
+
+func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (time.Duration, error) {
+	for _, opt := range options {
+		if opt.Name != name {
+			continue
+		}
+		value, ok := opt.Value.(float64)
+		if !ok {
+			return 0, OptError{Name: name, InvalidValue: opt.Value}
+		}
+		delay := int(value)
+		if delay < MinDelay || delay > MaxDelay {
+			return 0, OptError{Name: name, InvalidValue: delay}
+		}
+		return time.Second * time.Duration(delay), nil
+	}
+	return DefaultDelay, nil
 }
 
 func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (othello.Tile, string, error) {

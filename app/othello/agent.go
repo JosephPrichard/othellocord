@@ -167,12 +167,12 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 	var heuristic float64 = 0
 
 	for len(a.stack) > 0 {
-		frame := &a.stack[len(a.stack)-1]
-		currBoard := frame.Board
+		top := &a.stack[len(a.stack)-1]
+		currBoard := top.Board
 
-		if !frame.HasChildren() {
+		if !top.HasChildren() {
 			// Terminal node or timeout
-			if frame.Depth == 0 || (frame.Depth >= MinDepth && time.Now().After(a.stopTime)) {
+			if top.Depth == 0 || (top.Depth >= MinDepth && time.Now().After(a.stopTime)) {
 				heuristic = FindHeuristic(currBoard)
 				a.stack = a.stack[:len(a.stack)-1] // pop
 				continue
@@ -192,7 +192,7 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 
 			hashKey := a.table.Hash(currBoard)
 
-			if node, ok := a.table.Get(hashKey); ok && node.Depth >= frame.Depth {
+			if node, ok := a.table.Get(hashKey); ok && node.Depth >= top.Depth {
 				heuristic = node.Heuristic
 				a.stack = a.stack[:len(a.stack)-1]
 				continue
@@ -206,23 +206,23 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 			}
 
 			if len(children) > 0 {
-				frame.Children = children
-				frame.HashKey = hashKey
+				top.Children = children
+				top.HashKey = hashKey
 				sf := StackFrame{
 					Board: children[0],
-					Depth: frame.Depth - 1,
-					Alpha: frame.Alpha,
-					Beta:  frame.Beta,
+					Depth: top.Depth - 1,
+					Alpha: top.Alpha,
+					Beta:  top.Beta,
 				}
 				a.stack = append(a.stack, sf)
-				frame.Index = 1
+				top.Index = 1
 			} else {
 				if currBoard.IsBlackMove {
-					a.table.Put(Node{Key: hashKey, Heuristic: frame.Alpha, Depth: frame.Depth})
-					heuristic = frame.Alpha
+					a.table.Put(Node{Key: hashKey, Heuristic: top.Alpha, Depth: top.Depth})
+					heuristic = top.Alpha
 				} else {
-					a.table.Put(Node{Key: hashKey, Heuristic: frame.Beta, Depth: frame.Depth})
-					heuristic = frame.Beta
+					a.table.Put(Node{Key: hashKey, Heuristic: top.Beta, Depth: top.Depth})
+					heuristic = top.Beta
 				}
 				a.stack = a.stack[:len(a.stack)-1]
 			}
@@ -230,39 +230,39 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 			doPrune := false
 
 			if currBoard.IsBlackMove {
-				frame.Alpha = math.Max(frame.Alpha, heuristic)
-				if frame.Alpha >= frame.Beta {
+				top.Alpha = math.Max(top.Alpha, heuristic)
+				if top.Alpha >= top.Beta {
 					doPrune = true
 				}
-				if frame.HasNext() && !doPrune {
+				if top.HasNext() && !doPrune {
 					sf := StackFrame{
-						Board: frame.NextBoard(),
-						Depth: frame.Depth - 1,
-						Alpha: frame.Alpha,
-						Beta:  frame.Beta,
+						Board: top.NextBoard(),
+						Depth: top.Depth - 1,
+						Alpha: top.Alpha,
+						Beta:  top.Beta,
 					}
 					a.stack = append(a.stack, sf)
 				} else {
-					a.table.Put(Node{Key: frame.HashKey, Heuristic: frame.Alpha, Depth: frame.Depth})
-					heuristic = frame.Alpha
+					a.table.Put(Node{Key: top.HashKey, Heuristic: top.Alpha, Depth: top.Depth})
+					heuristic = top.Alpha
 					a.stack = a.stack[:len(a.stack)-1]
 				}
 			} else {
-				frame.Beta = math.Min(frame.Beta, heuristic)
-				if frame.Beta <= frame.Alpha {
+				top.Beta = math.Min(top.Beta, heuristic)
+				if top.Beta <= top.Alpha {
 					doPrune = true
 				}
-				if frame.HasNext() && !doPrune {
+				if top.HasNext() && !doPrune {
 					sf := StackFrame{
-						Board: frame.NextBoard(),
-						Depth: frame.Depth - 1,
-						Alpha: frame.Alpha,
-						Beta:  frame.Beta,
+						Board: top.NextBoard(),
+						Depth: top.Depth - 1,
+						Alpha: top.Alpha,
+						Beta:  top.Beta,
 					}
 					a.stack = append(a.stack, sf)
 				} else {
-					a.table.Put(Node{Key: frame.HashKey, Heuristic: frame.Beta, Depth: frame.Depth})
-					heuristic = frame.Beta
+					a.table.Put(Node{Key: top.HashKey, Heuristic: top.Beta, Depth: top.Depth})
+					heuristic = top.Beta
 					a.stack = a.stack[:len(a.stack)-1]
 				}
 			}
