@@ -25,7 +25,7 @@ func (h Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applicat
 		if opt.Name != name {
 			continue
 		}
-		opponent, err := h.Uc.FetchPlayer(ctx, opt.Value.(string))
+		opponent, err := h.Uc.GetPlayer(ctx, opt.Value.(string))
 		if err != nil {
 			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %w", name, err)
 		}

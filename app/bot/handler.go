@@ -20,7 +20,7 @@ type Handler struct {
 	Db *sql.DB
 	Uc UserCache
 	Cc ChallengeCache
-	Gs GameStore
+	Gs *GameStore
 	Rc othello.RenderCache
 	Aq AgentQueue
 }
@@ -123,7 +123,7 @@ func (h Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Se
 		return ErrUserNotProvided
 	}
 
-	game, err := h.Gs.CreateBotGame(ctx, player, level)
+	game, err := CreateBotGame(ctx, h.Gs, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
 		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game.")); err != nil {
 			slog.Error("failed to respond to already playing game for bot challenge", "err", err)
@@ -187,7 +187,7 @@ func (h Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *dis
 		}
 		return nil
 	}
-	game, err := h.Gs.CreateGame(ctx, opponent, player)
+	game, err := CreateGame(ctx, h.Gs, opponent, player)
 	if err != nil {
 		return fmt.Errorf("failed to create game with opponent=%v cmd: %w", opponent, err)
 	}
@@ -209,7 +209,7 @@ func (h Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disco
 		return ErrUserNotProvided
 	}
 
-	game, err := h.Gs.GetGame(ctx, user.ID)
+	game, err := GetGame(ctx, h.Gs, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
 		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're not playing a game.")); err != nil {
 			slog.Error("failed to respond to not found view", "err", err)
@@ -236,14 +236,14 @@ func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *di
 		return ErrUserNotProvided
 	}
 
-	game, err := h.Gs.GetGame(ctx, user.ID)
+	game, err := GetGame(ctx, h.Gs, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
 		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a game."))
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to get game for player=%s: %w", user.ID, err)
 	}
-	h.Gs.DeleteGame(game)
+	DeleteGame(h.Gs, game)
 	gr := game.CreateForfeitResult(user.ID)
 	sr, err := UpdateStats(ctx, h.Db, gr)
 	if err != nil {
@@ -262,7 +262,7 @@ func (h Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *di
 func (h Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) {
 	var moves []othello.Tile
 	if i.Interaction.Member != nil {
-		game, err := h.Gs.GetGame(ctx, i.Interaction.Member.User.ID)
+		game, err := GetGame(ctx, h.Gs, i.Interaction.Member.User.ID)
 		if err == nil {
 			moves = game.LoadPotentialMoves()
 		}
@@ -317,7 +317,7 @@ func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Gam
 	}
 	move := moves[0].Tile
 
-	game = h.Gs.MakeMoveUnchecked(game.OtherPlayer().ID, move) // game will be stored at the ID of the player that is NOT the bot
+	game = MakeMoveUnchecked(h.Gs, game.OtherPlayer().ID, move) // game will be stored at the ID of the player that is NOT the bot
 
 	embed := CreateGameMoveEmbed(game, move)
 	img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
@@ -344,7 +344,7 @@ func (h Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disco
 		return ErrUserNotProvided
 	}
 
-	game, err := h.Gs.MakeMoveValidated(player.ID, move)
+	game, err := MakeMoveValidated(h.Gs, player.ID, move)
 	if errors.Is(err, ErrGameNotFound) {
 		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently playing a game."))
 		return nil
@@ -399,7 +399,7 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 		return ErrUserNotProvided
 	}
 
-	game, err := h.Gs.GetGame(ctx, user.ID)
+	game, err := GetGame(ctx, h.Gs, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
 		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a game."))
 		return nil
@@ -538,7 +538,7 @@ func (h Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *disc
 
 	userOpt := i.ApplicationCommandData().GetOption("player")
 	if userOpt != nil {
-		if user, err = h.Uc.FetchUser(ctx, userOpt.Value.(string)); err != nil {
+		if user, err = h.Uc.GetUser(ctx, userOpt.Value.(string)); err != nil {
 			return err
 		}
 	} else if i.Interaction.Member != nil {

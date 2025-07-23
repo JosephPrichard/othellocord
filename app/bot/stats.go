@@ -9,6 +9,15 @@ import (
 	"math"
 )
 
+var CreateSchema = `
+	CREATE TABLE IF NOT EXISTS stats (
+	    player_id TEXT PRIMARY KEY,
+		elo    FLOAT,
+		won    INTEGER,
+		drawn  INTEGER,
+		lost   INTEGER
+	);`
+
 type Stats struct {
 	Player Player
 	Elo    float64
@@ -31,7 +40,17 @@ type Query interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }
 
-func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, error) {
+func DefaultStats(playerId string) Stats {
+	return Stats{
+		Player: Player{ID: playerId},
+		Elo:    1500,
+		Won:    0,
+		Drawn:  0,
+		Lost:   0,
+	}
+}
+
+func GetOrInsertStats(ctx context.Context, q Query, playerId string, defaultStats Stats) (Stats, error) {
 	trace := ctx.Value("trace")
 
 	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = ?;", playerId)
@@ -50,13 +69,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string) (Stats, err
 			return Stats{}, err
 		}
 	} else {
-		stats = Stats{
-			Player: Player{ID: playerId},
-			Elo:    1500,
-			Won:    0,
-			Drawn:  0,
-			Lost:   0,
-		}
+		stats = defaultStats
 		_, err := q.Exec(
 			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
 			stats.Player.ID,
@@ -150,11 +163,11 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 		_ = tx.Rollback()
 	}()
 
-	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID)
+	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID, DefaultStats(gr.Winner.ID))
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
 	}
-	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.ID)
+	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.ID, DefaultStats(gr.Loser.ID))
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
 	}
@@ -206,20 +219,19 @@ func eloLost(rating, probability float64) float64 {
 	return rating - EloK*probability
 }
 
-func ReadStats(ctx context.Context, db *sql.DB, c UserCache, playerId string) (Stats, error) {
-	stats, err := GetOrInsertStats(ctx, db, playerId)
+func ReadStats(ctx context.Context, db *sql.DB, uc UserCacheApi, playerId string) (Stats, error) {
+	stats, err := GetOrInsertStats(ctx, db, playerId, DefaultStats(playerId))
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to read stats: %w", err)
 	}
-	username, err := c.FetchUsername(ctx, playerId)
+	stats.Player.Name, err = uc.GetUsername(ctx, playerId)
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to read stats: %w", err)
 	}
-	stats.Player.Name = username
 	return stats, nil
 }
 
-func ReadTopStats(ctx context.Context, db *sql.DB, c UserCache) ([]Stats, error) {
+func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi) ([]Stats, error) {
 	trace := ctx.Value("trace")
 
 	stats, err := GetTopStats(ctx, db, 25)
@@ -237,7 +249,7 @@ func ReadTopStats(ctx context.Context, db *sql.DB, c UserCache) ([]Stats, error)
 			continue
 		}
 		eg.Go(func() error {
-			if stat.Player.Name, err = c.FetchUsername(egCtx, stat.Player.ID); err != nil {
+			if stat.Player.Name, err = uc.GetUsername(egCtx, stat.Player.ID); err != nil {
 				return err
 			}
 			return nil

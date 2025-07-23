@@ -36,7 +36,7 @@ func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge
 
 	key := challenge.Key()
 	_ = c.cache.Set(key, stopChan, ChallengeTTl)
-	slog.Info("set challenge into challenge cache", "trace", trace, "key", key, "challenge", challenge)
+	slog.Info("set challenge into challenge Cache", "trace", trace, "key", key, "challenge", challenge)
 
 	go func() {
 		defer c.cache.Delete(key)
@@ -69,6 +69,6 @@ func (c ChallengeCache) AcceptChallenge(ctx context.Context, challenge Challenge
 		stopChan <- struct{}{}
 	}
 
-	slog.Info("accepted challenge from challenge cache", "trace", trace, "key", key, "challenge", challenge)
+	slog.Info("accepted challenge from challenge Cache", "trace", trace, "key", key, "challenge", challenge)
 	return true
 }
