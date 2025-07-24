@@ -44,7 +44,7 @@ func main() {
 		Gs: bot.WithEviction(db),
 		Uc: bot.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
-		Aq: bot.NewAgentQueue(),
+		Eq: bot.NewEngineQ(),
 	}
 
 	dg.AddHandler(h.HandleCommand)

@@ -49,7 +49,7 @@ type Fonts struct {
 func init() {
 	font, err := truetype.Parse(TtfFont)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create font: %w", err))
+		panic(fmt.Sprintf("failed to create font: %v", err))
 	}
 	draw2d.RegisterFont(FontData, font)
 }
@@ -80,7 +80,7 @@ func DrawBoardMoves(r RenderCache, board Board, moves []Tile) image.Image {
 
 	DrawBoardDiscs(r, board, img)
 
-	// draw each move image onto the board
+	// draw each move image onto the preMoves
 	for _, move := range moves {
 		x := SideOffset + move.Col*TileSize - (LineThickness / 2)
 		y := SideOffset + move.Row*TileSize - (LineThickness / 2)
@@ -91,14 +91,14 @@ func DrawBoardMoves(r RenderCache, board Board, moves []Tile) image.Image {
 	return img
 }
 
-func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []Move) image.Image {
+func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []RankTile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
 	DrawBoardDiscs(r, board, img)
 
 	g := draw2dimg.NewGraphicContext(img)
 
-	// draw each heuristic eval onto the board
+	// draw each heuristic eval onto the preMoves
 	for i, move := range bestMoves {
 		hText := fmt.Sprintf("%.1f", move.H)
 		minLen := 5.0
@@ -125,7 +125,7 @@ func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []Move) image.Image
 func DrawBoardDiscs(r RenderCache, board Board, img draw.Image) {
 	draw.Draw(img, r.background.Bounds(), r.background, image.Point{X: 0, Y: 0}, draw.Over)
 
-	// draw discs onto board, either empty, black, or white
+	// draw discs onto preMoves, either empty, black, or white
 	for _, tile := range tiles {
 		x := SideOffset + tile.Col*TileSize - (LineThickness / 2)
 		y := SideOffset + tile.Row*TileSize - (LineThickness / 2)

@@ -14,10 +14,10 @@ func main() {
 	board := othello.InitialBoard()
 	tiles := board.FindCurrentMoves()
 
-	var moves []othello.Move
+	var moves []othello.RankTile
 	for i, tile := range tiles {
 		d := -8 * (i % 2)
-		moves = append(moves, othello.Move{Tile: tile, H: float64(4 + d)})
+		moves = append(moves, othello.RankTile{Tile: tile, H: float64(4 + d)})
 	}
 
 	rc := othello.NewRenderCache()

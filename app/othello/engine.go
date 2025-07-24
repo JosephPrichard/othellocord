@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	Inf      = math.MaxFloat32
-	MinDepth = 5
+	Inf = math.MaxFloat32
 )
 
 var (
@@ -24,58 +23,30 @@ var (
 	}
 )
 
-type StackFrame struct {
-	Board    Board
-	Depth    int
-	Alpha    float64
-	Beta     float64
-	HashKey  uint64
-	Children []Board
-	Index    int
-}
-
-func (sf *StackFrame) NextBoard() Board {
-	board := sf.Children[sf.Index]
-	sf.Index++
-	return board
-}
-
-func (sf *StackFrame) HasNext() bool {
-	return sf.Index < len(sf.Children)
-}
-
-func (sf *StackFrame) HasChildren() bool {
-	return sf.Children != nil
-}
-
-type Agent struct {
-	maxTime      int64 // in milliseconds
-	stopTime     time.Time
+type Engine struct {
 	nodesVisited int
 	stack        []StackFrame
 	table        TTable
 }
 
-func NewOthelloAgent() Agent {
-	return NewOthelloAgentWithParams((1<<12)+1, 3000)
+func NewEngine() Engine {
+	return NewEngineWithParams((1 << 12) + 1)
 }
 
-func NewOthelloAgentWithParams(ttSize int, maxTime int64) Agent {
-	return Agent{
-		table:   NewTTable(ttSize),
-		maxTime: maxTime,
-		stack:   []StackFrame{},
+func NewEngineWithParams(ttSize int) Engine {
+	return Engine{
+		table: NewTTableWithRand(ttSize),
+		stack: []StackFrame{},
 	}
 }
 
-func (a *Agent) FindBestMove(board Board, maxDepth int) (Move, bool) {
+func (a *Engine) FindBestMove(board Board, maxDepth int) (RankTile, bool) {
 	startTime := time.Now()
 	a.nodesVisited = 0
-	a.stopTime = startTime.Add(time.Duration(a.maxTime))
 
 	moves := board.FindCurrentMoves()
 
-	var bestMove Move
+	var bestMove RankTile
 	var isSet bool
 
 	if board.IsBlackMove {
@@ -105,18 +76,17 @@ func (a *Agent) FindBestMove(board Board, maxDepth int) (Move, bool) {
 	return bestMove, isSet
 }
 
-func (a *Agent) FindRankedMoves(board Board, maxDepth int) []Move {
+func (a *Engine) FindRankedMoves(board Board, maxDepth int) []RankTile {
 	startTime := time.Now()
 	a.nodesVisited = 0
-	a.stopTime = startTime.Add(time.Duration(a.maxTime))
 
 	moves := board.FindCurrentMoves()
-	rankedMoves := make([]Move, 0, len(moves))
+	rankedMoves := make([]RankTile, 0, len(moves))
 
 	for _, move := range moves {
 		child := board.MakeMoved(move)
 		heuristic := a.EvaluateLoop(child, maxDepth-1)
-		rankedMoves = append(rankedMoves, Move{Tile: move, H: heuristic})
+		rankedMoves = append(rankedMoves, RankTile{Tile: move, H: heuristic})
 	}
 	a.table.Clear()
 
@@ -134,22 +104,10 @@ func (a *Agent) FindRankedMoves(board Board, maxDepth int) []Move {
 			return rankedMoves[i].H < rankedMoves[j].H
 		})
 	}
-
-	var duplicates [BoardSize][BoardSize]bool
-
-	filtered := make([]Move, 0, len(rankedMoves))
-	for _, move := range rankedMoves {
-		row := move.Tile.Row
-		col := move.Tile.Col
-		if !duplicates[row][col] {
-			duplicates[row][col] = true
-			filtered = append(filtered, move)
-		}
-	}
-	return filtered
+	return rankedMoves
 }
 
-func (a *Agent) EvaluateLoop(board Board, maxDepth int) float64 {
+func (a *Engine) EvaluateLoop(board Board, maxDepth int) float64 {
 	if len(a.stack) > 0 {
 		a.stack = a.stack[:0]
 	}
@@ -161,18 +119,42 @@ func (a *Agent) EvaluateLoop(board Board, maxDepth int) float64 {
 	return heuristic
 }
 
-func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
+type StackFrame struct {
+	Board    Board
+	Depth    int
+	Alpha    float64
+	Beta     float64
+	HashKey  uint64
+	Children []Board
+	Index    int
+}
+
+func (sf *StackFrame) NextBoard() Board {
+	board := sf.Children[sf.Index]
+	sf.Index++
+	return board
+}
+
+func (sf *StackFrame) HasNext() bool {
+	return sf.Index < len(sf.Children)
+}
+
+func (sf *StackFrame) HasChildren() bool {
+	return sf.Children != nil
+}
+
+func (a *Engine) evaluateLoop(initialBoard Board, startDepth int) float64 {
 	a.stack = append(a.stack, StackFrame{Board: initialBoard, Depth: startDepth, Alpha: -Inf, Beta: Inf})
 
 	var heuristic float64 = 0
 
 	for len(a.stack) > 0 {
-		top := &a.stack[len(a.stack)-1]
-		currBoard := top.Board
+		frame := &a.stack[len(a.stack)-1]
+		currBoard := frame.Board
 
-		if !top.HasChildren() {
+		if !frame.HasChildren() {
 			// Terminal node or timeout
-			if top.Depth == 0 || (top.Depth >= MinDepth && time.Now().After(a.stopTime)) {
+			if frame.Depth == 0 {
 				heuristic = FindHeuristic(currBoard)
 				a.stack = a.stack[:len(a.stack)-1] // pop
 				continue
@@ -191,8 +173,7 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 			}
 
 			hashKey := a.table.Hash(currBoard)
-
-			if node, ok := a.table.Get(hashKey); ok && node.Depth >= top.Depth {
+			if node, ok := a.table.Get(hashKey, currBoard); ok && node.Depth >= frame.Depth {
 				heuristic = node.Heuristic
 				a.stack = a.stack[:len(a.stack)-1]
 				continue
@@ -206,23 +187,22 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 			}
 
 			if len(children) > 0 {
-				top.Children = children
-				top.HashKey = hashKey
+				frame.Children = children
+				frame.HashKey = hashKey
 				sf := StackFrame{
-					Board: children[0],
-					Depth: top.Depth - 1,
-					Alpha: top.Alpha,
-					Beta:  top.Beta,
+					Board: frame.NextBoard(),
+					Depth: frame.Depth - 1,
+					Alpha: frame.Alpha,
+					Beta:  frame.Beta,
 				}
 				a.stack = append(a.stack, sf)
-				top.Index = 1
 			} else {
 				if currBoard.IsBlackMove {
-					a.table.Put(Node{Key: hashKey, Heuristic: top.Alpha, Depth: top.Depth})
-					heuristic = top.Alpha
+					a.table.Put(hashKey, currBoard, frame.Alpha, frame.Depth)
+					heuristic = frame.Alpha
 				} else {
-					a.table.Put(Node{Key: hashKey, Heuristic: top.Beta, Depth: top.Depth})
-					heuristic = top.Beta
+					a.table.Put(hashKey, currBoard, frame.Beta, frame.Depth)
+					heuristic = frame.Beta
 				}
 				a.stack = a.stack[:len(a.stack)-1]
 			}
@@ -230,39 +210,39 @@ func (a *Agent) evaluateLoop(initialBoard Board, startDepth int) float64 {
 			doPrune := false
 
 			if currBoard.IsBlackMove {
-				top.Alpha = math.Max(top.Alpha, heuristic)
-				if top.Alpha >= top.Beta {
+				frame.Alpha = math.Max(frame.Alpha, heuristic)
+				if frame.Alpha >= frame.Beta {
 					doPrune = true
 				}
-				if top.HasNext() && !doPrune {
+				if frame.HasNext() && !doPrune {
 					sf := StackFrame{
-						Board: top.NextBoard(),
-						Depth: top.Depth - 1,
-						Alpha: top.Alpha,
-						Beta:  top.Beta,
+						Board: frame.NextBoard(),
+						Depth: frame.Depth - 1,
+						Alpha: frame.Alpha,
+						Beta:  frame.Beta,
 					}
 					a.stack = append(a.stack, sf)
 				} else {
-					a.table.Put(Node{Key: top.HashKey, Heuristic: top.Alpha, Depth: top.Depth})
-					heuristic = top.Alpha
+					a.table.Put(frame.HashKey, frame.Board, frame.Alpha, frame.Depth)
+					heuristic = frame.Alpha
 					a.stack = a.stack[:len(a.stack)-1]
 				}
 			} else {
-				top.Beta = math.Min(top.Beta, heuristic)
-				if top.Beta <= top.Alpha {
+				frame.Beta = math.Min(frame.Beta, heuristic)
+				if frame.Beta <= frame.Alpha {
 					doPrune = true
 				}
-				if top.HasNext() && !doPrune {
+				if frame.HasNext() && !doPrune {
 					sf := StackFrame{
-						Board: top.NextBoard(),
-						Depth: top.Depth - 1,
-						Alpha: top.Alpha,
-						Beta:  top.Beta,
+						Board: frame.NextBoard(),
+						Depth: frame.Depth - 1,
+						Alpha: frame.Alpha,
+						Beta:  frame.Beta,
 					}
 					a.stack = append(a.stack, sf)
 				} else {
-					a.table.Put(Node{Key: top.HashKey, Heuristic: top.Beta, Depth: top.Depth})
-					heuristic = top.Beta
+					a.table.Put(frame.HashKey, frame.Board, frame.Beta, frame.Depth)
+					heuristic = frame.Beta
 					a.stack = a.stack[:len(a.stack)-1]
 				}
 			}

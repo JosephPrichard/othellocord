@@ -21,21 +21,39 @@ type Tile struct {
 	Col int
 }
 
+func makeTiles() []Tile {
+	var tiles []Tile
+	for row := 0; row < BoardSize; row++ {
+		for col := 0; col < BoardSize; col++ {
+			tiles = append(tiles, Tile{Row: row, Col: col})
+		}
+	}
+	return tiles
+}
+
 var ErrInvalidTile = errors.New("invalid tile")
 
-func TileFromNotation(s string) (Tile, error) {
+func ParseTileSafe(s string) (Tile, error) {
 	if len(s) != 2 {
 		return Tile{}, ErrInvalidTile
 	}
 
-	// Example "a1" → Col: 0, Row: 0 (assuming standard board)
+	// Example "a1" → Col: 0, Row: 0 (assuming standard preMoves)
 	col := int(s[0] - 'a')
 	row := int(s[1] - '1')
 
-	if row < 1 || row > 8 || col < 1 || col > 8 {
+	if row < 0 || row > BoardSize || col < 0 || col > BoardSize {
 		return Tile{}, ErrInvalidTile
 	}
 	return Tile{Row: row, Col: col}, nil
+}
+
+func ParseTile(s string) Tile {
+	tile, err := ParseTileSafe(s)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse Notation %s: %v", s, err))
+	}
+	return tile
 }
 
 func (t Tile) String() string {
@@ -43,7 +61,7 @@ func (t Tile) String() string {
 	return fmt.Sprintf("%c%d", rune(t.Col)+'a', t.Row+1)
 }
 
-type Move struct {
+type RankTile struct {
 	Tile
 	H float64
 }
@@ -66,16 +84,6 @@ func InitialBoard() Board {
 
 func InBounds(row int, col int) bool {
 	return row >= 0 && col >= 0 && row < BoardSize && col < BoardSize
-}
-
-func makeTiles() []Tile {
-	var tiles []Tile
-	for row := 0; row < BoardSize; row++ {
-		for col := 0; col < BoardSize; col++ {
-			tiles = append(tiles, Tile{Row: row, Col: col})
-		}
-	}
-	return tiles
 }
 
 func (b *Board) WhiteScore() int {
@@ -124,6 +132,8 @@ func (b *Board) OnCurrentMoves(onMove func(Tile)) {
 }
 
 func (b *Board) OnPotentialMoves(color byte, onMove func(Tile)) {
+	var duplicateTile [BoardSize][BoardSize]bool
+
 	var oppColor byte
 	if b.IsBlackMove {
 		oppColor = White
@@ -152,10 +162,14 @@ func (b *Board) OnPotentialMoves(color byte, onMove func(Tile)) {
 				col += direction[1]
 				count++
 			}
-			// add move to potential moves list assuming
+			// add move to potential preMoves list assuming
 			// we flank at least once tile, the tile is in bounds and is empty
 			if count > 0 && InBounds(row, col) && b.GetSquare(row, col) == Empty {
+				if duplicateTile[row][col] {
+					continue
+				}
 				onMove(Tile{Row: row, Col: col})
+				duplicateTile[row][col] = true
 			}
 		}
 	}
@@ -224,6 +238,18 @@ func (b *Board) MakeMove(move Tile) {
 	b.IsBlackMove = !b.IsBlackMove
 }
 
+type Move struct {
+	Notation string
+	color    byte
+}
+
+func (b *Board) SetSquareByNotation(move Move) Board {
+	tile := ParseTile(move.Notation)
+	b2 := *b
+	b2.SetSquare(tile.Row, tile.Col, move.color)
+	return b2
+}
+
 func (b *Board) SetSquare(row, col int, color byte) {
 	x := row
 	if row >= HalfSize {
@@ -273,7 +299,7 @@ func (b *Board) GetSquareByTile(tile Tile) byte {
 
 func (b *Board) String() string {
 	var sb strings.Builder
-	sb.WriteString("  ")
+	sb.WriteString(" ")
 	for i := 0; i < BoardSize; i++ {
 		sb.WriteRune('a' + rune(i))
 		sb.WriteString(" ")
@@ -283,7 +309,12 @@ func (b *Board) String() string {
 		sb.WriteString(strconv.Itoa(row + 1))
 		sb.WriteString(" ")
 		for col := 0; col < BoardSize; col++ {
-			sb.WriteString(strconv.Itoa(int(b.GetSquare(row, col))))
+			str := "_"
+			t := b.GetSquare(row, col)
+			if t != Empty {
+				str = strconv.Itoa(int(t))
+			}
+			sb.WriteString(str)
 			sb.WriteString(" ")
 		}
 		sb.WriteString("\n")

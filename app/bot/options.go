@@ -83,7 +83,7 @@ func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, na
 		if !ok {
 			return othello.Tile{}, "", OptError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}
-		tile, err := othello.TileFromNotation(value)
+		tile, err := othello.ParseTileSafe(value)
 		if err != nil {
 			return othello.Tile{}, "", OptError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}

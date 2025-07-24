@@ -22,7 +22,7 @@ type Handler struct {
 	Cc ChallengeCache
 	Gs *GameStore
 	Rc othello.RenderCache
-	Aq AgentQueue
+	Eq EngineQ
 }
 
 type OptError struct {
@@ -268,15 +268,8 @@ func (h Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Sessi
 		}
 	}
 
-	var duplicateMoves [othello.BoardSize][othello.BoardSize]bool
-
 	var choices []*discordgo.ApplicationCommandOptionChoice
 	for _, move := range moves {
-		if duplicateMoves[move.Row][move.Col] {
-			continue
-		}
-		duplicateMoves[move.Row][move.Col] = true
-
 		tileStr := move.String()
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{Name: tileStr, Value: tileStr})
 	}
@@ -302,18 +295,18 @@ func (h Handler) handleGameOver(ctx context.Context, game Game, move othello.Til
 }
 
 func (h Handler) handleBotMove(dg *discordgo.Session, channelID string, game Game) {
-	request := AgentRequest{
+	request := EngineRequest{
 		Board:    game.Board,
 		Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
 		T:        GetMoveRequest,
-		RespChan: make(chan []othello.Move, 1),
+		RespChan: make(chan []othello.RankTile, 1),
 	}
-	h.Aq.Push(request)
+	h.Eq.Push(request)
 
 	moves := <-request.RespChan
-	slog.Info("received agent response", "moves", moves)
+	slog.Info("received engine response", "moves", moves)
 	if len(moves) != 1 {
-		panic("expected exactly one agent response in bot move") // we already checked for game over in the caller, we can expect exactly one move
+		panic("expected exactly one engine response in bot move") // we already checked for game over in the caller, we can expect exactly one move
 	}
 	move := moves[0].Tile
 
@@ -405,13 +398,13 @@ func (h Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *di
 		return nil
 	}
 
-	request := AgentRequest{
+	request := EngineRequest{
 		Board:    game.Board,
 		Depth:    LevelToDepth(level),
 		T:        GetMovesRequest,
-		RespChan: make(chan []othello.Move, 1),
+		RespChan: make(chan []othello.RankTile, 1),
 	}
-	if !h.Aq.PushChecked(request) {
+	if !h.Eq.PushSafe(request) {
 		_ = dg.InteractionRespond(i.Interaction, createStringResponse("Server is overloaded, try again later."))
 		return nil
 	}
@@ -449,16 +442,16 @@ func (h Handler) Simulation(ctx context.Context, initialGame Game, simChan chan 
 	var move othello.Tile
 
 	for i := 0; ; i++ {
-		request := AgentRequest{
+		request := EngineRequest{
 			Board:    game.Board,
 			Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
 			T:        GetMoveRequest,
-			RespChan: make(chan []othello.Move, 1),
+			RespChan: make(chan []othello.RankTile, 1),
 		}
-		h.Aq.Push(request)
+		h.Eq.Push(request)
 
 		moves := <-request.RespChan
-		slog.Info("received agent response in simulation", "trace", trace, "moves", moves)
+		slog.Info("received engine response in simulation", "trace", trace, "moves", moves)
 
 		if len(moves) > 0 {
 			move = moves[0].Tile

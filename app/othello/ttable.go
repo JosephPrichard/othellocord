@@ -8,6 +8,7 @@ import (
 type Node struct {
 	Set       bool
 	Key       uint64
+	Board     Board
 	Heuristic float64
 	Depth     int
 }
@@ -19,9 +20,7 @@ type TTable struct {
 	misses int
 }
 
-func NewTTable(cacheSize int) TTable {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
+func NewTTable(cacheSize int, getRand func() int) TTable {
 	cache := make([][2]Node, cacheSize)
 
 	tableLen := BoardSize * BoardSize
@@ -29,40 +28,50 @@ func NewTTable(cacheSize int) TTable {
 
 	for i := 0; i < tableLen; i++ {
 		for j := 0; j < 3; j++ {
-			n := r.Int()
-			if n < 0 {
-				n = -n
-			}
+			n := getRand()
 			table[i][j] = n
 		}
 	}
-
 	return TTable{table: table, cache: cache}
 }
 
-func (t *TTable) Hash(board Board) uint64 {
+func NewTTableWithRand(cacheSize int) TTable {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	getRand := func() int {
+		return r.Intn(cacheSize)
+	}
+	return NewTTable(cacheSize, getRand)
+}
+
+func (tt *TTable) Hash(board Board) uint64 {
 	var hash uint64 = 0
-	for i := 0; i < len(t.table); i++ {
+	for i := 0; i < len(tt.table); i++ {
 		square := board.GetSquareByPosition(i)
-		hash ^= uint64(t.table[i][square])
+		hash ^= uint64(tt.table[i][square])
 	}
 	return hash
 }
 
-func (t *TTable) Clear() {
-	t.hits = 0
-	t.misses = 0
-	for i := range t.cache {
-		t.cache[i][0] = Node{}
-		t.cache[i][1] = Node{}
+func (tt *TTable) Clear() {
+	tt.hits = 0
+	tt.misses = 0
+	for i := range tt.cache {
+		tt.cache[i][0] = Node{}
+		tt.cache[i][1] = Node{}
 	}
 }
 
-func (t *TTable) Put(node Node) {
-	node.Set = true
+func (tt *TTable) Put(key uint64, board Board, heuristic float64, depth int) {
+	node := Node{
+		Key:       key,
+		Board:     board,
+		Heuristic: heuristic,
+		Depth:     depth,
+		Set:       true,
+	}
 
-	h := int(node.Key % uint64(len(t.cache)))
-	cacheLine := t.cache[h]
+	h := int(node.Key % uint64(len(tt.cache)))
+	cacheLine := &tt.cache[h]
 
 	if cacheLine[0].Set {
 		if node.Depth > cacheLine[0].Depth {
@@ -76,24 +85,24 @@ func (t *TTable) Put(node Node) {
 	}
 }
 
-func (t *TTable) Get(key uint64) (Node, bool) {
-	h := int(key % uint64(len(t.cache)))
-	cacheLine := t.cache[h]
+func (tt *TTable) Get(key uint64, board Board) (Node, bool) {
+	h := int(key % uint64(len(tt.cache)))
 
+	cacheLine := &tt.cache[h]
 	for _, n := range cacheLine {
-		if n.Set && n.Key == key {
-			t.hits++
+		if n.Set && n.Board == board {
+			tt.hits++
 			return n, true
 		}
 	}
-	t.misses++
+	tt.misses++
 	return Node{}, false
 }
 
-func (t *TTable) Hits() int {
-	return t.hits
+func (tt *TTable) Hits() int {
+	return tt.hits
 }
 
-func (t *TTable) Misses() int {
-	return t.misses
+func (tt *TTable) Misses() int {
+	return tt.misses
 }

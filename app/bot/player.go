@@ -11,7 +11,7 @@ import (
 )
 
 const MinBotLevel = 1
-const MaxBotLevel = 6
+const MaxBotLevel = 5
 
 type Player struct {
 	ID   string
@@ -25,13 +25,11 @@ func LevelToDepth(level int) int {
 	case 2:
 		return 5
 	case 3:
-		return 9
+		return 7
 	case 4:
-		return 10
+		return 9
 	case 5:
-		return 12
-	case 6:
-		return 13
+		return 10
 	}
 	return 0
 }
@@ -124,8 +122,7 @@ func (uc UserCache) GetUser(ctx context.Context, playerId string) (*discordgo.Us
 		u := item.Value()
 		user = &u
 	} else {
-		user, err = uc.Uf.User(playerId, discordgo.WithContext(ctx))
-		if err != nil {
+		if user, err = uc.Uf.User(playerId, discordgo.WithContext(ctx)); err != nil {
 			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerId, "err", err)
 			return nil, err
 		}
