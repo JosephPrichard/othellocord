@@ -198,7 +198,7 @@ func MakeMoveValidated(gs *GameStore, playerId string, move othello.Tile) (Game,
 func MakeMoveUnchecked(gs *GameStore, playerId string, move othello.Tile) Game {
 	item := gs.Get(playerId)
 	if item == nil {
-		slog.Error("expected game state to be found", "player", playerId)
+		slog.Error("expected game State to be found", "player", playerId)
 		return Game{}
 	}
 	state := item.Value()

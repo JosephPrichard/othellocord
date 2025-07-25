@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"github.com/google/uuid"
 	"log/slog"
 	"othellocord/app/othello"
 )
@@ -15,7 +14,6 @@ const EqSize = 16
 const EngineCount = 4
 
 type EngineRequest struct {
-	ID       string
 	Board    othello.Board
 	Depth    int
 	T        int
@@ -44,28 +42,12 @@ func ListenEngineRequest(w int, engineChan chan EngineRequest) {
 	}
 }
 
-type EngineQ struct {
-	engineChan chan EngineRequest
-}
+type EngineQ = chan EngineRequest
 
-func NewEngineQ() EngineQ {
+func StartEngineWorkers() EngineQ {
 	engineChan := make(chan EngineRequest, EqSize)
 	for w := range EngineCount {
 		go ListenEngineRequest(w, engineChan)
 	}
-	return EngineQ{engineChan: engineChan}
-}
-
-func (q *EngineQ) PushSafe(request EngineRequest) bool {
-	if len(q.engineChan) >= EqSize {
-		return false
-	}
-	q.Push(request)
-	return true
-}
-
-func (q *EngineQ) Push(request EngineRequest) {
-	request.ID = uuid.NewString()
-	slog.Info("dispatched an engine request", "request", request)
-	q.engineChan <- request
+	return engineChan
 }

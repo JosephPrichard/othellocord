@@ -10,7 +10,7 @@ const MaxDelay = 5
 
 var LevelDesc = fmt.Sprintf("Level of the bot between %d and %d", MinBotLevel, MaxBotLevel)
 var ExpectedTileValue = "be a string of the form 'a1' where 'a' is the column and '1' is the row"
-var DelayDesc = fmt.Sprintf("Delay between moves in seconds between %d and %d secs", MinDelay, MaxDelay)
+var DelayDesc = fmt.Sprintf("Minimum delay between moves in seconds between %d and %d secs", MinDelay, MaxDelay)
 
 var Commands = []*discordgo.ApplicationCommand{
 	{
@@ -68,7 +68,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
 				Name:         "move",
-				Description:  fmt.Sprintf("Move to make on the Board, should %s", ExpectedTileValue),
+				Description:  fmt.Sprintf("Move to make on the Board"),
 				Required:     true,
 				Autocomplete: true,
 			},
@@ -76,7 +76,7 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "view",
-		Description: "Displays the game state including all the moves that can be made this turn",
+		Description: "Displays the game State including all the moves that can be made this turn",
 	},
 	{
 		Name:        "analyze",
@@ -95,13 +95,13 @@ var Commands = []*discordgo.ApplicationCommand{
 		Description: "Simulates a game between two bots",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
-				Type:        discordgo.ApplicationCommandOptionString,
+				Type:        discordgo.ApplicationCommandOptionInteger,
 				Name:        "black-level",
 				Description: LevelDesc,
 				Required:    false,
 			},
 			{
-				Type:        discordgo.ApplicationCommandOptionString,
+				Type:        discordgo.ApplicationCommandOptionInteger,
 				Name:        "white-level",
 				Description: LevelDesc,
 				Required:    false,

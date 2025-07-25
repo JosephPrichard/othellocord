@@ -10,6 +10,8 @@ import (
 	"othellocord/app/othello"
 )
 
+// Utility functions to create and send responses
+
 var GreenColor = 0x00ff00
 
 func createStringResponse(msg string) *discordgo.InteractionResponse {
@@ -50,12 +52,17 @@ func addEmbedFiles(embed *discordgo.MessageEmbed, img image.Image) []*discordgo.
 }
 
 func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discordgo.InteractionResponse {
+	return createComponentResponse(embed, img, nil)
+}
+
+func createComponentResponse(embed *discordgo.MessageEmbed, img image.Image, components []discordgo.MessageComponent) *discordgo.InteractionResponse {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embed},
-			Files:  files,
+			Embeds:     []*discordgo.MessageEmbed{embed},
+			Files:      files,
+			Components: components,
 		},
 	}
 }
@@ -67,6 +74,7 @@ func createEmbedSend(embed *discordgo.MessageEmbed, img image.Image) *discordgo.
 		Files:  files,
 	}
 }
+
 func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
@@ -76,14 +84,75 @@ func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionCho
 	}
 }
 
+const SimPauseCond = "sim-pause-cond"
+const SimStopCond = "sim-stop-cond"
+
+type SimCond int
+
+const (
+	SimPlaying SimCond = iota
+	SimPaused
+	SimStopped
+)
+
+func createSimulationActionRow(simulationID string, cond SimCond) []discordgo.MessageComponent {
+	stopID := fmt.Sprintf("%s+%s", SimStopCond, simulationID)
+	pauseID := fmt.Sprintf("%s+%s", SimPauseCond, simulationID)
+
+	var components []discordgo.MessageComponent
+
+	switch cond {
+	case SimPlaying:
+		components = []discordgo.MessageComponent{
+			discordgo.Button{CustomID: stopID, Label: "Stop", Style: discordgo.DangerButton},
+			discordgo.Button{CustomID: pauseID, Label: "Pause", Style: discordgo.PrimaryButton},
+		}
+	case SimPaused:
+		components = []discordgo.MessageComponent{
+			discordgo.Button{CustomID: stopID, Label: "Stop", Style: discordgo.DangerButton},
+			discordgo.Button{CustomID: pauseID, Label: "Play", Style: discordgo.PrimaryButton},
+		}
+	case SimStopped:
+	}
+
+	if components != nil {
+		return []discordgo.MessageComponent{discordgo.ActionsRow{Components: components}}
+	}
+	return nil
+}
+
+const LeaderboardPrevCond = "leaderboard-prev-cond"
+const LeaderboardNextCond = "leaderboard-next-cond"
+
+func createLeaderboardActionRow(leaderboardID string, prev bool, next bool) []discordgo.MessageComponent {
+	var components []discordgo.MessageComponent
+
+	if prev {
+		prevID := fmt.Sprintf("%s+%s", LeaderboardPrevCond, leaderboardID)
+		components = append(components, discordgo.Button{CustomID: prevID, Label: "Prev", Style: discordgo.PrimaryButton})
+	}
+	if next {
+		nextID := fmt.Sprintf("%s+%s", LeaderboardNextCond, leaderboardID)
+		components = append(components, discordgo.Button{CustomID: nextID, Label: "Next", Style: discordgo.PrimaryButton})
+	}
+
+	if components != nil {
+		return []discordgo.MessageComponent{discordgo.ActionsRow{Components: components}}
+	}
+	return nil
+}
+
+// Utility functions to create embeds
+
 var EmptyEdit = ""
 
 func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.WebhookEdit{
-		Embeds:  &[]*discordgo.MessageEmbed{embed},
-		Files:   files,
-		Content: &EmptyEdit,
+		Embeds:      &[]*discordgo.MessageEmbed{embed},
+		Attachments: &[]*discordgo.MessageAttachment{},
+		Files:       files,
+		Content:     &EmptyEdit,
 	}
 }
 
@@ -169,10 +238,7 @@ func CreateGameOverEmbed(game Game, result GameResult, statsResult StatsResult, 
 		getScoreMessage(game.WhiteScore(), game.BlackScore()),
 		getStatsMessage(result, statsResult),
 	)
-	return &discordgo.MessageEmbed{
-		Title:       "Game has ended",
-		Description: desc,
-	}
+	return &discordgo.MessageEmbed{Title: "Game has ended", Description: desc}
 }
 
 func CreateForfeitEmbed(result GameResult, statsResult StatsResult) *discordgo.MessageEmbed {

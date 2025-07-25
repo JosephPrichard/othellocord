@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"log/slog"
 	"strings"
+	"unicode"
 )
 
 func column(str string, size int, tail string) string {
@@ -30,4 +32,26 @@ func leftPad(str string, size int) string {
 		return strings.Repeat(" ", padding) + str
 	}
 	return str
+}
+
+func formatError(m string) string {
+	var sb strings.Builder
+	for i, c := range m {
+		if i == 0 {
+			c = unicode.ToUpper(c)
+		}
+		sb.WriteRune(c)
+	}
+	return sb.String()
+}
+
+func parseCustomId(customID string) (string, string) {
+	index := strings.Index(customID, "+")
+	if index == -1 {
+		slog.Warn("received a message component without a '+' delimiter", "name", customID)
+		return "", ""
+	}
+	cond := customID[:index]
+	key := customID[index+1:]
+	return cond, key
 }

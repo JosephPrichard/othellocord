@@ -34,7 +34,7 @@ func (h Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applicat
 	return Player{}, OptError{Name: name}
 }
 
-const DefaultLevel = 5
+const DefaultLevel = 3
 
 func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, error) {
 	for _, opt := range options {

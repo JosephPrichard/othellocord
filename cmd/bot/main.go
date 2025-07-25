@@ -44,10 +44,11 @@ func main() {
 		Gs: bot.WithEviction(db),
 		Uc: bot.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
-		Eq: bot.NewEngineQ(),
+		Eq: bot.StartEngineWorkers(),
+		Ss: bot.NewSimStore(),
 	}
 
-	dg.AddHandler(h.HandleCommand)
+	dg.AddHandler(h.HandeInteractionCreate)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
