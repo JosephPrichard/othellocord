@@ -2,10 +2,8 @@ package bot
 
 import (
 	"context"
-	"github.com/bwmarrin/discordgo"
 	"github.com/jellydator/ttlcache/v3"
 	"go.uber.org/atomic"
-	"image"
 	"log/slog"
 	"othellocord/app/othello"
 	"time"
@@ -75,7 +73,7 @@ func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, si
 			game.TrySkipTurn()
 			game.CurrPotentialMoves = nil
 
-			simChan <- SimMsg{Game: game}
+			simChan <- SimMsg{Game: game, Move: move}
 		} else {
 			slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
 
@@ -87,46 +85,36 @@ func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, si
 }
 
 type SimContext struct {
-	Ctx      context.Context
-	Cancel   func()
-	State    *SimState
-	RecvChan chan SimMsg
+	Ctx    context.Context
+	Cancel func()
+	State  *SimState
+	Rc     othello.RenderCache
 }
 
-func ReceiveSimulate(ctx SimContext, Rc othello.RenderCache, send func(*discordgo.MessageEmbed, image.Image), delay time.Duration) {
-	trace := ctx.Ctx.Value("trace")
+func ReceiveSimulate(simCtx SimContext, recvChan chan SimMsg, handleSend func(SimMsg), handleCancel func(), delay time.Duration) {
+	trace := simCtx.Ctx.Value("trace")
 
 	ticker := time.NewTicker(delay)
 	for index := 0; ; index++ {
 		select {
 		case <-ticker.C:
-			if ctx.State.IsPaused.Load() {
+			if simCtx.State.IsPaused.Load() {
 				continue
 			}
-			msg, ok := <-ctx.RecvChan
+			msg, ok := <-recvChan
 			if !ok {
 				slog.Info("simulation receiver complete", "trace", trace)
 				return
 			}
-
-			var embed *discordgo.MessageEmbed
-			var img image.Image
-
-			if msg.Finished {
-				embed = createSimulationEndEmbed(msg.Game, msg.Move)
-				img = othello.DrawBoardMoves(Rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
-			} else {
-				embed = createSimulationEmbed(msg.Game, msg.Move)
-				img = othello.DrawBoardMoves(Rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
-			}
-
-			send(embed, img)
-		case <-ctx.State.StopChan:
-			ctx.Cancel()
+			handleSend(msg)
+		case <-simCtx.State.StopChan:
+			simCtx.Cancel()
+			handleCancel()
 			slog.Info("simulation receiver stopped", "trace", trace)
 			return
-		case <-ctx.Ctx.Done():
-			slog.Info("simulation receiver timed out", "trace", trace, "err", ctx.Ctx.Err())
+		case <-simCtx.Ctx.Done():
+			handleCancel()
+			slog.Info("simulation receiver timed out", "trace", trace, "err", simCtx.Ctx.Err())
 			return
 		}
 	}

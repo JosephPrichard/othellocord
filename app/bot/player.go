@@ -25,11 +25,11 @@ func LevelToDepth(level int) int {
 	case 2:
 		return 5
 	case 3:
-		return 7
+		return 6
 	case 4:
-		return 9
+		return 7
 	case 5:
-		return 10
+		return 8
 	}
 	return 0
 }

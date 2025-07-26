@@ -21,7 +21,7 @@ type WorkerRequest struct {
 func ListenWorkerRequest(w int, wq chan WorkerRequest) {
 	engine := othello.NewEngine()
 	for request := range wq {
-		slog.Info("received an engine request on worker", "worker", w, "request", request)
+		slog.Info("received an engine request on worker", "worker", w)
 
 		var moves []othello.RankTile
 		switch request.T {
@@ -32,7 +32,7 @@ func ListenWorkerRequest(w int, wq chan WorkerRequest) {
 				moves = append(moves, move)
 			}
 		default:
-			slog.Warn("invalid request type", "worker", w, "request", request)
+			slog.Warn("invalid request type", "worker", w)
 		}
 
 		request.RespChan <- moves

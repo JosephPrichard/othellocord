@@ -2,6 +2,7 @@ package bot
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"image"
@@ -67,6 +68,18 @@ func createComponentResponse(embed *discordgo.MessageEmbed, img image.Image, com
 	}
 }
 
+func createMoveErrorResp(err error, moveStr string) *discordgo.InteractionResponse {
+	var resp *discordgo.InteractionResponse
+	if errors.Is(err, ErrGameNotFound) {
+		resp = createStringResponse("You're not currently playing a Game.")
+	} else if errors.Is(err, ErrInvalidMove) {
+		resp = createStringResponse(fmt.Sprintf("Can't make a Move to %s.", moveStr))
+	} else if errors.Is(err, ErrTurn) {
+		resp = createStringResponse("It isn't your turn.")
+	}
+	return resp
+}
+
 func createEmbedSend(embed *discordgo.MessageEmbed, img image.Image) *discordgo.MessageSend {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.MessageSend{
@@ -87,32 +100,15 @@ func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionCho
 const SimPauseKey = "sim-pause-key"
 const SimStopKey = "sim-stop-key"
 
-type SimType int
-
-const (
-	SimPlaying SimType = iota
-	SimPaused
-	SimStopped
-)
-
-func createSimulationActionRow(simulationID string, t SimType) []discordgo.MessageComponent {
+func createSimulationActionRow(simulationID string, isPaused bool) []discordgo.MessageComponent {
 	stopID := fmt.Sprintf("%s+%s", SimStopKey, simulationID)
 	pauseID := fmt.Sprintf("%s+%s", SimPauseKey, simulationID)
 
-	var components []discordgo.MessageComponent
-
-	switch t {
-	case SimPlaying:
-		components = []discordgo.MessageComponent{
-			discordgo.Button{CustomID: stopID, Label: "Stop", Style: discordgo.DangerButton},
-			discordgo.Button{CustomID: pauseID, Label: "Pause", Style: discordgo.PrimaryButton},
-		}
-	case SimPaused:
-		components = []discordgo.MessageComponent{
-			discordgo.Button{CustomID: stopID, Label: "Stop", Style: discordgo.DangerButton},
-			discordgo.Button{CustomID: pauseID, Label: "Play", Style: discordgo.PrimaryButton},
-		}
-	case SimStopped:
+	components := []discordgo.MessageComponent{discordgo.Button{CustomID: stopID, Label: "Stop", Style: discordgo.DangerButton}}
+	if isPaused {
+		components = append(components, discordgo.Button{CustomID: pauseID, Label: "Play", Style: discordgo.PrimaryButton})
+	} else {
+		components = append(components, discordgo.Button{CustomID: pauseID, Label: "Pause", Style: discordgo.PrimaryButton})
 	}
 
 	if components != nil {

@@ -23,10 +23,13 @@ var (
 	}
 )
 
+const MinDepth = 5
+
 type Engine struct {
 	nodesVisited int
 	stack        []StackFrame
 	table        TTable
+	stopTime     time.Time
 }
 
 func NewEngine() Engine {
@@ -42,6 +45,7 @@ func NewEngineWithParams(ttSize int) Engine {
 
 func (a *Engine) FindBestMove(board Board, maxDepth int) (RankTile, bool) {
 	startTime := time.Now()
+	a.stopTime = startTime.Add(time.Second * 8)
 	a.nodesVisited = 0
 
 	moves := board.FindCurrentMoves()
@@ -78,6 +82,7 @@ func (a *Engine) FindBestMove(board Board, maxDepth int) (RankTile, bool) {
 
 func (a *Engine) FindRankedMoves(board Board, maxDepth int) []RankTile {
 	startTime := time.Now()
+	a.stopTime = startTime.Add(time.Second * 8)
 	a.nodesVisited = 0
 
 	moves := board.FindCurrentMoves()
@@ -154,7 +159,7 @@ func (a *Engine) evaluateLoop(initialBoard Board, startDepth int) float64 {
 
 		if !frame.HasChildren() {
 			// Terminal node or timeout
-			if frame.Depth == 0 {
+			if frame.Depth == 0 || (frame.Depth >= MinDepth && time.Now().After(a.stopTime)) {
 				heuristic = FindHeuristic(currBoard)
 				a.stack = a.stack[:len(a.stack)-1] // pop
 				continue

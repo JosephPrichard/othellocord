@@ -309,7 +309,7 @@ func (b *Board) String() string {
 		sb.WriteString(strconv.Itoa(row + 1))
 		sb.WriteString(" ")
 		for col := 0; col < BoardSize; col++ {
-			str := "_"
+			str := "."
 			t := b.GetSquare(row, col)
 			if t != Empty {
 				str = strconv.Itoa(int(t))

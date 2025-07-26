@@ -228,7 +228,9 @@ func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *d
 
 	game, err := GetGame(ctx, h.Gc, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a Game."))
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a Game.")); err != nil {
+			slog.Error("failed to respond to forfeit game not found", "err", err)
+		}
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to get Game for player=%s: %w", user.ID, err)
@@ -335,17 +337,15 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 	}
 
 	game, err := MakeMoveValidated(h.Gc, player.ID, move)
-	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently playing a Game."))
+
+	if resp := createMoveErrorResp(err, moveStr); resp != nil {
+		if err := dg.InteractionRespond(i.Interaction, resp); err != nil {
+			slog.Error("failed to respond to move command", "err", err)
+		}
 		return nil
-	} else if errors.Is(err, ErrInvalidMove) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse(fmt.Sprintf("Can't make a Move to %s.", moveStr)))
-		return nil
-	} else if errors.Is(err, ErrTurn) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("It isn't your turn."))
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("failed to make Move=%v for player=%s: %w", move, player.ID, err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to make move=%v for player=%s: %w", move, player.ID, err)
 	}
 
 	var embed *discordgo.MessageEmbed
@@ -367,7 +367,7 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 	}
 
 	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
-		slog.Error("failed to respond to Move", "err", err)
+		slog.Error("failed to respond to move", "err", err)
 	}
 	return nil
 }
@@ -424,6 +424,36 @@ func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *d
 	return nil
 }
 
+func createHandleSend(dg *discordgo.Session, i *discordgo.InteractionCreate, rc othello.RenderCache) func(msg SimMsg) {
+	return func(msg SimMsg) {
+		var edit *discordgo.WebhookEdit
+
+		img := othello.DrawBoardMoves(rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
+		if msg.Finished {
+			embed := createSimulationEndEmbed(msg.Game, msg.Move)
+			edit = createEmbedEdit(embed, img)
+			edit.Components = &[]discordgo.MessageComponent{}
+		} else {
+			embed := createSimulationEmbed(msg.Game, msg.Move)
+			edit = createEmbedEdit(embed, img)
+		}
+
+		if _, err := dg.InteractionResponseEdit(i.Interaction, edit); err != nil {
+			slog.Error("failed to edit message simulate", "err", err)
+		}
+	}
+}
+
+func createHandleStop(dg *discordgo.Session, i *discordgo.InteractionCreate) func() {
+	return func() {
+		var edit discordgo.WebhookEdit
+		edit.Components = &[]discordgo.MessageComponent{}
+		if _, err := dg.InteractionResponseEdit(i.Interaction, &edit); err != nil {
+			slog.Error("failed to edit message simulate", "err", err)
+		}
+	}
+}
+
 func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Hour*1)) // a simulation can stay paused for up to an hour
 	defer cancel()
@@ -456,7 +486,7 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 
 	simulationID := uuid.New().String()
 
-	components := createSimulationActionRow(simulationID, SimPlaying)
+	components := createSimulationActionRow(simulationID, false)
 	if err := dg.InteractionRespond(i.Interaction, createComponentResponse(embed, img, components)); err != nil {
 		slog.Error("failed to respond to simulate", "err", err)
 		return nil
@@ -473,17 +503,12 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 
 	// receive simulation events and respond to the client accordingly
 	simCtx := SimContext{
-		Ctx:      ctx,
-		State:    state,
-		Cancel:   cancel,
-		RecvChan: simChan,
+		Ctx:    ctx,
+		Cancel: cancel,
+		State:  state,
+		Rc:     h.Rc,
 	}
-	send := func(embed *discordgo.MessageEmbed, img image.Image) {
-		if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img)); err != nil {
-			slog.Error("failed to edit message simulate", "err", err)
-		}
-	}
-	ReceiveSimulate(simCtx, h.Rc, send, delay)
+	ReceiveSimulate(simCtx, simChan, createHandleSend(dg, i, h.Rc), createHandleStop(dg, i), delay)
 	return nil
 }
 
@@ -541,17 +566,13 @@ func (h *Handler) HandlePauseComponent(dg *discordgo.Session, i *discordgo.Inter
 	state := item.Value()
 
 	isPaused := state.IsPaused.Toggle()
-	isPaused = !isPaused // isPaused will return the previous value, so we need to reapply the toggle on the local copy we retrieved
+	isPaused = !isPaused // we need to reapply the operation because toggle returns the old value
 
 	if err := dg.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage}); err != nil {
 		slog.Error("failed to follow up with pause message", "err", err)
 	}
 
-	simCond := SimPaused
-	if !isPaused {
-		simCond = SimPlaying
-	}
-	components := createSimulationActionRow(simulationID, simCond)
+	components := createSimulationActionRow(simulationID, isPaused)
 	if _, err := dg.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Components: &components}); err != nil {
 		slog.Error("failed to edit pause component", "err", err)
 	}
@@ -568,11 +589,6 @@ func (h *Handler) HandleStopComponent(dg *discordgo.Session, i *discordgo.Intera
 
 	if err := dg.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage}); err != nil {
 		slog.Error("failed to follow up with stop message", "err", err)
-	}
-
-	components := createSimulationActionRow(simulationID, SimStopped)
-	if _, err := dg.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Components: &components}); err != nil {
-		slog.Error("failed to edit stop component", "err", err)
 	}
 	return nil
 }
