@@ -88,11 +88,11 @@ type GameResult struct {
 
 var GameStoreTtl = time.Hour * 24
 
-type GameStore = ttlcache.Cache[string, *GameState]
+type GameCache = ttlcache.Cache[string, *GameState]
 
-func WithEviction(db *sql.DB) *GameStore {
-	gs := ttlcache.New[string, *GameState]()
-	gs.OnEviction(func(ctx context.Context, r ttlcache.EvictionReason, item *ttlcache.Item[string, *GameState]) {
+func WithEviction(db *sql.DB) *GameCache {
+	cache := ttlcache.New[string, *GameState]()
+	cache.OnEviction(func(ctx context.Context, r ttlcache.EvictionReason, item *ttlcache.Item[string, *GameState]) {
 		state := item.Value()
 
 		state.Lock()
@@ -100,16 +100,16 @@ func WithEviction(db *sql.DB) *GameStore {
 
 		ExpireGame(db, state.Game)
 	})
-	return gs
+	return cache
 }
 
 var ErrAlreadyPlaying = errors.New("one or more players are already in a game")
 
-func CreateGame(ctx context.Context, gs *GameStore, blackPlayer Player, whitePlayer Player) (Game, error) {
+func CreateGame(ctx context.Context, cache *GameCache, blackPlayer Player, whitePlayer Player) (Game, error) {
 	trace := ctx.Value("trace")
 
-	itemB := gs.Get(whitePlayer.ID)
-	itemW := gs.Get(blackPlayer.ID)
+	itemB := cache.Get(whitePlayer.ID)
+	itemW := cache.Get(blackPlayer.ID)
 	if itemB != nil || itemW != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
@@ -117,17 +117,17 @@ func CreateGame(ctx context.Context, gs *GameStore, blackPlayer Player, whitePla
 	game := Game{WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: othello.InitialBoard()}
 	state := &GameState{Game: game}
 
-	gs.Set(whitePlayer.ID, state, GameStoreTtl)
-	gs.Set(blackPlayer.ID, state, GameStoreTtl)
+	cache.Set(whitePlayer.ID, state, GameStoreTtl)
+	cache.Set(blackPlayer.ID, state, GameStoreTtl)
 
 	slog.Info("created game and set into store", "trace", trace, "game", game)
 	return game, nil
 }
 
-func CreateBotGame(ctx context.Context, gs *GameStore, blackPlayer Player, level int) (Game, error) {
+func CreateBotGame(ctx context.Context, cache *GameCache, blackPlayer Player, level int) (Game, error) {
 	trace := ctx.Value("trace")
 
-	itemB := gs.Get(blackPlayer.ID)
+	itemB := cache.Get(blackPlayer.ID)
 	if itemB != nil {
 		return Game{}, ErrAlreadyPlaying
 	}
@@ -139,7 +139,7 @@ func CreateBotGame(ctx context.Context, gs *GameStore, blackPlayer Player, level
 	}
 	state := &GameState{Game: game}
 
-	gs.Set(blackPlayer.ID, state, GameStoreTtl)
+	cache.Set(blackPlayer.ID, state, GameStoreTtl)
 
 	slog.Info("created bot game and set into store", "trace", trace, "game", game)
 	return game, nil
@@ -147,10 +147,10 @@ func CreateBotGame(ctx context.Context, gs *GameStore, blackPlayer Player, level
 
 var ErrGameNotFound = errors.New("game not found")
 
-func GetGame(ctx context.Context, gs *GameStore, playerId string) (Game, error) {
+func GetGame(ctx context.Context, cache *GameCache, playerId string) (Game, error) {
 	trace := ctx.Value("trace")
 
-	item := gs.Get(playerId)
+	item := cache.Get(playerId)
 	if item == nil {
 		return Game{}, ErrGameNotFound
 	}
@@ -165,16 +165,16 @@ func GetGame(ctx context.Context, gs *GameStore, playerId string) (Game, error) 
 	return state.Game, nil
 }
 
-func DeleteGame(gs *GameStore, game Game) {
-	gs.Delete(game.WhitePlayer.ID)
-	gs.Delete(game.BlackPlayer.ID)
+func DeleteGame(cache *GameCache, game Game) {
+	cache.Delete(game.WhitePlayer.ID)
+	cache.Delete(game.BlackPlayer.ID)
 }
 
 var ErrTurn = errors.New("not players turn")
 var ErrInvalidMove = errors.New("invalid move")
 
-func MakeMoveValidated(gs *GameStore, playerId string, move othello.Tile) (Game, error) {
-	item := gs.Get(playerId)
+func MakeMoveValidated(cache *GameCache, playerId string, move othello.Tile) (Game, error) {
+	item := cache.Get(playerId)
 	if item == nil {
 		return Game{}, ErrGameNotFound
 	}
@@ -189,14 +189,14 @@ func MakeMoveValidated(gs *GameStore, playerId string, move othello.Tile) (Game,
 
 	for _, m := range state.LoadPotentialMoves() {
 		if m == move {
-			return MakeMoveState(gs, state, move), nil
+			return MakeMoveState(cache, state, move), nil
 		}
 	}
 	return Game{}, ErrInvalidMove
 }
 
-func MakeMoveUnchecked(gs *GameStore, playerId string, move othello.Tile) Game {
-	item := gs.Get(playerId)
+func MakeMoveUnchecked(cache *GameCache, playerId string, move othello.Tile) Game {
+	item := cache.Get(playerId)
 	if item == nil {
 		slog.Error("expected game State to be found", "player", playerId)
 		return Game{}
@@ -208,14 +208,14 @@ func MakeMoveUnchecked(gs *GameStore, playerId string, move othello.Tile) Game {
 
 	for _, m := range state.LoadPotentialMoves() {
 		if m == move {
-			return MakeMoveState(gs, state, move)
+			return MakeMoveState(cache, state, move)
 		}
 	}
 	slog.Error("attempted to make a move that was not valid", "move", move, "game", state.Game)
 	return Game{}
 }
 
-func MakeMoveState(gs *GameStore, state *GameState, move othello.Tile) Game {
+func MakeMoveState(cache *GameCache, state *GameState, move othello.Tile) Game {
 	state.MakeMove(move)
 	state.CurrPotentialMoves = nil
 
@@ -223,7 +223,7 @@ func MakeMoveState(gs *GameStore, state *GameState, move othello.Tile) Game {
 
 	// no moves twice in a row means the game is over
 	if len(state.LoadPotentialMoves()) == 0 {
-		DeleteGame(gs, state.Game)
+		DeleteGame(cache, state.Game)
 	}
 
 	// it is safe to copy this across boundaries, CurrPotentialMoves is reassigned but never modified directly

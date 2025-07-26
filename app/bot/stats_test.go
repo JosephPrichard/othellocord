@@ -142,7 +142,7 @@ func TestGetTopStats(t *testing.T) {
 			ctx := context.WithValue(context.Background(), "trace", "test-read-top-stats")
 
 			uc := NewUserCache(&MockUserFetcher{})
-			stats, err := ReadTopStats(ctx, db, &uc)
+			stats, err := ReadTopStats(ctx, db, &uc, 20)
 			if err != nil {
 				t.Fatalf("failed to read stats: %v", err)
 			}
@@ -166,13 +166,13 @@ func TestUpdateStats(t *testing.T) {
 	tests := []Test{
 		{
 			gr:            GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id1"}, IsDraw: false},
-			expSr:         StatsResult{WinnerElo: 1750, LoserElo: 1750, WinnerEloDiff: 0, LoserEloDiff: 0},
+			expSr:         StatsResult{WinnerElo: 1750, LoserElo: 1750, WinDiff: 0, LoseDiff: 0},
 			expWinStats:   Stats{Player: Player{ID: "id1"}, Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
 			expLoserStats: Stats{Player: Player{ID: "id1"}, Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
 		},
 		{
 			gr:            GameResult{Winner: Player{ID: "id6"}, Loser: Player{ID: "id7"}, IsDraw: false},
-			expSr:         StatsResult{WinnerElo: 1515, LoserElo: 1486, WinnerEloDiff: 15, LoserEloDiff: -14},
+			expSr:         StatsResult{WinnerElo: 1515, LoserElo: 1486, WinDiff: 15, LoseDiff: -14},
 			expWinStats:   Stats{Player: Player{ID: "id6"}, Elo: 1515, Won: 3, Drawn: 1, Lost: 4},
 			expLoserStats: Stats{Player: Player{ID: "id7"}, Elo: 1486, Won: 5, Drawn: 0, Lost: 3},
 		},
@@ -188,7 +188,7 @@ func TestUpdateStats(t *testing.T) {
 			}
 
 			sr.LoserElo = math.Round(sr.LoserElo)
-			sr.LoserEloDiff = math.Round(sr.LoserEloDiff)
+			sr.LoseDiff = math.Round(sr.LoseDiff)
 			assert.Equal(t, test.expSr, sr)
 
 			winnerStats, err := GetOrInsertStats(ctx, db, test.gr.Winner.ID, Stats{})

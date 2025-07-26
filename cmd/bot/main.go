@@ -40,12 +40,12 @@ func main() {
 
 	h := bot.Handler{
 		Db: db,
-		Cc: bot.NewChallengeCache(),
-		Gs: bot.WithEviction(db),
-		Uc: bot.NewUserCache(dg),
 		Rc: othello.NewRenderCache(),
-		Eq: bot.StartEngineWorkers(),
-		Ss: bot.NewSimStore(),
+		Wq: bot.StartWorkers(),
+		Cc: bot.NewChallengeCache(),
+		Gc: bot.WithEviction(db),
+		Uc: bot.NewUserCache(dg),
+		Ss: bot.NewSimCache(),
 	}
 
 	dg.AddHandler(h.HandeInteractionCreate)
@@ -55,7 +55,7 @@ func main() {
 
 	slog.Info("starting othellocord bot")
 	if err = dg.Open(); err != nil {
-		log.Fatalf("failed to connect to discord: %v", err)
+		log.Fatalf("failed to connect to events: %v", err)
 	}
 
 	slog.Info("othellocord bot is listening for events")

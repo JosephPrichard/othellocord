@@ -3,6 +3,7 @@ package bot
 import (
 	"log/slog"
 	"othellocord/app/othello"
+	"runtime"
 )
 
 const (
@@ -10,19 +11,16 @@ const (
 	GetMoveRequest
 )
 
-const EqSize = 16
-const EngineCount = 4
-
-type EngineRequest struct {
+type WorkerRequest struct {
 	Board    othello.Board
 	Depth    int
 	T        int
 	RespChan chan []othello.RankTile
 }
 
-func ListenEngineRequest(w int, engineChan chan EngineRequest) {
+func ListenWorkerRequest(w int, wq chan WorkerRequest) {
 	engine := othello.NewEngine()
-	for request := range engineChan {
+	for request := range wq {
 		slog.Info("received an engine request on worker", "worker", w, "request", request)
 
 		var moves []othello.RankTile
@@ -42,12 +40,13 @@ func ListenEngineRequest(w int, engineChan chan EngineRequest) {
 	}
 }
 
-type EngineQ = chan EngineRequest
+func StartWorkers() chan WorkerRequest {
+	count := runtime.NumCPU() / 2
+	slog.Info("starting workers", "count", count)
 
-func StartEngineWorkers() EngineQ {
-	engineChan := make(chan EngineRequest, EqSize)
-	for w := range EngineCount {
-		go ListenEngineRequest(w, engineChan)
+	wq := make(chan WorkerRequest, 16)
+	for w := range count {
+		go ListenWorkerRequest(w, wq)
 	}
-	return engineChan
+	return wq
 }

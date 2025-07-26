@@ -5,6 +5,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jellydator/ttlcache/v3"
 	"go.uber.org/atomic"
+	"image"
 	"log/slog"
 	"othellocord/app/othello"
 	"time"
@@ -17,9 +18,9 @@ type SimState struct {
 	IsPaused atomic.Bool
 }
 
-type SimStore = ttlcache.Cache[string, *SimState]
+type SimCache = ttlcache.Cache[string, *SimState]
 
-func NewSimStore() *SimStore {
+func NewSimCache() *SimCache {
 	cache := ttlcache.New[string, *SimState]()
 	cache.OnEviction(func(_ context.Context, _ ttlcache.EvictionReason, item *ttlcache.Item[string, *SimState]) {
 		signals := item.Value()
@@ -31,11 +32,15 @@ func NewSimStore() *SimStore {
 	return cache
 }
 
+type SimMsg struct {
+	Game     Game
+	Move     othello.Tile
+	Finished bool
+}
+
 const SimCount = othello.BoardSize * othello.BoardSize // maximum number of possible simulation states
 
-// Simulation Perform the simulation and write the results to a response channel as fast as possible
-// Caller decides the pace to receive the messages
-func (h Handler) Simulation(ctx context.Context, initialGame Game, simChan chan SimMsg) {
+func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, simChan chan SimMsg) {
 	trace := ctx.Value("trace")
 
 	var game = initialGame
@@ -49,35 +54,32 @@ func (h Handler) Simulation(ctx context.Context, initialGame Game, simChan chan 
 		default:
 		}
 
-		request := EngineRequest{
+		depth := LevelToDepth(GetBotLevel(game.CurrentPlayer().ID))
+		request := WorkerRequest{
 			Board:    game.Board,
-			Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
+			Depth:    depth,
 			T:        GetMoveRequest,
 			RespChan: make(chan []othello.RankTile, 1),
 		}
-		h.Eq <- request
+		wq <- request
 
 		moves := <-request.RespChan
 
-		if len(moves) > 0 {
+		if len(moves) > 1 {
+			panic("expected exactly engine to no more than one moves") // we only requested one move
+		}
+		if len(moves) == 1 {
 			move = moves[0].Tile
-			slog.Info("completed simulation iteration", "index", i, "trace", trace, "move", move)
 
 			game.MakeMove(move)
 			game.TrySkipTurn()
 			game.CurrPotentialMoves = nil
 
-			embed := CreateGameEmbed(game)
-			img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
-
-			simChan <- SimMsg{img: img, embed: embed}
+			simChan <- SimMsg{Game: game}
 		} else {
 			slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
 
-			embed := CreateSimulationEmbed(game, move)
-			img := othello.DrawBoardMoves(h.Rc, game.Board, game.LoadPotentialMoves())
-
-			simChan <- SimMsg{img: img, embed: embed}
+			simChan <- SimMsg{Game: game, Move: move, Finished: true}
 			close(simChan)
 			return
 		}
@@ -91,9 +93,7 @@ type SimContext struct {
 	RecvChan chan SimMsg
 }
 
-// ReceiveSimulate Receive simulation results and write to discord directly
-// Handles events such as simulation messages, stop signals, pause State, and timeouts
-func ReceiveSimulate(ctx SimContext, dg *discordgo.Session, i *discordgo.InteractionCreate, delay time.Duration) {
+func ReceiveSimulate(ctx SimContext, Rc othello.RenderCache, send func(*discordgo.MessageEmbed, image.Image), delay time.Duration) {
 	trace := ctx.Ctx.Value("trace")
 
 	ticker := time.NewTicker(delay)
@@ -103,16 +103,24 @@ func ReceiveSimulate(ctx SimContext, dg *discordgo.Session, i *discordgo.Interac
 			if ctx.State.IsPaused.Load() {
 				continue
 			}
-			sim, ok := <-ctx.RecvChan
+			msg, ok := <-ctx.RecvChan
 			if !ok {
 				slog.Info("simulation receiver complete", "trace", trace)
 				return
 			}
-			slog.Info("received simulated embed", "trace", trace, "index", index)
 
-			if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(sim.embed, sim.img)); err != nil {
-				slog.Error("failed to edit message simulate", "err", err)
+			var embed *discordgo.MessageEmbed
+			var img image.Image
+
+			if msg.Finished {
+				embed = createSimulationEndEmbed(msg.Game, msg.Move)
+				img = othello.DrawBoardMoves(Rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
+			} else {
+				embed = createSimulationEmbed(msg.Game, msg.Move)
+				img = othello.DrawBoardMoves(Rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
 			}
+
+			send(embed, img)
 		case <-ctx.State.StopChan:
 			ctx.Cancel()
 			slog.Info("simulation receiver stopped", "trace", trace)

@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var ChallengeTTl = time.Second * 60
+
 type Challenge struct {
 	Challenged Player
 	Challenger Player
@@ -17,35 +19,29 @@ func (c Challenge) Key() string {
 	return fmt.Sprintf("%s,%s", c.Challenged.ID, c.Challenger.ID)
 }
 
-type ChallengeCache struct {
-	cache *ttlcache.Cache[string, chan struct{}]
+type ChallengeCache = ttlcache.Cache[string, chan struct{}]
+
+func NewChallengeCache() *ChallengeCache {
+	return ttlcache.New[string, chan struct{}]()
 }
 
-func NewChallengeCache() ChallengeCache {
-	return ChallengeCache{
-		cache: ttlcache.New[string, chan struct{}](),
-	}
-}
-
-var ChallengeTTl = time.Second * 60
-
-func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge, onExpire func()) {
+func CreateChallenge(ctx context.Context, cache *ChallengeCache, challenge Challenge, handleExpire func()) {
 	trace := ctx.Value("trace")
 
 	stopChan := make(chan struct{}, 1)
 
 	key := challenge.Key()
-	_ = c.cache.Set(key, stopChan, ChallengeTTl)
+	_ = cache.Set(key, stopChan, ChallengeTTl)
 	slog.Info("set challenge into challenge Cache", "trace", trace, "key", key, "challenge", challenge)
 
 	go func() {
-		defer c.cache.Delete(key)
+		defer cache.Delete(key)
 
 		timer := time.NewTimer(ChallengeTTl)
 		select {
 		case <-timer.C:
 			slog.Info("expired challenge", "trace", trace, "key", key, "challenge", challenge)
-			onExpire()
+			handleExpire()
 			return
 		case <-stopChan:
 			slog.Info("stopped challenge", "trace", trace, "key", key, "challenge", challenge)
@@ -54,12 +50,12 @@ func (c ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge
 	}()
 }
 
-func (c ChallengeCache) AcceptChallenge(ctx context.Context, challenge Challenge) bool {
+func AcceptChallenge(ctx context.Context, cache *ChallengeCache, challenge Challenge) bool {
 	trace := ctx.Value("trace")
 
-	key := fmt.Sprintf("%s,%s", challenge.Challenged.ID, challenge.Challenger.ID)
+	key := challenge.Key()
 
-	item := c.cache.Get(challenge.Key())
+	item := cache.Get(key)
 	if item == nil {
 		return false
 	}

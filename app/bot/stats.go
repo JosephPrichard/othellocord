@@ -9,14 +9,7 @@ import (
 	"math"
 )
 
-var CreateSchema = `
-	CREATE TABLE IF NOT EXISTS stats (
-	    player_id TEXT PRIMARY KEY,
-		elo    FLOAT,
-		won    INTEGER,
-		drawn  INTEGER,
-		lost   INTEGER
-	);`
+var CreateSchema = "CREATE TABLE IF NOT EXISTS stats (player_id TEXT PRIMARY KEY, elo FLOAT, won INTEGER, drawn INTEGER, lost INTEGER);"
 
 type Stats struct {
 	Player Player
@@ -70,8 +63,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string, defaultStat
 		}
 	} else {
 		stats = defaultStats
-		_, err := q.Exec(
-			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
+		_, err := q.Exec("INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES (?, ?, ?, ?, ?)",
 			stats.Player.ID,
 			stats.Elo,
 			stats.Won,
@@ -88,10 +80,10 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string, defaultStat
 	return stats, nil
 }
 
-func GetTopStats(ctx context.Context, db *sql.DB, amount int) ([]Stats, error) {
+func GetTopStats(ctx context.Context, db *sql.DB, count int) ([]Stats, error) {
 	trace := ctx.Value("trace")
 
-	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT ?;", amount)
+	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT ?;", count)
 	if err != nil {
 		slog.Error("failed to get top stats", "trace", trace, "err", err)
 		return nil, err
@@ -129,10 +121,10 @@ func updateStat(ctx context.Context, tx *sql.Tx, stats Stats) error {
 }
 
 type StatsResult struct {
-	WinnerElo     float64
-	LoserElo      float64
-	WinnerEloDiff float64
-	LoserEloDiff  float64
+	WinnerElo float64
+	LoserElo  float64
+	WinDiff   float64
+	LoseDiff  float64
 }
 
 func formatElo(elo float64) string {
@@ -144,11 +136,11 @@ func formatElo(elo float64) string {
 }
 
 func (s StatsResult) FormatWinnerEloDiff() string {
-	return formatElo(s.WinnerEloDiff)
+	return formatElo(s.WinDiff)
 }
 
 func (s StatsResult) FormatLoserEloDiff() string {
-	return formatElo(s.LoserEloDiff)
+	return formatElo(s.LoseDiff)
 }
 
 func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, error) {
@@ -173,7 +165,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 	}
 
 	if gr.IsDraw || gr.Winner.ID == gr.Loser.ID {
-		sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinnerEloDiff: 0, LoserEloDiff: 0}
+		sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: 0, LoseDiff: 0}
 		slog.Info("updating stats is a draw, noop", "trace", trace, "game", gr, "stats", sr)
 		return sr, nil
 	}
@@ -199,7 +191,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 
 	winDiff := winner.Elo - winEloBefore
 	lossDiff := loser.Elo - lossEloBefore
-	sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinnerEloDiff: winDiff, LoserEloDiff: lossDiff}
+	sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
 
 	slog.Info("updated stats tx executed", "trace", trace, "game", gr, "stats", sr)
 	return sr, nil
@@ -231,10 +223,10 @@ func ReadStats(ctx context.Context, db *sql.DB, uc UserCacheApi, playerId string
 	return stats, nil
 }
 
-func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi) ([]Stats, error) {
+func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi, count int) ([]Stats, error) {
 	trace := ctx.Value("trace")
 
-	stats, err := GetTopStats(ctx, db, 25)
+	stats, err := GetTopStats(ctx, db, count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read top stats: %w", err)
 	}
