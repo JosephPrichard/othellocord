@@ -59,13 +59,13 @@ Shows the top users with the highest elo in the entire database.
 
 Run a game between two bots real time in a text channel.
 
-## Othellocord Engine
+## Engine
 
-Othellocord contains a rudimentary engine for players to play against.
+OthelloCord contains a rudimentary engine for players to play against.
 
 The evaluation algorithm uses a standard implementation of the Minimax algorithm with an Alpha-Beta pruning optimization. The Minimax algorithm is the backbone of the algorithm responsible for performing the search and deciding which nodes should be pruned.
 
-The algorithm's heuristic evaluation function is responsible for deciding how good a board state is. 
+The algorithm's heuristic evaluation function is responsible for deciding how good a board state is.
 The primary heuristic function is implemented as a combination of 5 other heuristic functions (Parity Heuristic, Corner Heuristic, XCSquare Heuristic, and Mobility Heuristic).
 All heuristic components are normalized to a weight between 100 and 0, with 100 being the highest weight and 0 being the lowest.
 
