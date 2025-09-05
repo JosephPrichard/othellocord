@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"math"
-	_ "modernc.org/sqlite"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	_ "modernc.org/sqlite"
 )
 
 const TestDb = "./othellocord-temp.db"
@@ -34,7 +35,7 @@ func createTestDB() (*sql.DB, func()) {
 }
 
 func seedStats(t *testing.T, db *sql.DB) {
-	ctx := context.WithValue(context.Background(), "trace", "seed-insert-stats")
+	ctx := context.WithValue(context.Background(), TraceKey, "seed-insert-stats")
 
 	stats := []Stats{
 		{
@@ -103,7 +104,7 @@ func TestReadStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "trace", "test-read-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-read-stats")
 
 			uc := NewUserCache(&MockUserFetcher{})
 			stats, err := ReadStats(ctx, db, &uc, test.playerId)
@@ -139,7 +140,7 @@ func TestGetTopStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "trace", "test-read-top-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-read-top-stats")
 
 			uc := NewUserCache(&MockUserFetcher{})
 			stats, err := ReadTopStats(ctx, db, &uc, 20)
@@ -180,7 +181,7 @@ func TestUpdateStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), "trace", "test-read-top-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-read-top-stats")
 
 			sr, err := UpdateStats(ctx, db, test.gr)
 			if err != nil {

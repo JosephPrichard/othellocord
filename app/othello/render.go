@@ -41,11 +41,6 @@ var (
 	DotLocations = [][]int{{2, 2}, {6, 6}, {2, 6}, {6, 2}}
 )
 
-type Fonts struct {
-	Font     *truetype.Font
-	FontData draw2d.FontData
-}
-
 func init() {
 	font, err := truetype.Parse(TtfFont)
 	if err != nil {
@@ -59,7 +54,6 @@ type RenderCache struct {
 	blackDisc  image.Image
 	noDisc     image.Image
 	background image.Image
-	fonts      Fonts
 }
 
 func NewRenderCache() RenderCache {

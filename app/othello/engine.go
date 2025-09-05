@@ -70,7 +70,7 @@ func (a *Engine) FindBestMove(board Board, maxDepth int) (RankTile, bool) {
 		}
 	}
 
-	timeTaken := time.Now().Sub(startTime)
+	timeTaken := time.Since(startTime)
 
 	slog.Info("finished an analysis", "maxDepth", maxDepth, "nodesVisited", a.nodesVisited,
 		"ttHits", a.table.Hits(), "ttMisses", a.table.Misses(), "timeTakenMs", timeTaken)
@@ -95,7 +95,7 @@ func (a *Engine) FindRankedMoves(board Board, maxDepth int) []RankTile {
 	}
 	a.table.Clear()
 
-	timeTaken := time.Now().Sub(startTime)
+	timeTaken := time.Since(startTime)
 
 	slog.Info("finished an analysis", "maxDepth", maxDepth, "nodesVisited", a.nodesVisited,
 		"ttHits", a.table.Hits(), "ttMisses", a.table.Misses(), "timeTakenMs", timeTaken)

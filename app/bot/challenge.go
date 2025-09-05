@@ -3,9 +3,10 @@ package bot
 import (
 	"context"
 	"fmt"
-	"github.com/jellydator/ttlcache/v3"
 	"log/slog"
 	"time"
+
+	"github.com/jellydator/ttlcache/v3"
 )
 
 var ChallengeTTl = time.Second * 60
@@ -26,7 +27,7 @@ func NewChallengeCache() *ChallengeCache {
 }
 
 func CreateChallenge(ctx context.Context, cache *ChallengeCache, challenge Challenge, handleExpire func()) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	stopChan := make(chan struct{}, 1)
 
@@ -51,7 +52,7 @@ func CreateChallenge(ctx context.Context, cache *ChallengeCache, challenge Chall
 }
 
 func AcceptChallenge(ctx context.Context, cache *ChallengeCache, challenge Challenge) bool {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	key := challenge.Key()
 

@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/google/uuid"
 	"image"
 	"log/slog"
 	"othellocord/app/othello"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -26,7 +27,7 @@ type Handler struct {
 var ErrUserNotProvided = errors.New("user not provided")
 
 func (h *Handler) HandeInteractionCreate(dg *discordgo.Session, i *discordgo.InteractionCreate) {
-	ctx := context.WithValue(context.Background(), "trace", uuid.NewString())
+	ctx := context.WithValue(context.Background(), TraceKey, uuid.NewString())
 
 	var err error
 
@@ -373,7 +374,7 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 }
 
 func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*2))
 	defer cancel()
@@ -424,41 +425,11 @@ func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *d
 	return nil
 }
 
-func createHandleSend(dg *discordgo.Session, i *discordgo.InteractionCreate, rc othello.RenderCache) func(msg SimMsg) {
-	return func(msg SimMsg) {
-		var edit *discordgo.WebhookEdit
-
-		img := othello.DrawBoardMoves(rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
-		if msg.Finished {
-			embed := createSimulationEndEmbed(msg.Game, msg.Move)
-			edit = createEmbedEdit(embed, img)
-			edit.Components = &[]discordgo.MessageComponent{}
-		} else {
-			embed := createSimulationEmbed(msg.Game, msg.Move)
-			edit = createEmbedEdit(embed, img)
-		}
-
-		if _, err := dg.InteractionResponseEdit(i.Interaction, edit); err != nil {
-			slog.Error("failed to edit message simulate", "err", err)
-		}
-	}
-}
-
-func createHandleStop(dg *discordgo.Session, i *discordgo.InteractionCreate) func() {
-	return func() {
-		var edit discordgo.WebhookEdit
-		edit.Components = &[]discordgo.MessageComponent{}
-		if _, err := dg.InteractionResponseEdit(i.Interaction, &edit); err != nil {
-			slog.Error("failed to edit message simulate", "err", err)
-		}
-	}
-}
-
 func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Hour*1)) // a simulation can stay paused for up to an hour
 	defer cancel()
 
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 	cmd := i.ApplicationCommandData()
 
 	var whiteLevel int
@@ -496,19 +467,47 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 	h.Ss.Set(simulationID, state, SimulationTtl)
 
 	// background task to calculate the simulation messages to send
-	simChan := make(chan SimMsg, SimCount)
-	go Simulation(ctx, h.Wq, initialGame, simChan)
+	simChan := make(chan SimPanel, SimCount)
+	go BeginSimulate(ctx, BeginSimInput{
+		Wq:          h.Wq,
+		InitialGame: initialGame,
+		SimChan:     simChan,
+	})
 
 	slog.Info("simulation receiver started", "delay", delay, "trace", trace)
 
 	// receive simulation events and respond to the client accordingly
-	simCtx := SimContext{
-		Ctx:    ctx,
-		Cancel: cancel,
-		State:  state,
-		Rc:     h.Rc,
-	}
-	ReceiveSimulate(simCtx, simChan, createHandleSend(dg, i, h.Rc), createHandleStop(dg, i), delay)
+	ReceiveSimulate(ctx, RecvSimInput{
+		Cancel:   cancel,
+		State:    state,
+		Rc:       h.Rc,
+		RecvChan: simChan,
+		HandleSend: func(msg SimPanel) {
+			var edit *discordgo.WebhookEdit
+
+			img := othello.DrawBoardMoves(h.Rc, msg.Game.Board, msg.Game.LoadPotentialMoves())
+			if msg.Finished {
+				embed := createSimulationEndEmbed(msg.Game, msg.Move)
+				edit = createEmbedEdit(embed, img)
+				edit.Components = &[]discordgo.MessageComponent{}
+			} else {
+				embed := createSimulationEmbed(msg.Game, msg.Move)
+				edit = createEmbedEdit(embed, img)
+			}
+
+			if _, err := dg.InteractionResponseEdit(i.Interaction, edit); err != nil {
+				slog.Error("failed to edit message simulate", "err", err)
+			}
+		},
+		HandleCancel: func() {
+			var edit discordgo.WebhookEdit
+			edit.Components = &[]discordgo.MessageComponent{}
+			if _, err := dg.InteractionResponseEdit(i.Interaction, &edit); err != nil {
+				slog.Error("failed to edit message simulate", "err", err)
+			}
+		},
+		Delay: delay,
+	})
 	return nil
 }
 
@@ -594,7 +593,7 @@ func (h *Handler) HandleStopComponent(dg *discordgo.Session, i *discordgo.Intera
 }
 
 func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, err error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 	slog.Error("error when handling command", "trace", trace, "err", err)
 
 	content := "an unexpected error occurred"

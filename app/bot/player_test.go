@@ -3,9 +3,10 @@ package bot
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type MockUserFetcher struct{}
@@ -33,7 +34,7 @@ func (mock *MockUserFetcher) User(userID string, _ ...discordgo.RequestOption) (
 func TestUserCache_GetUsername(t *testing.T) {
 	uc := NewUserCache(&MockUserFetcher{})
 
-	ctx := context.WithValue(context.Background(), "trace", "test-user-Cache")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-user-Cache")
 	username, err := uc.GetUsername(ctx, "id1")
 	if err != nil {
 		t.Fatal(err)

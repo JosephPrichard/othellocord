@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"math"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var CreateSchema = "CREATE TABLE IF NOT EXISTS stats (player_id TEXT PRIMARY KEY, elo FLOAT, won INTEGER, drawn INTEGER, lost INTEGER);"
@@ -44,7 +45,7 @@ func DefaultStats(playerId string) Stats {
 }
 
 func GetOrInsertStats(ctx context.Context, q Query, playerId string, defaultStats Stats) (Stats, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = ?;", playerId)
 	if err != nil {
@@ -81,7 +82,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerId string, defaultStat
 }
 
 func GetTopStats(ctx context.Context, db *sql.DB, count int) ([]Stats, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT ?;", count)
 	if err != nil {
@@ -115,7 +116,7 @@ func updateStat(ctx context.Context, tx *sql.Tx, stats Stats) error {
 		stats.Drawn,
 		stats.Player.ID)
 	if err != nil {
-		slog.Error("failed to exec update stats", "trace", ctx.Value("trace"), "stats", stats, "err", err)
+		slog.Error("failed to exec update stats", "trace", ctx.Value(TraceKey), "stats", stats, "err", err)
 	}
 	return nil
 }
@@ -144,7 +145,7 @@ func (s StatsResult) FormatLoserEloDiff() string {
 }
 
 func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
@@ -224,7 +225,7 @@ func ReadStats(ctx context.Context, db *sql.DB, uc UserCacheApi, playerId string
 }
 
 func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi, count int) ([]Stats, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	stats, err := GetTopStats(ctx, db, count)
 	if err != nil {

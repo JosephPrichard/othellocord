@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jellydator/ttlcache/v3"
 	"log/slog"
 	"othellocord/app/othello"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/jellydator/ttlcache/v3"
 )
 
 type Game struct {
@@ -106,7 +107,7 @@ func WithEviction(db *sql.DB) *GameCache {
 var ErrAlreadyPlaying = errors.New("one or more players are already in a game")
 
 func CreateGame(ctx context.Context, cache *GameCache, blackPlayer Player, whitePlayer Player) (Game, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	itemB := cache.Get(whitePlayer.ID)
 	itemW := cache.Get(blackPlayer.ID)
@@ -125,7 +126,7 @@ func CreateGame(ctx context.Context, cache *GameCache, blackPlayer Player, white
 }
 
 func CreateBotGame(ctx context.Context, cache *GameCache, blackPlayer Player, level int) (Game, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	itemB := cache.Get(blackPlayer.ID)
 	if itemB != nil {
@@ -148,7 +149,7 @@ func CreateBotGame(ctx context.Context, cache *GameCache, blackPlayer Player, le
 var ErrGameNotFound = errors.New("game not found")
 
 func GetGame(ctx context.Context, cache *GameCache, playerId string) (Game, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	item := cache.Get(playerId)
 	if item == nil {
@@ -232,7 +233,7 @@ func MakeMoveState(cache *GameCache, state *GameState, move othello.Tile) Game {
 
 func ExpireGame(db *sql.DB, game Game) {
 	trace := fmt.Sprintf("expire-game-task-%s-%s", game.WhitePlayer.ID, game.BlackPlayer.ID)
-	ctx := context.WithValue(context.Background(), "trace", trace)
+	ctx := context.WithValue(context.Background(), TraceKey, trace)
 
 	gr := GameResult{Winner: game.CurrentPlayer(), Loser: game.CurrentPlayer(), IsDraw: false}
 	sr, err := UpdateStats(ctx, db, gr)

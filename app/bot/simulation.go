@@ -2,11 +2,12 @@ package bot
 
 import (
 	"context"
-	"github.com/jellydator/ttlcache/v3"
-	"go.uber.org/atomic"
 	"log/slog"
 	"othellocord/app/othello"
 	"time"
+
+	"github.com/jellydator/ttlcache/v3"
+	"go.uber.org/atomic"
 )
 
 const SimulationTtl = time.Hour
@@ -30,7 +31,7 @@ func NewSimCache() *SimCache {
 	return cache
 }
 
-type SimMsg struct {
+type SimPanel struct {
 	Game     Game
 	Move     othello.Tile
 	Finished bool
@@ -38,10 +39,16 @@ type SimMsg struct {
 
 const SimCount = othello.BoardSize * othello.BoardSize // maximum number of possible simulation states
 
-func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, simChan chan SimMsg) {
-	trace := ctx.Value("trace")
+type BeginSimInput struct {
+	Wq          chan WorkerRequest
+	InitialGame Game
+	SimChan     chan SimPanel
+}
 
-	var game = initialGame
+func BeginSimulate(ctx context.Context, input BeginSimInput) {
+	trace := ctx.Value(TraceKey)
+
+	var game = input.InitialGame
 	var move othello.Tile
 
 	for i := 0; ; i++ {
@@ -59,7 +66,7 @@ func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, si
 			T:        GetMoveRequest,
 			RespChan: make(chan []othello.RankTile, 1),
 		}
-		wq <- request
+		input.Wq <- request
 
 		moves := <-request.RespChan
 
@@ -73,48 +80,51 @@ func Simulation(ctx context.Context, wq chan WorkerRequest, initialGame Game, si
 			game.TrySkipTurn()
 			game.CurrPotentialMoves = nil
 
-			simChan <- SimMsg{Game: game, Move: move}
+			input.SimChan <- SimPanel{Game: game, Move: move}
 		} else {
 			slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
 
-			simChan <- SimMsg{Game: game, Move: move, Finished: true}
-			close(simChan)
+			input.SimChan <- SimPanel{Game: game, Move: move, Finished: true}
+			close(input.SimChan)
 			return
 		}
 	}
 }
 
-type SimContext struct {
-	Ctx    context.Context
-	Cancel func()
-	State  *SimState
-	Rc     othello.RenderCache
+type RecvSimInput struct {
+	Cancel       func()
+	State        *SimState
+	Rc           othello.RenderCache
+	RecvChan     chan SimPanel
+	HandleSend   func(SimPanel)
+	HandleCancel func()
+	Delay        time.Duration
 }
 
-func ReceiveSimulate(simCtx SimContext, recvChan chan SimMsg, handleSend func(SimMsg), handleCancel func(), delay time.Duration) {
-	trace := simCtx.Ctx.Value("trace")
+func ReceiveSimulate(ctx context.Context, input RecvSimInput) {
+	trace := ctx.Value(TraceKey)
 
-	ticker := time.NewTicker(delay)
+	ticker := time.NewTicker(input.Delay)
 	for index := 0; ; index++ {
 		select {
 		case <-ticker.C:
-			if simCtx.State.IsPaused.Load() {
+			if input.State.IsPaused.Load() {
 				continue
 			}
-			msg, ok := <-recvChan
+			msg, ok := <-input.RecvChan
 			if !ok {
 				slog.Info("simulation receiver complete", "trace", trace)
 				return
 			}
-			handleSend(msg)
-		case <-simCtx.State.StopChan:
-			simCtx.Cancel()
-			handleCancel()
+			input.HandleSend(msg)
+		case <-input.State.StopChan:
+			input.Cancel()
+			input.HandleCancel()
 			slog.Info("simulation receiver stopped", "trace", trace)
 			return
-		case <-simCtx.Ctx.Done():
-			handleCancel()
-			slog.Info("simulation receiver timed out", "trace", trace, "err", simCtx.Ctx.Err())
+		case <-ctx.Done():
+			input.HandleCancel()
+			slog.Info("simulation receiver timed out", "trace", trace, "err", ctx.Err())
 			return
 		}
 	}

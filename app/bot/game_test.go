@@ -3,16 +3,17 @@ package bot
 import (
 	"context"
 	"fmt"
-	"github.com/jellydator/ttlcache/v3"
-	"github.com/stretchr/testify/assert"
 	"othellocord/app/othello"
 	"testing"
+
+	"github.com/jellydator/ttlcache/v3"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGameStore_CreateGame(t *testing.T) {
 	gs := ttlcache.New[string, *GameState]()
 
-	ctx := context.WithValue(context.Background(), "trace", "test-create-game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-create-game")
 	game, err := CreateGame(ctx, gs, Player{ID: "id1", Name: "Player1"}, Player{ID: "id2", Name: "Player2"})
 	if err != nil {
 		t.Fatalf("failed to create the game: %v", err)
@@ -31,7 +32,7 @@ func TestGameStore_CreateGame(t *testing.T) {
 func TestGameStore_CreateBotGame(t *testing.T) {
 	gs := ttlcache.New[string, *GameState]()
 
-	ctx := context.WithValue(context.Background(), "trace", "test-create-bot-game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-create-bot-game")
 	game, err := CreateBotGame(ctx, gs, Player{ID: "id1", Name: "Player1"}, 5)
 	if err != nil {
 		t.Fatalf("failed to create the game: %v", err)
@@ -50,7 +51,7 @@ func TestGameStore_GetGame(t *testing.T) {
 	expGame := Game{Board: othello.InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id3", Name: "Player3"}}
 	gs.Set("id1", &GameState{Game: expGame}, GameStoreTtl)
 
-	ctx := context.WithValue(context.Background(), "trace", "test-get-game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-get-game")
 	game, err := GetGame(ctx, gs, "id1")
 	if err != nil {
 		t.Fatalf("failed to get the game: %v", err)

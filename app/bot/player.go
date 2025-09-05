@@ -3,11 +3,12 @@ package bot
 import (
 	"context"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/jellydator/ttlcache/v3"
 	"log/slog"
 	"strconv"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/jellydator/ttlcache/v3"
 )
 
 const MinBotLevel = 1
@@ -112,7 +113,7 @@ func (uc UserCache) GetPlayer(ctx context.Context, playerId string) (Player, err
 const UserCacheTTl = time.Hour
 
 func (uc UserCache) GetUser(ctx context.Context, playerId string) (*discordgo.User, error) {
-	trace := ctx.Value("trace")
+	trace := ctx.Value(TraceKey)
 
 	var user *discordgo.User
 	var err error
