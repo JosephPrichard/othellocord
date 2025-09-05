@@ -86,7 +86,7 @@ type GameResult struct {
 	IsDraw bool
 }
 
-var GameStoreTtl = time.Hour * 24
+const GameStoreTtl = time.Hour * 24
 
 type GameCache = ttlcache.Cache[string, *GameState]
 

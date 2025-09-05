@@ -109,7 +109,7 @@ func (uc UserCache) GetPlayer(ctx context.Context, playerId string) (Player, err
 	return PlayerFromUser(user), nil
 }
 
-var UserCacheTTl = time.Hour
+const UserCacheTTl = time.Hour
 
 func (uc UserCache) GetUser(ctx context.Context, playerId string) (*discordgo.User, error) {
 	trace := ctx.Value("trace")

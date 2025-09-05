@@ -300,7 +300,7 @@ func (b *Board) GetSquareByTile(tile Tile) byte {
 func (b *Board) String() string {
 	var sb strings.Builder
 	sb.WriteString(" ")
-	for i := 0; i < BoardSize; i++ {
+	for i := range BoardSize {
 		sb.WriteRune('a' + rune(i))
 		sb.WriteString(" ")
 	}

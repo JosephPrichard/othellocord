@@ -68,7 +68,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
 				Name:         "move",
-				Description:  fmt.Sprintf("Move to make on the Board"),
+				Description:  "Move to make on the Board",
 				Required:     true,
 				Autocomplete: true,
 			},

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-var GreenColor = 0x00ff00
+const GreenColor = 0x00ff00
 
 func createStringResponse(msg string) *discordgo.InteractionResponse {
 	return &discordgo.InteractionResponse{
@@ -117,8 +117,9 @@ func createSimulationActionRow(simulationID string, isPaused bool) []discordgo.M
 	return nil
 }
 
+var edit = ""
+
 func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
-	var edit = ""
 	files := addEmbedFiles(embed, img)
 	return &discordgo.WebhookEdit{
 		Embeds:      &[]*discordgo.MessageEmbed{embed},
