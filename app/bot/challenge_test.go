@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestChallenge(t *testing.T) {
-	cc := NewChallengeCache()
+	cc := MakeChallengeCache()
 
 	ctx := context.WithValue(context.Background(), TraceKey, "test-challenge")
 	challenge := Challenge{Challenged: Player{ID: "id1", Name: "name1"}, Challenger: Player{ID: "id2", Name: "name2"}}
@@ -25,7 +25,7 @@ func TestChallenge(t *testing.T) {
 }
 
 func TestChallenge_Expiry(t *testing.T) {
-	cc := NewChallengeCache()
+	cc := MakeChallengeCache()
 
 	ctx := context.WithValue(context.Background(), TraceKey, "test-challenge")
 	challenge := Challenge{Challenged: Player{ID: "id1", Name: "name1"}, Challenger: Player{ID: "id2", Name: "name2"}}

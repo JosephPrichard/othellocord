@@ -35,10 +35,7 @@ func LevelToDepth(level int) int {
 	return 0
 }
 
-func PlayerFromUser(user *discordgo.User) Player {
-	if user == nil {
-		panic("expected user to be non nil when creating player")
-	}
+func PlayerFromUser(user discordgo.User) Player {
 	return Player{ID: user.ID, Name: user.Username}
 }
 
@@ -87,7 +84,7 @@ type UserCache struct {
 	Uf    UserFetcher
 }
 
-func NewUserCache(uf UserFetcher) UserCache {
+func MakeUserCache(uf UserFetcher) UserCache {
 	return UserCache{
 		Cache: ttlcache.New[string, discordgo.User](),
 		Uf:    uf,
@@ -96,7 +93,7 @@ func NewUserCache(uf UserFetcher) UserCache {
 
 func (uc UserCache) GetUsername(ctx context.Context, playerId string) (string, error) {
 	user, err := uc.GetUser(ctx, playerId)
-	if err != nil || user == nil {
+	if err != nil {
 		return "", err
 	}
 	return user.Username, nil
@@ -104,7 +101,7 @@ func (uc UserCache) GetUsername(ctx context.Context, playerId string) (string, e
 
 func (uc UserCache) GetPlayer(ctx context.Context, playerId string) (Player, error) {
 	user, err := uc.GetUser(ctx, playerId)
-	if err != nil || user == nil {
+	if err != nil {
 		return Player{}, err
 	}
 	return PlayerFromUser(user), nil
@@ -112,22 +109,22 @@ func (uc UserCache) GetPlayer(ctx context.Context, playerId string) (Player, err
 
 const UserCacheTTl = time.Hour
 
-func (uc UserCache) GetUser(ctx context.Context, playerId string) (*discordgo.User, error) {
+func (uc UserCache) GetUser(ctx context.Context, playerId string) (discordgo.User, error) {
 	trace := ctx.Value(TraceKey)
 
-	var user *discordgo.User
-	var err error
+	var user discordgo.User
 
 	item := uc.Cache.Get(playerId)
 	if item != nil {
-		u := item.Value()
-		user = &u
+		user = item.Value()
 	} else {
-		if user, err = uc.Uf.User(playerId, discordgo.WithContext(ctx)); err != nil {
+		u, err := uc.Uf.User(playerId, discordgo.WithContext(ctx))
+		if err != nil {
 			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerId, "err", err)
-			return nil, err
+			return discordgo.User{}, err
 		}
-		uc.Cache.Set(playerId, *user, UserCacheTTl)
+		user = *u
+		uc.Cache.Set(playerId, user, UserCacheTTl)
 		slog.Info("set user back into the Cache", "trace", trace, "user", user.Username, "player", playerId)
 	}
 

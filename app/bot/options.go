@@ -25,7 +25,7 @@ func (h *Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applica
 		if opt.Name != name {
 			continue
 		}
-		opponent, err := h.Uc.GetPlayer(ctx, opt.Value.(string))
+		opponent, err := h.UserCache.GetPlayer(ctx, opt.Value.(string))
 		if err != nil {
 			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %w", name, err)
 		}
@@ -81,15 +81,15 @@ func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, na
 		}
 		value, ok := opt.Value.(string)
 		if !ok {
-			return othello.Tile{}, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return othello.ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}
 		tile, err := othello.ParseTileSafe(value)
 		if err != nil {
-			return othello.Tile{}, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return othello.ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}
 		return tile, value, nil
 	}
-	return othello.Tile{}, "", OptionError{Name: name, ExpectedValue: ExpectedTileValue}
+	return othello.ZeroTile, "", OptionError{Name: name, ExpectedValue: ExpectedTileValue}
 }
 
 func formatOptions(options []*discordgo.ApplicationCommandInteractionDataOption) string {

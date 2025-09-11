@@ -20,7 +20,7 @@ func main() {
 		moves = append(moves, othello.RankTile{Tile: tile, H: float64(4 + d)})
 	}
 
-	rc := othello.NewRenderCache()
+	rc := othello.MakeRenderCache()
 	imgBoard := othello.DrawBoardAnalysis(rc, othello.InitialBoard(), moves)
 
 	if err := os.Remove(pathBoard); err != nil {

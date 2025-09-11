@@ -239,7 +239,7 @@ func createSimulationEndEmbed(game Game, move othello.Tile) *discordgo.MessageEm
 	}
 }
 
-func createStatsEmbed(user *discordgo.User, stats Stats) *discordgo.MessageEmbed {
+func createStatsEmbed(user discordgo.User, stats Stats) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("%s's stats", user.Username),
 		Fields: []*discordgo.MessageEmbedField{

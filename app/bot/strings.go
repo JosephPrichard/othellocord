@@ -3,7 +3,6 @@ package bot
 import (
 	"log/slog"
 	"strings"
-	"unicode"
 )
 
 func column(str string, size int, tail string) string {
@@ -43,15 +42,4 @@ func parseCustomId(customID string) (string, string) {
 	cond := customID[:index]
 	key := customID[index+1:]
 	return cond, key
-}
-
-func formatError(m string) string {
-	var sb strings.Builder
-	for i, c := range m {
-		if i == 0 {
-			c = unicode.ToUpper(c)
-		}
-		sb.WriteRune(c)
-	}
-	return sb.String()
 }

@@ -32,7 +32,7 @@ func (mock *MockUserFetcher) User(userID string, _ ...discordgo.RequestOption) (
 }
 
 func TestUserCache_GetUsername(t *testing.T) {
-	uc := NewUserCache(&MockUserFetcher{})
+	uc := MakeUserCache(&MockUserFetcher{})
 
 	ctx := context.WithValue(context.Background(), TraceKey, "test-user-Cache")
 	username, err := uc.GetUsername(ctx, "id1")

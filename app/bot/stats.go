@@ -147,10 +147,12 @@ func (s StatsResult) FormatLoserEloDiff() string {
 func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
+	sr := StatsResult{}
+
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		slog.Error("failed to open update stats tx", "trace", trace, "err", err)
-		return StatsResult{}, err
+		return sr, err
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -158,41 +160,41 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 
 	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID, DefaultStats(gr.Winner.ID))
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
+		return sr, fmt.Errorf("failed to get winner stats: %w", err)
 	}
 	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.ID, DefaultStats(gr.Loser.ID))
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
+		return sr, fmt.Errorf("failed to get loser stats: %w", err)
 	}
 
 	if gr.IsDraw || gr.Winner.ID == gr.Loser.ID {
-		sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: 0, LoseDiff: 0}
+		sr = StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: 0, LoseDiff: 0}
 		slog.Info("updating stats is a draw, noop", "trace", trace, "game", gr, "stats", sr)
 		return sr, nil
 	}
 
-	winEloBefore := winner.Elo
-	lossEloBefore := loser.Elo
-	winner.Elo = eloWon(winner.Elo, probability(loser.Elo, winner.Elo))
-	loser.Elo = eloLost(loser.Elo, probability(winner.Elo, loser.Elo))
+	winBefore := winner.Elo
+	lossBefore := loser.Elo
+	winner.Elo = calcEloWon(winner.Elo, probability(loser.Elo, winner.Elo))
+	loser.Elo = calcEloLost(loser.Elo, probability(winner.Elo, loser.Elo))
 	winner.Won++
 	loser.Lost++
 
 	if err := updateStat(ctx, tx, winner); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update winner stat: %w", err)
+		return sr, fmt.Errorf("failed to update winner stat: %w", err)
 	}
 	if err := updateStat(ctx, tx, loser); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update loser stat: %w", err)
+		return sr, fmt.Errorf("failed to update loser stat: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("failed to commit update stats tx", "trace", trace, "err", err)
-		return StatsResult{}, err
+		return sr, err
 	}
 
-	winDiff := winner.Elo - winEloBefore
-	lossDiff := loser.Elo - lossEloBefore
-	sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
+	winDiff := winner.Elo - winBefore
+	lossDiff := loser.Elo - lossBefore
+	sr = StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
 
 	slog.Info("updated stats tx executed", "trace", trace, "game", gr, "stats", sr)
 	return sr, nil
@@ -204,11 +206,11 @@ func probability(rating1, rating2 float64) float64 {
 	return 1.0 / (1.0 + math.Pow(10, (rating1-rating2)/400.0))
 }
 
-func eloWon(rating, probability float64) float64 {
+func calcEloWon(rating, probability float64) float64 {
 	return rating + EloK*(1.0-probability)
 }
 
-func eloLost(rating, probability float64) float64 {
+func calcEloLost(rating, probability float64) float64 {
 	return rating - EloK*probability
 }
 
@@ -242,9 +244,11 @@ func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi, count int) (
 			continue
 		}
 		eg.Go(func() error {
-			if stat.Player.Name, err = uc.GetUsername(egCtx, stat.Player.ID); err != nil {
-				return err
+			username, err := uc.GetUsername(egCtx, stat.Player.ID)
+			if err != nil {
+				return fmt.Errorf("failed in get user task: %d: %w", i, err)
 			}
+			stat.Player.Name = username
 			return nil
 		})
 	}

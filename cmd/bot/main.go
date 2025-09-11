@@ -39,13 +39,13 @@ func main() {
 	}()
 
 	h := bot.Handler{
-		Db: db,
-		Rc: othello.NewRenderCache(),
-		Wq: bot.StartWorkers(),
-		Cc: bot.NewChallengeCache(),
-		Gc: bot.WithEviction(db),
-		Uc: bot.NewUserCache(dg),
-		Ss: bot.NewSimCache(),
+		Db:              db,
+		Renderer:        othello.MakeRenderCache(),
+		Wq:              bot.StartWorkers(),
+		ChallengeCache:  bot.MakeChallengeCache(),
+		GameCache:       bot.MakeGameCache(db),
+		UserCache:       bot.MakeUserCache(dg),
+		SimulationCache: bot.MakeSimCache(),
 	}
 
 	dg.AddHandler(h.HandeInteractionCreate)

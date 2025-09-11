@@ -32,7 +32,7 @@ type Engine struct {
 	stopTime     time.Time
 }
 
-func NewEngine() Engine {
+func MakeEngine() Engine {
 	return NewEngineWithParams((1 << 12) + 1)
 }
 

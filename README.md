@@ -66,7 +66,7 @@ OthelloCord contains a rudimentary engine for players to play against.
 The evaluation algorithm uses a standard implementation of the Minimax algorithm with an Alpha-Beta pruning optimization. The Minimax algorithm is the backbone of the algorithm responsible for performing the search and deciding which nodes should be pruned.
 
 The algorithm's heuristic evaluation function is responsible for deciding how good a board state is.
-The primary heuristic function is implemented as a combination of 5 other heuristic functions (Parity Heuristic, Corner Heuristic, XCSquare Heuristic, and Mobility Heuristic).
+The primary heuristic function is implemented as a combination of 4 other heuristic functions (Parity Heuristic, Corner Heuristic, XCSquare Heuristic, and Mobility Heuristic).
 All heuristic components are normalized to a weight between 100 and 0, with 100 being the highest weight and 0 being the lowest.
 
 The Othello Board implementation uses 2 longs (8 bytes) (128 bits) to store the bit board. "White" is represented by 10, "Black" is represented by 01, and "Empty" (no disc) is represented by 00. Since each tile needs 2 bits to represent and there are a total of 64 tiles, we can represent the board using 64 * 2 = 128 bits.

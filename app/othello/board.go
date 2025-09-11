@@ -16,6 +16,8 @@ const Black = 2
 var directions = [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}
 var tiles = makeTiles()
 
+var ZeroTile = Tile{}
+
 type Tile struct {
 	Row int
 	Col int

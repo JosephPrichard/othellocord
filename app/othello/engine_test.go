@@ -5,7 +5,7 @@ import "testing"
 func BenchmarkEngine_FindBestMove(b *testing.B) {
 	for i := range b.N {
 		board := InitialBoard()
-		engine := NewEngine()
+		engine := MakeEngine()
 		b.Logf("starting benchmark %d", i+1)
 		for j := 0; j < 10; j++ {
 			move, ok := engine.FindBestMove(board, 10)

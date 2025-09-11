@@ -106,7 +106,7 @@ func TestReadStats(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-read-stats")
 
-			uc := NewUserCache(&MockUserFetcher{})
+			uc := MakeUserCache(&MockUserFetcher{})
 			stats, err := ReadStats(ctx, db, &uc, test.playerId)
 			if err != nil {
 				t.Fatalf("failed to read stats: %v", err)
@@ -142,7 +142,7 @@ func TestGetTopStats(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-read-top-stats")
 
-			uc := NewUserCache(&MockUserFetcher{})
+			uc := MakeUserCache(&MockUserFetcher{})
 			stats, err := ReadTopStats(ctx, db, &uc, 20)
 			if err != nil {
 				t.Fatalf("failed to read stats: %v", err)

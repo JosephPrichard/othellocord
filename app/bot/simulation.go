@@ -17,16 +17,16 @@ type SimState struct {
 	IsPaused atomic.Bool
 }
 
-type SimCache = ttlcache.Cache[string, *SimState]
+type SimCache = *ttlcache.Cache[string, *SimState]
 
-func NewSimCache() *SimCache {
+func MakeSimCache() SimCache {
 	cache := ttlcache.New[string, *SimState]()
 	cache.OnEviction(func(_ context.Context, _ ttlcache.EvictionReason, item *ttlcache.Item[string, *SimState]) {
-		signals := item.Value()
-		if signals.StopChan != nil {
-			signals.StopChan <- struct{}{}
+		slog.Info("stopping simulation", "key", item.Key())
+		state := item.Value()
+		if state.StopChan != nil {
+			state.StopChan <- struct{}{}
 		}
-		slog.Info("stopped simulation", "key", item.Key())
 	})
 	return cache
 }
@@ -63,7 +63,7 @@ func BeginSimulate(ctx context.Context, input BeginSimInput) {
 		request := WorkerRequest{
 			Board:    game.Board,
 			Depth:    depth,
-			T:        GetMoveRequest,
+			Kind:     GetMoveRequestKind,
 			RespChan: make(chan []othello.RankTile, 1),
 		}
 		input.Wq <- request
@@ -92,12 +92,11 @@ func BeginSimulate(ctx context.Context, input BeginSimInput) {
 }
 
 type RecvSimInput struct {
-	Cancel       func()
 	State        *SimState
-	Rc           othello.RenderCache
 	RecvChan     chan SimPanel
-	HandleSend   func(SimPanel)
+	DoCancel     func()
 	HandleCancel func()
+	HandleSend   func(SimPanel)
 	Delay        time.Duration
 }
 
@@ -118,7 +117,7 @@ func ReceiveSimulate(ctx context.Context, input RecvSimInput) {
 			}
 			input.HandleSend(msg)
 		case <-input.State.StopChan:
-			input.Cancel()
+			input.DoCancel()
 			input.HandleCancel()
 			slog.Info("simulation receiver stopped", "trace", trace)
 			return

@@ -6,28 +6,30 @@ import (
 	"runtime"
 )
 
+type MoveRequestKind int
+
 const (
-	GetMovesRequest = iota
-	GetMoveRequest
+	GetMovesRequestKind MoveRequestKind = iota
+	GetMoveRequestKind
 )
 
 type WorkerRequest struct {
 	Board    othello.Board
 	Depth    int
-	T        int
+	Kind     MoveRequestKind
 	RespChan chan []othello.RankTile
 }
 
 func ListenWorkerRequest(w int, wq chan WorkerRequest) {
-	engine := othello.NewEngine()
+	engine := othello.MakeEngine()
 	for request := range wq {
 		slog.Info("received an engine request on worker", "worker", w)
 
 		var moves []othello.RankTile
-		switch request.T {
-		case GetMovesRequest:
+		switch request.Kind {
+		case GetMovesRequestKind:
 			moves = engine.FindRankedMoves(request.Board, request.Depth)
-		case GetMoveRequest:
+		case GetMoveRequestKind:
 			if move, ok := engine.FindBestMove(request.Board, request.Depth); ok {
 				moves = append(moves, move)
 			}

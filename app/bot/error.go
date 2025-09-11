@@ -14,9 +14,9 @@ func (e OptionError) Error() string {
 		expMsg = fmt.Sprintf(", expected value to be: %s", e.ExpectedValue)
 	}
 	if e.InvalidValue == "" {
-		return fmt.Sprintf("expected an option '%s' to be provided%s", e.Name, expMsg)
+		return fmt.Sprintf("Expected an option '%s' to be provided%s", e.Name, expMsg)
 	} else {
-		return fmt.Sprintf("option '%s' received invalid value '%v'%s", e.Name, e.InvalidValue, expMsg)
+		return fmt.Sprintf("Option '%s' received invalid value '%v'%s", e.Name, e.InvalidValue, expMsg)
 	}
 }
 
@@ -27,8 +27,8 @@ type SubCmdError struct {
 
 func (e SubCmdError) Error() string {
 	if e.Name == "" {
-		return fmt.Sprintf("expected a subcommand with one of following values %v", e.ExpectedValues)
+		return fmt.Sprintf("Expected a subcommand with one of following values %v", e.ExpectedValues)
 	} else {
-		return fmt.Sprintf("invalid subcommand '%s', expected one of following values %v", e.Name, e.ExpectedValues)
+		return fmt.Sprintf("Invalid subcommand '%s', expected one of following values %v", e.Name, e.ExpectedValues)
 	}
 }

@@ -23,13 +23,14 @@ const (
 	SideOffset    = 40
 	TileSize      = DiscSize + LineThickness
 	DotSize       = 8
-	TopLeft       = 4
 	SideFont      = 25.0
 	AnalysisFont  = 23.0
 )
 
 var (
 	GreenColor   = color.RGBA{R: 88, G: 184, B: 91, A: 255}
+	WoodColor    = color.RGBA{R: 213, G: 176, B: 124, A: 255}
+	GreyColor    = color.RGBA{R: 128, G: 128, B: 128, A: 255}
 	BlackColor   = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	CyanColor    = color.RGBA{R: 0, G: 255, B: 255, A: 255}
 	YellowColor  = color.RGBA{R: 255, G: 255, B: 0, A: 255}
@@ -49,15 +50,15 @@ func init() {
 	draw2d.RegisterFont(FontData, font)
 }
 
-type RenderCache struct {
+type Renderer struct {
 	whiteDisc  image.Image
 	blackDisc  image.Image
 	noDisc     image.Image
 	background image.Image
 }
 
-func NewRenderCache() RenderCache {
-	return RenderCache{
+func MakeRenderCache() Renderer {
+	return Renderer{
 		whiteDisc:  DrawDisc(WhiteFill, 2.0),
 		blackDisc:  DrawDisc(BlackFill, 2.0),
 		noDisc:     DrawDisc(NoFill, 3.0),
@@ -65,14 +66,14 @@ func NewRenderCache() RenderCache {
 	}
 }
 
-func DrawBoard(r RenderCache, board Board) image.Image {
-	return DrawBoardMoves(r, board, nil)
+func (r Renderer) DrawBoard(board Board) image.Image {
+	return r.DrawBoardMoves(board, nil)
 }
 
-func DrawBoardMoves(r RenderCache, board Board, moves []Tile) image.Image {
+func (r Renderer) DrawBoardMoves(board Board, moves []Tile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
-	DrawBoardDiscs(r, board, img)
+	r.DrawBoardDiscs(board, img)
 
 	// draw each move image onto the preMoves
 	for _, move := range moves {
@@ -85,10 +86,10 @@ func DrawBoardMoves(r RenderCache, board Board, moves []Tile) image.Image {
 	return img
 }
 
-func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []RankTile) image.Image {
+func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []RankTile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
-	DrawBoardDiscs(r, board, img)
+	r.DrawBoardDiscs(board, img)
 
 	g := draw2dimg.NewGraphicContext(img)
 
@@ -116,7 +117,7 @@ func DrawBoardAnalysis(r RenderCache, board Board, bestMoves []RankTile) image.I
 	return img
 }
 
-func DrawBoardDiscs(r RenderCache, board Board, img draw.Image) {
+func (r Renderer) DrawBoardDiscs(board Board, img draw.Image) {
 	draw.Draw(img, r.background.Bounds(), r.background, image.Point{X: 0, Y: 0}, draw.Over)
 
 	// draw discs onto preMoves, either empty, black, or white
