@@ -1,4 +1,4 @@
-package othello
+package app
 
 import (
 	"fmt"
@@ -109,7 +109,7 @@ func TestBoard_MakeMoved(t *testing.T) {
 			boardAfter := board.MakeMoved(test.move)
 			t.Logf("boardAfter:\n %v", boardAfter.String())
 
-			var expBoard Board
+			var expBoard OthelloBoard
 			for _, move := range test.postMoves {
 				expBoard = boardAfter.SetSquareByNotation(move)
 			}

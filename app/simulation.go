@@ -1,9 +1,8 @@
-package bot
+package app
 
 import (
 	"context"
 	"log/slog"
-	"othellocord/app/othello"
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
@@ -32,63 +31,62 @@ func MakeSimCache() SimCache {
 }
 
 type SimPanel struct {
-	Game     Game
-	Move     othello.Tile
+	Game     OthelloGame
+	Move     Tile
 	Finished bool
 }
 
-const SimCount = othello.BoardSize * othello.BoardSize // maximum number of possible simulation states
+const SimCount = BoardSize * BoardSize // maximum number of possible simulation states
 
 type BeginSimInput struct {
-	Wq          chan WorkerRequest
-	InitialGame Game
+	InitialGame OthelloGame
 	SimChan     chan SimPanel
 }
 
 func BeginSimulate(ctx context.Context, input BeginSimInput) {
-	trace := ctx.Value(TraceKey)
-
-	var game = input.InitialGame
-	var move othello.Tile
-
-	for i := 0; ; i++ {
-		select {
-		case <-ctx.Done():
-			slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
-			return
-		default:
-		}
-
-		depth := LevelToDepth(GetBotLevel(game.CurrentPlayer().ID))
-		request := WorkerRequest{
-			Board:    game.Board,
-			Depth:    depth,
-			Kind:     GetMoveRequestKind,
-			RespChan: make(chan []othello.RankTile, 1),
-		}
-		input.Wq <- request
-
-		moves := <-request.RespChan
-
-		if len(moves) > 1 {
-			panic("expected exactly engine to no more than one moves") // we only requested one move
-		}
-		if len(moves) == 1 {
-			move = moves[0].Tile
-
-			game.MakeMove(move)
-			game.TrySkipTurn()
-			game.CurrPotentialMoves = nil
-
-			input.SimChan <- SimPanel{Game: game, Move: move}
-		} else {
-			slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
-
-			input.SimChan <- SimPanel{Game: game, Move: move, Finished: true}
-			close(input.SimChan)
-			return
-		}
-	}
+	//trace := ctx.Value(TraceKey)
+	//
+	//var game = input.InitialGame
+	//var move othello.Tile
+	//
+	//for i := 0; ; i++ {
+	//	select {
+	//	case <-ctx.Done():
+	//		slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
+	//		return
+	//	default:
+	//	}
+	//
+	//	depth := LevelToDepth(GetBotLevel(game.CurrentPlayer().ID))
+	//	request := WorkerRequest{
+	//		OthelloBoard:    game.OthelloBoard,
+	//		Depth:    depth,
+	//		Kind:     GetMoveRequestKind,
+	//		RespChan: make(chan []othello.RankTile, 1),
+	//	}
+	//	input.Wq <- request
+	//
+	//	moves := <-request.RespChan
+	//
+	//	if len(moves) > 1 {
+	//		panic("expected exactly engine to no more than one moves") // we only requested one move
+	//	}
+	//	if len(moves) == 1 {
+	//		move = moves[0].Tile
+	//
+	//		game.MakeMoveValidated(move)
+	//		game.TrySkipTurn()
+	//		game.CurrPotentialMoves = nil
+	//
+	//		input.SimChan <- SimPanel{OthelloGame: game, Move: move}
+	//	} else {
+	//		slog.Info("finished simulation", "trace", trace, "moves", moves, "move", move)
+	//
+	//		input.SimChan <- SimPanel{OthelloGame: game, Move: move, Finished: true}
+	//		close(input.SimChan)
+	//		return
+	//	}
+	//}
 }
 
 type RecvSimInput struct {

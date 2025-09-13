@@ -1,4 +1,4 @@
-package bot
+package app
 
 import (
 	"fmt"
@@ -8,14 +8,14 @@ import (
 const MinDelay = 1
 const MaxDelay = 5
 
-var LevelDesc = fmt.Sprintf("Level of the bot between %d and %d", MinBotLevel, MaxBotLevel)
+var LevelDesc = fmt.Sprintf("Level of the service between %d and %d", MinBotLevel, MaxBotLevel)
 var ExpectedTileValue = "be a string of the form 'a1' where 'a' is the column and '1' is the row"
 var DelayDesc = fmt.Sprintf("Minimum delay between moves in seconds between %d and %d secs", MinDelay, MaxDelay)
 
 var Commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "challenge",
-		Description: "Challenges the bot or another user to an Othello game",
+		Description: "Challenges the service or another user to an Othello game",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
@@ -32,8 +32,8 @@ var Commands = []*discordgo.ApplicationCommand{
 			},
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
-				Name:        "bot",
-				Description: "Challenges the bot to a game",
+				Name:        "service",
+				Description: "Challenges the service to a game",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Type:        discordgo.ApplicationCommandOptionInteger,
@@ -68,7 +68,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
 				Name:         "move",
-				Description:  "Move to make on the Board",
+				Description:  "Move to make on the OthelloBoard",
 				Required:     true,
 				Autocomplete: true,
 			},
@@ -80,7 +80,7 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "analyze",
-		Description: "Runs an analysis of the Board",
+		Description: "Runs an analysis of the OthelloBoard",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionInteger,

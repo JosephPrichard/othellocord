@@ -1,4 +1,4 @@
-package othello
+package app
 
 import (
 	_ "embed"
@@ -28,13 +28,13 @@ const (
 )
 
 var (
-	GreenColor   = color.RGBA{R: 88, G: 184, B: 91, A: 255}
-	WoodColor    = color.RGBA{R: 213, G: 176, B: 124, A: 255}
-	GreyColor    = color.RGBA{R: 128, G: 128, B: 128, A: 255}
-	BlackColor   = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	CyanColor    = color.RGBA{R: 0, G: 255, B: 255, A: 255}
-	YellowColor  = color.RGBA{R: 255, G: 255, B: 0, A: 255}
-	OutlineColor = color.RGBA{R: 40, G: 40, B: 40, A: 255}
+	GreenBg      = color.RGBA{R: 88, G: 184, B: 91, A: 255}
+	WoodBg       = color.RGBA{R: 213, G: 176, B: 124, A: 255}
+	GreyBg       = color.RGBA{R: 128, G: 128, B: 128, A: 255}
+	BlackBg      = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+	CyanBg       = color.RGBA{R: 0, G: 255, B: 255, A: 255}
+	YellowBg     = color.RGBA{R: 255, G: 255, B: 0, A: 255}
+	OutlineBg    = color.RGBA{R: 40, G: 40, B: 40, A: 255}
 	BlackFill    = color.RGBA{R: 20, G: 20, B: 20, A: 255}
 	WhiteFill    = color.RGBA{R: 250, G: 250, B: 250, A: 255}
 	NoFill       = color.RGBA{R: 0, G: 0, B: 0, A: 0}
@@ -66,11 +66,11 @@ func MakeRenderCache() Renderer {
 	}
 }
 
-func (r Renderer) DrawBoard(board Board) image.Image {
+func (r Renderer) DrawBoard(board OthelloBoard) image.Image {
 	return r.DrawBoardMoves(board, nil)
 }
 
-func (r Renderer) DrawBoardMoves(board Board, moves []Tile) image.Image {
+func (r Renderer) DrawBoardMoves(board OthelloBoard, moves []Tile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
 	r.DrawBoardDiscs(board, img)
@@ -86,7 +86,7 @@ func (r Renderer) DrawBoardMoves(board Board, moves []Tile) image.Image {
 	return img
 }
 
-func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []RankTile) image.Image {
+func (r Renderer) DrawBoardAnalysis(board OthelloBoard, bestMoves []RankTile) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, r.background.Bounds().Dx(), r.background.Bounds().Dy()))
 
 	r.DrawBoardDiscs(board, img)
@@ -104,9 +104,9 @@ func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []RankTile) image.Ima
 		hText = hText[0:end]
 
 		if i == 0 {
-			g.SetFillColor(CyanColor)
+			g.SetFillColor(CyanBg)
 		} else {
-			g.SetFillColor(YellowColor)
+			g.SetFillColor(YellowBg)
 		}
 
 		x := SideOffset + move.Col*TileSize
@@ -117,7 +117,7 @@ func (r Renderer) DrawBoardAnalysis(board Board, bestMoves []RankTile) image.Ima
 	return img
 }
 
-func (r Renderer) DrawBoardDiscs(board Board, img draw.Image) {
+func (r Renderer) DrawBoardDiscs(board OthelloBoard, img draw.Image) {
 	draw.Draw(img, r.background.Bounds(), r.background, image.Point{X: 0, Y: 0}, draw.Over)
 
 	// draw discs onto preMoves, either empty, black, or white
@@ -148,16 +148,16 @@ func drawBackground(boardSize int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	g := draw2dimg.NewGraphicContext(img)
 
-	g.SetFillColor(BlackColor)
+	g.SetFillColor(BlackBg)
 	draw2dkit.Rectangle(g, 0, 0, float64(width), float64(height))
 	g.FillStroke()
 
-	g.SetFillColor(GreenColor)
+	g.SetFillColor(GreenBg)
 	draw2dkit.Rectangle(g, SideOffset, SideOffset, float64(width-LineThickness), float64(height-LineThickness))
 	g.FillStroke()
 
 	g.SetLineWidth(LineThickness)
-	g.SetFillColor(BlackColor)
+	g.SetFillColor(BlackBg)
 
 	// draw black horizontal lines
 	for i := 0; i < boardSize+1; i++ {
@@ -229,7 +229,7 @@ func DrawDisc(fillColor color.RGBA, thickness float64) image.Image {
 	g := draw2dimg.NewGraphicContext(img)
 
 	g.SetFillColor(fillColor)
-	g.SetStrokeColor(OutlineColor)
+	g.SetStrokeColor(OutlineBg)
 	g.SetLineWidth(thickness)
 
 	draw2dkit.Circle(g, float64(LineThickness/2+TileSize/2), LineThickness/2+float64(TileSize/2), TileSize/2-6)

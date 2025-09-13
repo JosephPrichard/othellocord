@@ -7,7 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"othellocord/app/bot"
+	"othellocord/app"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		}
 	}()
 
-	if _, err := dg.ApplicationCommandBulkOverwrite(appID, "", bot.Commands); err != nil {
+	if _, err := dg.ApplicationCommandBulkOverwrite(appID, "", app.Commands); err != nil {
 		log.Fatalf("failed to bulk overwrite commands: %v", err)
 	}
 }

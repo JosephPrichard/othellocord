@@ -1,4 +1,4 @@
-package bot
+package app
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func (mock *MockUserFetcher) User(userID string, _ ...discordgo.RequestOption) (
 	case "id7":
 		return &discordgo.User{ID: "id7", Username: "Player7"}, nil
 	}
-	return nil, fmt.Errorf("unexpected playerId in mock user fetcher: %s", userID)
+	return nil, fmt.Errorf("unexpected playerID in mock user fetcher: %s", userID)
 }
 
 func TestUserCache_GetUsername(t *testing.T) {

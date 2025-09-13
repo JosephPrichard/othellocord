@@ -1,17 +1,18 @@
-package othello
+package app
 
 import (
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const BoardSize = 8
 const HalfSize = BoardSize / 2
-const Empty = 0
-const White = 1
-const Black = 2
+const Empty byte = 0
+const White byte = 1
+const Black byte = 2
 
 var directions = [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}
 var tiles = makeTiles()
@@ -41,7 +42,9 @@ func ParseTileSafe(s string) (Tile, error) {
 	}
 
 	// Example "a1" → Col: 0, Row: 0 (assuming standard preMoves)
-	col := int(s[0] - 'a')
+	ch := s[0]
+	ch = uint8(unicode.ToUpper(rune(ch))) // we don't need to handle
+	col := int(ch - 'A')
 	row := int(s[1] - '1')
 
 	if row < 0 || row > BoardSize || col < 0 || col > BoardSize {
@@ -60,7 +63,7 @@ func ParseTile(s string) Tile {
 
 func (t Tile) String() string {
 	// Example Tile{Row: 0, Col: 0} → "a1", Tile{Row: 2, Col: 3} → "d3"
-	return fmt.Sprintf("%c%d", rune(t.Col)+'a', t.Row+1)
+	return fmt.Sprintf("%c%d", rune(t.Col)+'A', t.Row+1)
 }
 
 type RankTile struct {
@@ -68,14 +71,14 @@ type RankTile struct {
 	H float64
 }
 
-type Board struct {
+type OthelloBoard struct {
 	IsBlackMove bool
 	boardA      uint64
 	boardB      uint64
 }
 
-func InitialBoard() Board {
-	var b Board
+func InitialBoard() OthelloBoard {
+	var b OthelloBoard
 	b.IsBlackMove = true
 	b.SetSquare(BoardSize/2-1, BoardSize/2-1, White)
 	b.SetSquare(BoardSize/2, BoardSize/2, White)
@@ -88,15 +91,15 @@ func InBounds(row int, col int) bool {
 	return row >= 0 && col >= 0 && row < BoardSize && col < BoardSize
 }
 
-func (b *Board) WhiteScore() int {
+func (b *OthelloBoard) WhiteScore() int {
 	return b.countDiscs(White)
 }
 
-func (b *Board) BlackScore() int {
+func (b *OthelloBoard) BlackScore() int {
 	return b.countDiscs(Black)
 }
 
-func (b *Board) countDiscs(color byte) int {
+func (b *OthelloBoard) countDiscs(color byte) int {
 	discs := 0
 	for _, tile := range tiles {
 		c := b.GetSquareByTile(tile)
@@ -107,7 +110,7 @@ func (b *Board) countDiscs(color byte) int {
 	return discs
 }
 
-func (b *Board) FindCurrentMoves() []Tile {
+func (b *OthelloBoard) FindCurrentMoves() []Tile {
 	var moves []Tile
 	b.OnCurrentMoves(func(tile Tile) {
 		moves = append(moves, tile)
@@ -115,7 +118,7 @@ func (b *Board) FindCurrentMoves() []Tile {
 	return moves
 }
 
-func (b *Board) CountPotentialMoves(color byte) int {
+func (b *OthelloBoard) CountPotentialMoves(color byte) int {
 	count := 0
 	b.OnPotentialMoves(color, func(tile Tile) {
 		count++
@@ -123,7 +126,7 @@ func (b *Board) CountPotentialMoves(color byte) int {
 	return count
 }
 
-func (b *Board) OnCurrentMoves(onMove func(Tile)) {
+func (b *OthelloBoard) OnCurrentMoves(onMove func(Tile)) {
 	var currColor byte
 	if b.IsBlackMove {
 		currColor = Black
@@ -133,7 +136,7 @@ func (b *Board) OnCurrentMoves(onMove func(Tile)) {
 	b.OnPotentialMoves(currColor, onMove)
 }
 
-func (b *Board) OnPotentialMoves(color byte, onMove func(Tile)) {
+func (b *OthelloBoard) OnPotentialMoves(color byte, onMove func(Tile)) {
 	var duplicateTile [BoardSize][BoardSize]bool
 
 	var oppColor byte
@@ -177,13 +180,13 @@ func (b *Board) OnPotentialMoves(color byte, onMove func(Tile)) {
 	}
 }
 
-func (b *Board) MakeMoved(move Tile) Board {
+func (b *OthelloBoard) MakeMoved(move Tile) OthelloBoard {
 	b2 := *b
 	b2.MakeMove(move)
 	return b2
 }
 
-func (b *Board) MakeMove(move Tile) {
+func (b *OthelloBoard) MakeMove(move Tile) {
 	var oppColor byte
 	var currColor byte
 	if b.IsBlackMove {
@@ -245,14 +248,14 @@ type Move struct {
 	color    byte
 }
 
-func (b *Board) SetSquareByNotation(move Move) Board {
+func (b *OthelloBoard) SetSquareByNotation(move Move) OthelloBoard {
 	tile := ParseTile(move.Notation)
 	b2 := *b
 	b2.SetSquare(tile.Row, tile.Col, move.color)
 	return b2
 }
 
-func (b *Board) SetSquare(row, col int, color byte) {
+func (b *OthelloBoard) SetSquare(row, col int, color byte) {
 	x := row
 	if row >= HalfSize {
 		x = row - HalfSize
@@ -269,7 +272,7 @@ func (b *Board) SetSquare(row, col int, color byte) {
 	}
 }
 
-func (b *Board) GetSquare(row, col int) byte {
+func (b *OthelloBoard) GetSquare(row, col int) byte {
 	x := row
 	if row >= HalfSize {
 		x = row - HalfSize
@@ -283,23 +286,23 @@ func (b *Board) GetSquare(row, col int) byte {
 	return byte((b.boardB >> p) & mask)
 }
 
-func (b *Board) SetSquareByPosition(position int, color byte) {
+func (b *OthelloBoard) SetSquareByPosition(position int, color byte) {
 	b.SetSquare(position/BoardSize, position%BoardSize, color)
 }
 
-func (b *Board) GetSquareByPosition(position int) byte {
+func (b *OthelloBoard) GetSquareByPosition(position int) byte {
 	return b.GetSquare(position/BoardSize, position%BoardSize)
 }
 
-func (b *Board) SetSquareByTile(tile Tile, color byte) {
+func (b *OthelloBoard) SetSquareByTile(tile Tile, color byte) {
 	b.SetSquare(tile.Row, tile.Col, color)
 }
 
-func (b *Board) GetSquareByTile(tile Tile) byte {
+func (b *OthelloBoard) GetSquareByTile(tile Tile) byte {
 	return b.GetSquare(tile.Row, tile.Col)
 }
 
-func (b *Board) String() string {
+func (b *OthelloBoard) String() string {
 	var sb strings.Builder
 	sb.WriteString(" ")
 	for i := range BoardSize {
@@ -314,7 +317,12 @@ func (b *Board) String() string {
 			str := "."
 			t := b.GetSquare(row, col)
 			if t != Empty {
-				str = strconv.Itoa(int(t))
+				switch t {
+				case White:
+					str = "w"
+				case Black:
+					str = "b"
+				}
 			}
 			sb.WriteString(str)
 			sb.WriteString(" ")

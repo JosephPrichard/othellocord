@@ -1,4 +1,4 @@
-package bot
+package app
 
 import (
 	"context"
@@ -18,8 +18,8 @@ func TestChallenge(t *testing.T) {
 	ctx := context.WithValue(context.Background(), TraceKey, "test-challenge")
 	challenge := Challenge{Challenged: Player{ID: "id1", Name: "name1"}, Challenger: Player{ID: "id2", Name: "name2"}}
 
-	CreateChallenge(ctx, cc, challenge, func() {})
-	didAccept := AcceptChallenge(ctx, cc, challenge)
+	cc.CreateChallenge(ctx, challenge, func() {})
+	didAccept := cc.AcceptChallenge(ctx, challenge)
 
 	assert.True(t, didAccept)
 }
@@ -35,7 +35,7 @@ func TestChallenge_Expiry(t *testing.T) {
 		expireChan <- struct{}{}
 	}
 
-	CreateChallenge(ctx, cc, challenge, handleExpiry)
+	cc.CreateChallenge(ctx, challenge, handleExpiry)
 
 	select {
 	case <-expireChan:

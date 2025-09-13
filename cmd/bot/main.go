@@ -10,8 +10,7 @@ import (
 	_ "modernc.org/sqlite"
 	"os"
 	"os/signal"
-	"othellocord/app/bot"
-	"othellocord/app/othello"
+	"othellocord/app"
 	"syscall"
 )
 
@@ -22,14 +21,14 @@ func main() {
 
 	token := os.Getenv("DISCORD_TOKEN")
 
-	db, err := sql.Open("sqlite", "./othellocord.db")
+	db, err := sql.Open("sqlite", "./othellocord.schema")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func() {
 		_ = db.Close()
 	}()
-	if _, err := db.Exec(bot.CreateSchema); err != nil {
+	if _, err := db.Exec(app.CreateTable); err != nil {
 		log.Fatalf("failed to create schema: %v", err)
 	}
 
@@ -38,14 +37,14 @@ func main() {
 		_ = dg.Close()
 	}()
 
-	h := bot.Handler{
+	go app.ExpireGamesCron(db)
+
+	h := app.Handler{
 		Db:              db,
-		Renderer:        othello.MakeRenderCache(),
-		Wq:              bot.StartWorkers(),
-		ChallengeCache:  bot.MakeChallengeCache(),
-		GameCache:       bot.MakeGameCache(db),
-		UserCache:       bot.MakeUserCache(dg),
-		SimulationCache: bot.MakeSimCache(),
+		Renderer:        app.MakeRenderCache(),
+		ChallengeCache:  app.MakeChallengeCache(),
+		UserCache:       app.MakeUserCache(dg),
+		SimulationCache: app.MakeSimCache(),
 	}
 
 	dg.AddHandler(h.HandeInteractionCreate)
@@ -53,11 +52,11 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	slog.Info("starting othellocord bot")
+	slog.Info("starting othellocord service")
 	if err = dg.Open(); err != nil {
 		log.Fatalf("failed to connect to events: %v", err)
 	}
 
-	slog.Info("othellocord bot is listening for events")
+	slog.Info("othellocord service is listening for events")
 	<-signalChan
 }

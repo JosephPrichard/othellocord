@@ -1,4 +1,4 @@
-package bot
+package app
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"image"
 	"log/slog"
-	"othellocord/app/othello"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -16,11 +15,9 @@ import (
 
 type Handler struct {
 	Db              *sql.DB
-	Renderer        othello.Renderer
-	Wq              chan WorkerRequest
+	Renderer        Renderer
 	UserCache       UserCache
 	ChallengeCache  ChallengeCache
-	GameCache       GameCache
 	SimulationCache SimCache
 }
 
@@ -87,12 +84,12 @@ func (h *Handler) HandeInteractionCreate(dg *discordgo.Session, i *discordgo.Int
 	}
 }
 
-var ChallengeSubCmds = []string{"bot", "user"}
+var ChallengeSubCmds = []string{"service", "user"}
 
 func (h *Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
 	subCmd, options := getSubcommand(i)
 	switch subCmd {
-	case "bot":
+	case "service":
 		return h.HandleBotChallengeCommand(ctx, dg, i, options)
 	case "user":
 		return h.HandleUserChallengeCommand(ctx, dg, i, options)
@@ -109,26 +106,26 @@ func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.S
 
 	var player Player
 	if i.Interaction.Member != nil {
-		player = PlayerFromUser(*i.Interaction.Member.User)
+		player = MakeHumanPlayer(*i.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
 
-	game, err := h.GameCache.CreateBotGame(ctx, player, level)
+	game, err := CreateBotGame(ctx, h.Db, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
-		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a Game.")); err != nil {
-			slog.Error("failed to respond to already playing Game for bot challenge", "err", err)
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a OthelloGame.")); err != nil {
+			slog.Error("failed to respond to already playing OthelloGame for service challenge", "err", err)
 		}
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to create bot Game with level=%d, player=%v cmd: %w", level, player, err)
+		return fmt.Errorf("failed to create service OthelloGame with level=%d, player=%v cmd: %w", level, player, err)
 	}
 
 	embed := createGameStartEmbed(game)
 	img := h.Renderer.DrawBoardMoves(game.Board, game.LoadPotentialMoves())
 
 	if err := dg.InteractionRespond(i.Interaction, createEmbedResponse(embed, img)); err != nil {
-		slog.Error("failed to respond to bot challenge", "err", err)
+		slog.Error("failed to respond to service challenge", "err", err)
 	}
 	return nil
 }
@@ -141,7 +138,7 @@ func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.
 
 	var player Player
 	if i.Interaction.Member != nil {
-		player = PlayerFromUser(*i.Interaction.Member.User)
+		player = MakeHumanPlayer(*i.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
@@ -154,7 +151,7 @@ func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.
 	}
 	h.ChallengeCache.CreateChallenge(ctx, Challenge{Challenger: player, Challenged: opponent}, handleExpire)
 
-	msg := fmt.Sprintf("<@%s>, %s has challenged you to a Game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
+	msg := fmt.Sprintf("<@%s>, %s has challenged you to a OthelloGame of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
 
 	if err := dg.InteractionRespond(i.Interaction, createStringResponse(msg)); err != nil {
 		slog.Error("failed to respond to user challenge", "err", err)
@@ -164,7 +161,7 @@ func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.
 
 func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cmd := i.ApplicationCommandData()
-	player := PlayerFromUser(*i.Interaction.Member.User)
+	player := MakeHumanPlayer(*i.Interaction.Member.User)
 
 	opponent, err := h.getPlayerOpt(ctx, cmd.Options, "challenger")
 	if err != nil {
@@ -178,9 +175,9 @@ func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *di
 		}
 		return nil
 	}
-	game, err := h.GameCache.CreateGame(ctx, opponent, player)
+	game, err := CreateGame(ctx, h.Db, opponent, player)
 	if err != nil {
-		return fmt.Errorf("failed to create Game with opponent=%v cmd: %w", opponent, err)
+		return fmt.Errorf("failed to create OthelloGame with opponent=%v cmd: %w", opponent, err)
 	}
 
 	embed := createGameStartEmbed(game)
@@ -200,14 +197,14 @@ func (h *Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disc
 		return ErrUserNotProvided
 	}
 
-	game, err := h.GameCache.GetGame(ctx, user.ID)
+	game, err := GetGame(ctx, h.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're not playing a Game.")); err != nil {
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're not playing a OthelloGame.")); err != nil {
 			slog.Error("failed to respond to not found view", "err", err)
 		}
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to get Game for player=%s: %w", user.ID, err)
+		return fmt.Errorf("failed to get OthelloGame for player=%s: %w", user.ID, err)
 	}
 
 	embed := createGameEmbed(game)
@@ -227,16 +224,18 @@ func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *d
 		return ErrUserNotProvided
 	}
 
-	game, err := h.GameCache.GetGame(ctx, user.ID)
+	game, err := GetGame(ctx, h.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a Game.")); err != nil {
+		if err := dg.InteractionRespond(i.Interaction, createStringResponse("You're already in a OthelloGame.")); err != nil {
 			slog.Error("failed to respond to forfeit game not found", "err", err)
 		}
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to get Game for player=%s: %w", user.ID, err)
+		return fmt.Errorf("failed to get game for player=%s: %w", user.ID, err)
 	}
-	h.GameCache.DeleteGame(game)
+	if err := DeleteGame(ctx, h.Db, game); err != nil {
+		return fmt.Errorf("failed to delete game in forfeit: %w", err)
+	}
 
 	gameResult := game.CreateForfeitResult(user.ID)
 	statsResult, err := UpdateStats(ctx, h.Db, gameResult)
@@ -254,9 +253,9 @@ func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *d
 }
 
 func (h *Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) {
-	var moves []othello.Tile
+	var moves []Tile
 	if i.Interaction.Member != nil {
-		if game, err := h.GameCache.GetGame(ctx, i.Interaction.Member.User.ID); err == nil {
+		if game, err := GetGame(ctx, h.Db, i.Interaction.Member.User.ID); err == nil {
 			moves = game.LoadPotentialMoves()
 		}
 	}
@@ -272,7 +271,7 @@ func (h *Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Sess
 	}
 }
 
-func (h *Handler) handleGameOver(ctx context.Context, game Game, move othello.Tile) (*discordgo.MessageEmbed, image.Image, error) {
+func (h *Handler) handleGameOver(ctx context.Context, game OthelloGame, move Tile) (*discordgo.MessageEmbed, image.Image, error) {
 	var gameResult GameResult
 	var statsResult StatsResult
 
@@ -287,42 +286,45 @@ func (h *Handler) handleGameOver(ctx context.Context, game Game, move othello.Ti
 	return embed, img, nil
 }
 
-func (h *Handler) handleBotMove(ctx context.Context, dg *discordgo.Session, channelID string, game Game) {
-	request := WorkerRequest{
-		Board:    game.Board,
-		Depth:    LevelToDepth(GetBotLevel(game.CurrentPlayer().ID)),
-		Kind:     GetMoveRequestKind,
-		RespChan: make(chan []othello.RankTile, 1),
-	}
-	h.Wq <- request
-
-	moves := <-request.RespChan
-	if len(moves) != 1 {
-		panic("expected exactly engine to respond with one move") // assert that the bot can make a move
-	}
-	move := moves[0].Tile
-
-	game = h.GameCache.MakeMoveUnchecked(game.OtherPlayer().ID, move) // Game will be stored at the ID of the player that is NOT the bot
-
-	var embed *discordgo.MessageEmbed
-	var img image.Image
-	var err error
-
-	if game.IsGameOver() {
-		if embed, img, err = h.handleGameOver(ctx, game, move); err != nil {
-			slog.Error("failed to send game over bot move", "err", err)
-		}
-	} else {
-		embed = createGameMoveEmbed(game, move)
-		img = h.Renderer.DrawBoardMoves(game.Board, game.LoadPotentialMoves())
-	}
-	if _, err := dg.ChannelMessageSendComplex(channelID, createEmbedSend(embed, img)); err != nil {
-		slog.Error("failed to send bot move", "err", err)
-	}
-
-	if !game.IsGameOver() && game.CurrentPlayer().isBot() {
-		h.handleBotMove(ctx, dg, channelID, game)
-	}
+func (h *Handler) handleBotMove(ctx context.Context, dg *discordgo.Session, channelID string, game OthelloGame) {
+	//request := service.WorkerRequest{
+	//	OthelloBoard:    game.OthelloBoard,
+	//	Depth:    service.LevelToDepth(service.GetBotLevel(game.CurrentPlayer().ID)),
+	//	Kind:     service.GetMoveRequestKind,
+	//	RespChan: make(chan []othello.RankTile, 1),
+	//}
+	//h.Wq <- request
+	//
+	//moves := <-request.RespChan
+	//if len(moves) != 1 {
+	//	panic("expected exactly engine to respond with one move") // assert that the service can make a move
+	//}
+	//move := moves[0].Tile
+	//
+	//game, ok := h.GameCache.MakeMoveUnchecked(game.OtherPlayer().ID, move) // OthelloGame will be stored at the ID of the player that is NOT the service
+	//if !ok {
+	//	return
+	//}
+	//
+	//var embed *discordgo.MessageEmbed
+	//var img image.Image
+	//var err error
+	//
+	//if game.IsGameOver() {
+	//	if embed, img, err = h.handleGameOver(ctx, game, move); err != nil {
+	//		slog.Error("failed to send game over service move", "err", err)
+	//	}
+	//} else {
+	//	embed = createGameMoveEmbed(game, move)
+	//	img = h.Renderer.DrawBoardMoves(game.OthelloBoard, game.LoadPotentialMoves())
+	//}
+	//if _, err := dg.ChannelMessageSendComplex(channelID, createEmbedSend(embed, img)); err != nil {
+	//	slog.Error("failed to send service move", "err", err)
+	//}
+	//
+	//if !game.IsGameOver() && game.CurrentPlayer().IsHuman() {
+	//	h.handleBotMove(ctx, dg, channelID, game)
+	//}
 }
 
 func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
@@ -332,12 +334,12 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 	}
 	var player Player
 	if i.Interaction.Member != nil {
-		player = PlayerFromUser(*i.Interaction.Member.User)
+		player = MakeHumanPlayer(*i.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
 
-	game, err := h.GameCache.MakeMoveValidated(player.ID, move)
+	game, err := MakeMoveValidated(ctx, h.Db, player.ID, move)
 
 	if resp := createMoveErrorResp(err, moveStr); resp != nil {
 		if err := dg.InteractionRespond(i.Interaction, resp); err != nil {
@@ -357,7 +359,7 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 			return fmt.Errorf("failed to handle game over while handling moves: %w", err)
 		}
 	} else {
-		isBot := game.CurrentPlayer().isBot()
+		isBot := game.CurrentPlayer().IsHuman()
 		if isBot {
 			embed = createGameEmbed(game)
 			go h.handleBotMove(ctx, dg, i.ChannelID, game)
@@ -374,54 +376,54 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 }
 
 func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	trace := ctx.Value(TraceKey)
-
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*2))
-	defer cancel()
-
-	level, err := getLevelOpt(i.ApplicationCommandData().Options, "level")
-	if err != nil {
-		return err
-	}
-	var user *discordgo.User
-	if i.Interaction.Member != nil {
-		user = i.Interaction.Member.User
-	} else {
-		return ErrUserNotProvided
-	}
-
-	game, err := h.GameCache.GetGame(ctx, user.ID)
-	if errors.Is(err, ErrGameNotFound) {
-		_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a Game."))
-		return nil
-	}
-
-	if err := dg.InteractionRespond(i.Interaction, createStringResponse("Analyzing... Wait a second...")); err != nil {
-		slog.Error("failed to respond to analyze", "err", err)
-	}
-
-	request := WorkerRequest{
-		Board:    game.Board,
-		Depth:    LevelToDepth(level),
-		Kind:     GetMovesRequestKind,
-		RespChan: make(chan []othello.RankTile, 1),
-	}
-	h.Wq <- request
-
-	select {
-	case resp := <-request.RespChan:
-		embed := createAnalysisEmbed(game, level)
-		img := h.Renderer.DrawBoardAnalysis(game.Board, resp)
-
-		if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img)); err != nil {
-			slog.Error("failed to edit analyze", "err", err)
-		}
-	case <-ctx.Done():
-		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
-		if _, err := dg.InteractionResponseEdit(i.Interaction, createStringEdit("Timed out while waiting for a response.")); err != nil {
-			slog.Error("failed to edit analyze", "err", err)
-		}
-	}
+	//trace := ctx.Value(service.TraceKey)
+	//
+	//ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*2))
+	//defer cancel()
+	//
+	//level, err := getLevelOpt(i.ApplicationCommandData().Options, "level")
+	//if err != nil {
+	//	return err
+	//}
+	//var user *discordgo.User
+	//if i.Interaction.Member != nil {
+	//	user = i.Interaction.Member.User
+	//} else {
+	//	return ErrUserNotProvided
+	//}
+	//
+	//game, err := h.GameCache.GetGame(ctx, user.ID)
+	//if errors.Is(err, service.ErrGameNotFound) {
+	//	_ = dg.InteractionRespond(i.Interaction, createStringResponse("You're not currently in a OthelloGame."))
+	//	return nil
+	//}
+	//
+	//if err := dg.InteractionRespond(i.Interaction, createStringResponse("Analyzing... Wait a second...")); err != nil {
+	//	slog.Error("failed to respond to analyze", "err", err)
+	//}
+	//
+	//request := service.WorkerRequest{
+	//	OthelloBoard:    game.OthelloBoard,
+	//	Depth:    service.LevelToDepth(level),
+	//	Kind:     service.GetMovesRequestKind,
+	//	RespChan: make(chan []othello.RankTile, 1),
+	//}
+	//h.Wq <- request
+	//
+	//select {
+	//case resp := <-request.RespChan:
+	//	embed := createAnalysisEmbed(game, level)
+	//	img := h.Renderer.DrawBoardAnalysis(game.OthelloBoard, resp)
+	//
+	//	if _, err := dg.InteractionResponseEdit(i.Interaction, createEmbedEdit(embed, img)); err != nil {
+	//		slog.Error("failed to edit analyze", "err", err)
+	//	}
+	//case <-ctx.Done():
+	//	slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
+	//	if _, err := dg.InteractionResponseEdit(i.Interaction, createStringEdit("Timed out while waiting for a response.")); err != nil {
+	//		slog.Error("failed to edit analyze", "err", err)
+	//	}
+	//}
 	return nil
 }
 
@@ -474,10 +476,10 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 		return err
 	}
 
-	initialGame := Game{
-		WhitePlayer: PlayerFromLevel(whiteLevel),
-		BlackPlayer: PlayerFromLevel(blackLevel),
-		Board:       othello.InitialBoard(),
+	initialGame := OthelloGame{
+		WhitePlayer: MakeBotPlayer(whiteLevel),
+		BlackPlayer: MakeBotPlayer(blackLevel),
+		Board:       InitialBoard(),
 	}
 	embed := createSimulationStartEmbed(initialGame)
 	img := h.Renderer.DrawBoard(initialGame.Board)
@@ -495,11 +497,11 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 
 	h.SimulationCache.Set(simulationID, state, SimulationTtl)
 
-	go BeginSimulate(ctx, BeginSimInput{
-		Wq:          h.Wq,
-		InitialGame: initialGame,
-		SimChan:     simChan,
-	})
+	//go service.BeginSimulate(ctx, service.BeginSimInput{
+	//	Wq:          h.Wq,
+	//	InitialGame: initialGame,
+	//	SimChan:     simChan,
+	//})
 
 	slog.Info("simulation receiver started", "delay", delay, "trace", trace)
 

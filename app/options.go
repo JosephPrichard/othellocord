@@ -1,10 +1,9 @@
-package bot
+package app
 
 import (
 	"context"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"othellocord/app/othello"
 	"strings"
 	"time"
 )
@@ -37,59 +36,69 @@ func (h *Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applica
 const DefaultLevel = 3
 
 func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, error) {
+	var option *discordgo.ApplicationCommandInteractionDataOption
 	for _, opt := range options {
-		if opt.Name != name {
-			continue
+		if opt.Name == name {
+			option = opt
+			break
 		}
-		value, ok := opt.Value.(float64)
-		if !ok {
-			return 0, OptionError{Name: name, InvalidValue: opt.Value}
-		}
-		level := int(value)
-		if !IsValidBotLevel(level) {
-			return 0, OptionError{Name: name, InvalidValue: level}
-		}
-		return level, nil
 	}
-	return DefaultLevel, nil
+	if option == nil {
+		return DefaultLevel, nil
+	}
+
+	value, ok := option.Value.(float64)
+	if !ok {
+		return 0, OptionError{Name: name, InvalidValue: option.Value}
+	}
+	level := int(value)
+	if IsInvalidBotLevel(level) {
+		return 0, OptionError{Name: name, InvalidValue: level}
+	}
+	return level, nil
 }
 
 const DefaultDelay = time.Second * 2
 
 func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (time.Duration, error) {
+	var option *discordgo.ApplicationCommandInteractionDataOption
 	for _, opt := range options {
-		if opt.Name != name {
-			continue
+		if opt.Name == name {
+			option = opt
+			break
 		}
-		value, ok := opt.Value.(float64)
-		if !ok {
-			return 0, OptionError{Name: name, InvalidValue: opt.Value}
-		}
-		delay := int(value)
-		if delay < MinDelay || delay > MaxDelay {
-			return 0, OptionError{Name: name, InvalidValue: delay}
-		}
-		return time.Second * time.Duration(delay), nil
 	}
-	return DefaultDelay, nil
+	if option == nil {
+		return DefaultDelay, nil
+	}
+
+	value, ok := option.Value.(float64)
+	if !ok {
+		return 0, OptionError{Name: name, InvalidValue: option.Value}
+	}
+	delay := int(value)
+	if delay < MinDelay || delay > MaxDelay {
+		return 0, OptionError{Name: name, InvalidValue: delay}
+	}
+	return time.Second * time.Duration(delay), nil
 }
 
-func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (othello.Tile, string, error) {
+func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Tile, string, error) {
 	for _, opt := range options {
 		if opt.Name != name {
 			continue
 		}
 		value, ok := opt.Value.(string)
 		if !ok {
-			return othello.ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}
-		tile, err := othello.ParseTileSafe(value)
+		tile, err := ParseTileSafe(value)
 		if err != nil {
-			return othello.ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
 		}
 		return tile, value, nil
 	}
-	return othello.ZeroTile, "", OptionError{Name: name, ExpectedValue: ExpectedTileValue}
+	return ZeroTile, "", OptionError{Name: name, ExpectedValue: ExpectedTileValue}
 }
 
 func formatOptions(options []*discordgo.ApplicationCommandInteractionDataOption) string {
