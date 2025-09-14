@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"othellocord/app"
-	"othellocord/app/othello"
 )
 
 const pathBoard = "test_board.png"
@@ -22,7 +21,7 @@ func main() {
 	}
 
 	rc := app.MakeRenderCache()
-	imgBoard := othello.DrawBoardAnalysis(rc, app.InitialBoard(), moves)
+	imgBoard := rc.DrawBoardAnalysis(app.InitialBoard(), moves)
 
 	if err := os.Remove(pathBoard); err != nil {
 		slog.Error("failed to remove file", "err", err)

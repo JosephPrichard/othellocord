@@ -28,7 +28,7 @@ var CreateTable = `
 	);
 	`
 
-type QueryExecutor interface {
+type Query interface {
 	Query(query string, args ...any) (*sql.Rows, error)
 	Exec(query string, args ...any) (sql.Result, error)
 }

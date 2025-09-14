@@ -21,13 +21,15 @@ func main() {
 
 	token := os.Getenv("DISCORD_TOKEN")
 
-	db, err := sql.Open("sqlite", "./othellocord.schema")
+	db, err := sql.Open("sqlite", "./othellocord.db?_busy_timeout=5000")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		_ = db.Close()
-	}()
+	defer db.Close()
+
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
 	if _, err := db.Exec(app.CreateTable); err != nil {
 		log.Fatalf("failed to create schema: %v", err)
 	}

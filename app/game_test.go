@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,12 +19,16 @@ func setupGamesTest(t *testing.T) (*sql.DB, func()) {
 			Board:       InitialBoard(),
 			BlackPlayer: Player{ID: "id1", Name: "Player1"},
 			WhitePlayer: Player{ID: "id2", Name: "Player2"},
-			MoveList:    []Tile{},
+		},
+		{
+			Board:       InitialBoard(),
+			BlackPlayer: Player{ID: "id10", Name: "Player10"},
+			WhitePlayer: Player{ID: "id20", Name: "Player20"},
 		},
 	}
 
 	for _, game := range games {
-		if err := SetGame(ctx, db, game); err != nil {
+		if err := SetGame(ctx, db, game, time.Time{}); err != nil {
 			t.Fatal("failed to insert games:", err)
 		}
 	}
@@ -88,15 +93,38 @@ func TestGameStore_GetGame(t *testing.T) {
 	assert.Equal(t, game, expGame)
 }
 
+func TestGameStore_ExpireGames(t *testing.T) {
+	db, cleanup := setupGamesTest(t)
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), TraceKey, "test-expire-games")
+
+	countGames := func() int {
+		num, err := CountGames(db)
+		if err != nil {
+			t.Fatalf("failed to count games: %v", err)
+		}
+		return num
+	}
+
+	assert.Equal(t, 2, countGames())
+
+	err := ExpireGames(ctx, db)
+	if err != nil {
+		t.Fatalf("failed to expire games: %v", err)
+	}
+
+	assert.Equal(t, 0, countGames())
+}
+
 func TestGameStore_MakeMove(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	initialGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id3", Name: "Player3"}}
+	initialGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
 	testMove := initialGame.Board.FindCurrentMoves()[0]
 	expGame := initialGame
-	expGame.CurrPotentialMoves = []Tile{{Row: 4, Col: 2}, {Row: 2, Col: 4}, {Row: 2, Col: 2}}
-	expGame.Board.MakeMove(testMove)
+	expGame.MakeMove(testMove)
 
 	type Test struct {
 		playerID string
@@ -105,10 +133,10 @@ func TestGameStore_MakeMove(t *testing.T) {
 		expErr   error
 	}
 	tests := []Test{
-		{playerID: "id1", move: testMove, expGame: expGame},
 		{playerID: "id5", expErr: ErrGameNotFound},
 		{playerID: "id2", expErr: ErrTurn},
 		{playerID: "id1", move: Tile{Row: 0, Col: 1}, expErr: ErrInvalidMove},
+		{playerID: "id1", move: testMove, expGame: expGame},
 	}
 
 	for i, test := range tests {
@@ -116,10 +144,18 @@ func TestGameStore_MakeMove(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-make-move-validated")
 
 			game, err := MakeMoveValidated(ctx, db, test.playerID, test.move)
+			game.CurrPotentialMoves = nil // we don't want to test this
 
 			assert.Equal(t, test.expErr, err)
-			if err != nil {
+
+			if err == nil {
+				dbGame, err := GetGame(ctx, db, "id1")
+				if err != nil {
+					t.Fatalf("failed to get the game: %v", err)
+				}
+
 				assert.Equal(t, test.expGame, game)
+				assert.Equal(t, test.expGame, dbGame)
 			}
 		})
 	}

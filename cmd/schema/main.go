@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite", "./othellocord.schema")
+	db, err := sql.Open("sqlite", "./othellocord.db")
 	if err != nil {
 		log.Fatal(err)
 	}

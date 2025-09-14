@@ -55,11 +55,11 @@ func MapStats(row StatsRow) Stats {
 	}
 }
 
-func GetOrInsertStats(ctx context.Context, q QueryExecutor, playerID string) (StatsRow, error) {
+func GetOrInsertStats(ctx context.Context, q Query, playerID string) (StatsRow, error) {
 	return GetOrInsertStatsDefault(ctx, q, DefaultStats(playerID))
 }
 
-func GetOrInsertStatsDefault(ctx context.Context, q QueryExecutor, defaultStats StatsRow) (StatsRow, error) {
+func GetOrInsertStatsDefault(ctx context.Context, q Query, defaultStats StatsRow) (StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
 	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
@@ -67,9 +67,7 @@ func GetOrInsertStatsDefault(ctx context.Context, q QueryExecutor, defaultStats 
 		slog.Error("failed to get stats", "trace", trace, "playerID", defaultStats.PlayerID, "err", err)
 		return StatsRow{}, err
 	}
-	defer func() {
-		_ = rows.Close()
-	}()
+	defer rows.Close()
 
 	var stats StatsRow
 	if rows.Next() {
@@ -105,9 +103,7 @@ func GetTopStats(ctx context.Context, db *sql.DB, count int) ([]StatsRow, error)
 		slog.Error("failed to get top stats", "trace", trace, "err", err)
 		return nil, err
 	}
-	defer func() {
-		_ = rows.Close()
-	}()
+	defer rows.Close()
 
 	var stats []StatsRow
 	for rows.Next() {
@@ -134,6 +130,7 @@ func updateStat(ctx context.Context, tx *sql.Tx, stats StatsRow) error {
 	)
 	if err != nil {
 		slog.Error("failed to exec update stats", "trace", ctx.Value(TraceKey), "stats", stats, "err", err)
+		return err
 	}
 	return nil
 }
@@ -169,9 +166,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 		slog.Error("failed to open update stats tx", "trace", trace, "err", err)
 		return StatsResult{}, err
 	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	defer tx.Rollback()
 
 	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID)
 	if err != nil {
