@@ -121,7 +121,7 @@ func (r Renderer) DrawBoardDiscs(board OthelloBoard, img draw.Image) {
 	draw.Draw(img, r.background.Bounds(), r.background, image.Point{X: 0, Y: 0}, draw.Over)
 
 	// draw discs onto preMoves, either empty, black, or white
-	for _, tile := range tiles {
+	for _, tile := range AllTiles {
 		x := SideOffset + tile.Col*TileSize - (LineThickness / 2)
 		y := SideOffset + tile.Row*TileSize - (LineThickness / 2)
 		// determine which bitmap belongs in the tile slot
@@ -215,9 +215,9 @@ func drawCenterString(g *draw2dimg.GraphicContext, fontSize float64, text string
 	left, top, right, bottom := g.GetStringBounds(text)
 	strWidth := right - left
 	strHeight := top - bottom
-	// Determine the X coordinate for the text
+	// Determine the X coordinate for the stdoutText
 	xDraw := float64(x) + (float64(width)-strWidth)/2
-	// Determine the Y coordinate for the text (note we add the ascent, as 2d 0 is top of the screen)
+	// Determine the Y coordinate for the stdoutText (note we add the ascent, as 2d 0 is top of the screen)
 	yDraw := float64(y) + ((float64(height) - strHeight) / 2)
 
 	g.FillStringAt(text, xDraw, yDraw)

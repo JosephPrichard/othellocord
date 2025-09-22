@@ -116,7 +116,7 @@ func createSimulationActionRow(simulationID string, isPaused bool) []discordgo.M
 	return nil
 }
 
-var edit = ""
+var empty = ""
 
 func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
 	files := addEmbedFiles(embed, img)
@@ -124,6 +124,14 @@ func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.
 		Embeds:      &[]*discordgo.MessageEmbed{embed},
 		Attachments: &[]*discordgo.MessageAttachment{},
 		Files:       files,
+		Content:     &empty,
+	}
+}
+
+func createEmbedTextEdit(edit string) *discordgo.WebhookEdit {
+	return &discordgo.WebhookEdit{
+		Embeds:      &[]*discordgo.MessageEmbed{},
+		Attachments: &[]*discordgo.MessageAttachment{},
 		Content:     &edit,
 	}
 }
@@ -193,7 +201,7 @@ func createGameEmbed(game OthelloGame) *discordgo.MessageEmbed {
 	}
 }
 
-func createAnalysisEmbed(game OthelloGame, level int) *discordgo.MessageEmbed {
+func createAnalysisEmbed(game OthelloGame, level uint64) *discordgo.MessageEmbed {
 	desc := getScoreText(game)
 	title := fmt.Sprintf("OthelloGame Analysis using service level %d", level)
 	footer := "Positive heuristics are better for black, and negative heuristics are better for white"

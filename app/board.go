@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"unicode"
@@ -14,10 +15,8 @@ const Empty byte = 0
 const White byte = 1
 const Black byte = 2
 
-var directions = [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}
-var tiles = makeTiles()
-
-var ZeroTile = Tile{}
+var Directions = [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}
+var AllTiles = makeTiles()
 
 type Tile struct {
 	Row int
@@ -71,6 +70,22 @@ type RankTile struct {
 	H float64
 }
 
+func (t RankTile) String() string {
+	return fmt.Sprintf("{%s,%f}", t.Tile, t.H)
+}
+
+func ParseRankTile(s1 string, s2 string) (RankTile, error) {
+	tile, err := ParseTileSafe(s1)
+	if err != nil {
+		return RankTile{}, err
+	}
+	h, err := strconv.ParseFloat(s2, 64)
+	if err != nil {
+		return RankTile{}, err
+	}
+	return RankTile{Tile: tile, H: h}, nil
+}
+
 type OthelloBoard struct {
 	IsBlackMove bool
 	boardA      uint64
@@ -87,6 +102,31 @@ func InitialBoard() OthelloBoard {
 	return b
 }
 
+func RandomBoard(count int) (OthelloBoard, []Tile) {
+	if count > 60 {
+		count = 60
+	}
+
+	b := InitialBoard()
+	var moves []Tile
+
+	s := rand.NewPCG(42, 1024)
+	r := rand.New(s)
+
+	for range count {
+		tiles := b.FindCurrentMoves()
+		if len(tiles) == 0 {
+			break
+		}
+		i := r.Int() % len(tiles)
+		move := tiles[i]
+		b.MakeMove(move)
+		moves = append(moves, move)
+	}
+
+	return b, moves
+}
+
 func InBounds(row int, col int) bool {
 	return row >= 0 && col >= 0 && row < BoardSize && col < BoardSize
 }
@@ -101,7 +141,7 @@ func (b *OthelloBoard) BlackScore() int {
 
 func (b *OthelloBoard) countDiscs(color byte) int {
 	discs := 0
-	for _, tile := range tiles {
+	for _, tile := range AllTiles {
 		c := b.GetSquareByTile(tile)
 		if c == color {
 			discs++
@@ -147,13 +187,13 @@ func (b *OthelloBoard) OnPotentialMoves(color byte, onMove func(Tile)) {
 	}
 
 	// check each tile for potential flanks
-	for _, tile := range tiles {
+	for _, tile := range AllTiles {
 		if b.GetSquareByTile(tile) != color {
 			// skip any discs of a different color
 			continue
 		}
 		// check each direction from tile for potential flank
-		for _, direction := range directions {
+		for _, direction := range Directions {
 			row := tile.Row + direction[0]
 			col := tile.Col + direction[1]
 
@@ -199,7 +239,7 @@ func (b *OthelloBoard) MakeMove(move Tile) {
 
 	b.SetSquareByTile(move, currColor)
 
-	for _, direction := range directions {
+	for _, direction := range Directions {
 		initialRow := move.Row + direction[0]
 		initialCol := move.Col + direction[1]
 

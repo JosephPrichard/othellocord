@@ -170,11 +170,11 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 
 	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to get winner stats: %s", err)
 	}
 	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to get loser stats: %s", err)
 	}
 
 	if gr.IsDraw || gr.Winner.ID == gr.Loser.ID {
@@ -189,10 +189,10 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 	loser.Lost++
 
 	if err := updateStat(ctx, tx, winner); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update winner stat: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to update winner stat: %s", err)
 	}
 	if err := updateStat(ctx, tx, loser); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update loser stat: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to update loser stat: %s", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -225,14 +225,14 @@ func calcEloLost(rating, probability float64) float64 {
 func ReadStats(ctx context.Context, db *sql.DB, uc UserCacheApi, playerID string) (Stats, error) {
 	row, err := GetOrInsertStats(ctx, db, playerID)
 	if err != nil {
-		return Stats{}, fmt.Errorf("failed to read row: %w", err)
+		return Stats{}, fmt.Errorf("failed to read row: %s", err)
 	}
 
 	stats := MapStats(row)
 
 	if stats.Player.IsHuman() {
 		if stats.Player.Name, err = uc.GetUsername(ctx, playerID); err != nil {
-			return Stats{}, fmt.Errorf("failed to read row: %w", err)
+			return Stats{}, fmt.Errorf("failed to read row: %s", err)
 		}
 	}
 
@@ -244,7 +244,7 @@ func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi, count int) (
 
 	rowList, err := GetTopStats(ctx, db, count)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read top rowList: %w", err)
+		return nil, fmt.Errorf("failed to read top rowList: %s", err)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -263,7 +263,7 @@ func ReadTopStats(ctx context.Context, db *sql.DB, uc UserCacheApi, count int) (
 		eg.Go(func() error {
 			username, err := uc.GetUsername(ctx, stats.Player.ID)
 			if err != nil {
-				return fmt.Errorf("failed in get user task: %d: %w", i, err)
+				return fmt.Errorf("failed in get user task: %d: %s", i, err)
 			}
 			stats.Player.Name = username
 			return nil

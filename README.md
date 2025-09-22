@@ -1,8 +1,14 @@
-# OthelloCord
+# Othellocord
 
-OthelloCord is a self-hosted Discord Bot used to play othello in discord text channels against other players or a bot. It includes graphical interface to see the othello board and a database with statistics for each player.
+Othellocord is a self-hosted Discord Bot used to play othello in discord text channels against other players or a bot.
+
+It includes graphical interface to see the othello board and a database with statistics for each player.
+
+Othellocord uses the NTest engine for bot gameplay and game analysis.
 
 ## Build & Execution
+
+Install the NTest Othello Engine by using the MSI at this URL (https://web.archive.org/web/20131011003457/http://othellogateway.com/ntest/Ntest/), or by compiling it yourself
 
 Install Dependencies
 `go mod tidy`
@@ -11,6 +17,7 @@ Create a .env file
 ```
 DISCORD_TOKEN=<your-bots-token>
 DISCORD_APP_ID=<your-bots-api-key>
+NTEST_PATH=C:\Program Files (x86)\Welty\NBoard\NTest.exe
 ```
 
 Run the Program
@@ -58,21 +65,6 @@ Shows the top users with the highest elo in the entire database.
 `/simulate`
 
 Run a game between two bots real time in a text channel.
-
-## Engine
-
-OthelloCord contains a rudimentary engine for players to play against.
-
-The evaluation algorithm uses a standard implementation of the Minimax algorithm with an Alpha-Beta pruning optimization. The Minimax algorithm is the backbone of the algorithm responsible for performing the search and deciding which nodes should be pruned.
-
-The algorithm's heuristic evaluation function is responsible for deciding how good a board state is.
-The primary heuristic function is implemented as a combination of 4 other heuristic functions (Parity Heuristic, Corner Heuristic, XCSquare Heuristic, and Mobility Heuristic).
-All heuristic components are normalized to a weight between 100 and 0, with 100 being the highest weight and 0 being the lowest.
-
-The Othello Board implementation uses 2 longs (8 bytes) (128 bits) to store the bit board. "White" is represented by 10, "Black" is represented by 01, and "Empty" (no disc) is represented by 00. Since each tile needs 2 bits to represent and there are a total of 64 tiles, we can represent the board using 64 * 2 = 128 bits.
-
-The algorithm keeps track of previously evaluated boards with a transposition table. The transposition table is implemented using a cache with a Deep2 replacement scheme.
-Each cache line has 2 buckets, one which is only replaced if the new board is found at a greater depth, the other is replaced if the first bucket is not.
 
 ## Examples
 

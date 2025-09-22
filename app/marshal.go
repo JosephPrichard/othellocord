@@ -2,34 +2,10 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
-
-func (o *OthelloGame) MarshalGGF() string {
-	var sb strings.Builder
-
-	sb.WriteString("(;GM[Othello]")
-	sb.WriteString("PB[")
-	sb.WriteString(o.BlackPlayer.Name)
-	sb.WriteString("]PW[")
-	sb.WriteString(o.WhitePlayer.Name)
-	// this can be hard coded because this bot only handles 8x8 board sizes. this needs to be changed if we add support for different board sizes
-	sb.WriteString("]TY[8]BO[8 ---------------------------O*------*O--------------------------- *]")
-	for i, move := range o.MoveList {
-		if i%2 == 0 {
-			sb.WriteString("B")
-		} else {
-			sb.WriteString("W")
-		}
-		sb.WriteString("[")
-		sb.WriteString(move.String())
-		sb.WriteString("]")
-	}
-	sb.WriteString(")")
-
-	return sb.String()
-}
 
 func UnmarshalMoveList(moveListStr string) ([]Tile, error) {
 	var moveList []Tile
@@ -65,7 +41,7 @@ func (b *OthelloBoard) MarshalString() string {
 	if b.IsBlackMove {
 		sb.WriteString("b")
 	} else {
-		sb.WriteString("w")
+		sb.WriteString("stdin")
 	}
 	sb.WriteString("+")
 
@@ -152,4 +128,32 @@ func (b *OthelloBoard) UnmarshalString(str string) error {
 	}
 	*b = board
 	return nil
+}
+
+func (o *OthelloGame) MarshalGGF() string {
+	var sb strings.Builder
+
+	sb.WriteString("(;GM[Othello]")
+	sb.WriteString("PB")
+	fmt.Fprintf(&sb, "[%s]", o.BlackPlayer.Name)
+	sb.WriteString("PW")
+	fmt.Fprintf(&sb, "[%s]", o.WhitePlayer.Name)
+	fmt.Fprintf(&sb, "TY[%d]", BoardSize)
+
+	// this can be hard coded because this bot only handles 8x8 board sizes. this needs to be changed if we add support for different board sizes
+	sb.WriteString("BO[8 ---------------------------O*------*O--------------------------- *]")
+
+	for i, move := range o.MoveList {
+		if i%2 == 0 {
+			sb.WriteString("B")
+		} else {
+			sb.WriteString("W")
+		}
+		sb.WriteString("[")
+		sb.WriteString(move.String())
+		sb.WriteString("]")
+	}
+	sb.WriteString(";)")
+
+	return sb.String()
 }

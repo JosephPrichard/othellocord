@@ -24,8 +24,8 @@ func MakeHumanPlayer(user discordgo.User) Player {
 	return Player{ID: user.ID, Name: user.Username}
 }
 
-func MakeBotPlayer(level int) Player {
-	return Player{ID: strconv.Itoa(level), Name: fmt.Sprintf("NTest level %d", level), Level: uint64(level)}
+func MakeBotPlayer(level uint64) Player {
+	return Player{ID: fmt.Sprintf("%d", level), Name: fmt.Sprintf("NTest level %d", level), Level: level}
 }
 
 func MakePlayer(id string, name string) Player {
@@ -40,20 +40,24 @@ func MakePlayer(id string, name string) Player {
 	return player
 }
 
-func (player Player) LevelToDepth() int {
-	switch player.Level {
+func LevelToDepth(level uint64) int {
+	switch level {
 	case 1:
-		return 3
-	case 2:
 		return 5
-	case 3:
-		return 6
-	case 4:
-		return 7
-	case 5:
+	case 2:
 		return 8
+	case 3:
+		return 12
+	case 4:
+		return 15
+	case 5:
+		return 20
 	}
 	return 0
+}
+
+func (player Player) LevelToDepth() int {
+	return LevelToDepth(player.Level)
 }
 
 func (player Player) IsHuman() bool {
@@ -64,7 +68,7 @@ func (player Player) IsBot() bool {
 	return player.Level != 0
 }
 
-func IsInvalidBotLevel(level int) bool {
+func IsInvalidBotLevel(level uint64) bool {
 	return level < MinBotLevel || level > MaxBotLevel
 }
 

@@ -16,7 +16,7 @@ func TestGame_MarshalGGF(t *testing.T) {
 
 	str := game.MarshalGGF()
 
-	assert.Equal(t, str, "(;GM[Othello]PB[Player2]PW[Player1]TY[8]BO[8 ---------------------------O*------*O--------------------------- *]B[A1]W[A2]B[B1]W[B2])")
+	assert.Equal(t, str, "(;GM[Othello]PB[Player2]PW[Player1]TY[8]BO[8 ---------------------------O*------*O--------------------------- *]B[A1]W[A2]B[B1]W[B2]);")
 }
 
 func TestGame_UnmarshalStrings(t *testing.T) {

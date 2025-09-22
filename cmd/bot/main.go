@@ -16,7 +16,7 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		panic("failed to load .env file")
+		slog.Info("failed to load .env file")
 	}
 
 	token := os.Getenv("DISCORD_TOKEN")
@@ -42,11 +42,11 @@ func main() {
 	go app.ExpireGamesCron(db)
 
 	h := app.Handler{
-		Db:              db,
-		Renderer:        app.MakeRenderCache(),
-		ChallengeCache:  app.MakeChallengeCache(),
-		UserCache:       app.MakeUserCache(dg),
-		SimulationCache: app.MakeSimCache(),
+		Db:             db,
+		Renderer:       app.MakeRenderCache(),
+		ChallengeCache: app.MakeChallengeCache(),
+		UserCache:      app.MakeUserCache(dg),
+		SimCache:       app.MakeSimCache(),
 	}
 
 	dg.AddHandler(h.HandeInteractionCreate)

@@ -26,7 +26,7 @@ func (h *Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applica
 		}
 		opponent, err := h.UserCache.GetPlayer(ctx, opt.Value.(string))
 		if err != nil {
-			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %w", name, err)
+			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
 		}
 		return opponent, nil
 	}
@@ -35,7 +35,7 @@ func (h *Handler) getPlayerOpt(ctx context.Context, options []*discordgo.Applica
 
 const DefaultLevel = 3
 
-func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (int, error) {
+func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (uint64, error) {
 	var option *discordgo.ApplicationCommandInteractionDataOption
 	for _, opt := range options {
 		if opt.Name == name {
@@ -51,7 +51,7 @@ func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 	if !ok {
 		return 0, OptionError{Name: name, InvalidValue: option.Value}
 	}
-	level := int(value)
+	level := uint64(value)
 	if IsInvalidBotLevel(level) {
 		return 0, OptionError{Name: name, InvalidValue: level}
 	}
@@ -84,21 +84,24 @@ func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 }
 
 func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Tile, string, error) {
+	makeErrRet := func(err error) (Tile, string, error) {
+		return Tile{}, "", err
+	}
 	for _, opt := range options {
 		if opt.Name != name {
 			continue
 		}
 		value, ok := opt.Value.(string)
 		if !ok {
-			return ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return makeErrRet(OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue})
 		}
 		tile, err := ParseTileSafe(value)
 		if err != nil {
-			return ZeroTile, "", OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue}
+			return makeErrRet(OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue})
 		}
 		return tile, value, nil
 	}
-	return ZeroTile, "", OptionError{Name: name, ExpectedValue: ExpectedTileValue}
+	return makeErrRet(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
 }
 
 func formatOptions(options []*discordgo.ApplicationCommandInteractionDataOption) string {

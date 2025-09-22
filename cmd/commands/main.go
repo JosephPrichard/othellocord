@@ -13,7 +13,7 @@ import (
 func main() {
 	// read environment variables into memory
 	if err := godotenv.Load(); err != nil {
-		panic("failed to load .env file")
+		log.Print("failed to load .env file")
 	}
 
 	token := os.Getenv("DISCORD_TOKEN")
