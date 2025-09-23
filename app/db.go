@@ -22,7 +22,7 @@ var CreateTable = `
 	    black_id TEXT NOT NULL,
 	    white_name TEXT NOT NULL,
 		black_name TEXT NOT NULL,
-		moves TEXT NOT NULL,
+		Moves TEXT NOT NULL,
 		expire_time INTEGER NOT NULL,
 		PRIMARY KEY (white_id, black_id)
 	);

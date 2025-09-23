@@ -204,7 +204,7 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 	lossDiff := loser.Elo - lossBefore
 	sr := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
 
-	slog.Info("updated stats tx executed", "trace", trace, "game", gr, "stats", sr)
+	slog.Info("updated stats tx executed", "trace", trace, "Game", gr, "stats", sr)
 	return sr, nil
 }
 

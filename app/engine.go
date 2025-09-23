@@ -17,15 +17,16 @@ const (
 )
 
 type MoveReq struct {
-	kind   MoveRequestKind
-	game   OthelloGame
-	depth  int
-	respCh chan MoveResp
+	Kind   MoveRequestKind
+	Game   OthelloGame
+	Depth  int
+	RespCh chan MoveResp
 }
 
 type MoveResp struct {
-	moves []RankTile
-	ok    bool
+	Move  RankTile
+	Moves []RankTile
+	Ok    bool
 }
 
 type NTestShell struct {
@@ -51,7 +52,7 @@ func StartNTestShell(path string) (*NTestShell, error) {
 		return nil, fmt.Errorf("failed to open stdin pipe to ntest: %v", err)
 	}
 
-	sh := &NTestShell{stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin)}
+	sh := &NTestShell{stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: make(chan MoveReq)}
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start ntest: %v", err)
@@ -125,7 +126,7 @@ func (sh *NTestShell) depthCmd(depth int) error {
 }
 
 func (sh *NTestShell) setGameCmd(game OthelloGame) error {
-	return sh.stdinWrite(fmt.Sprintf("set game %s\n", game.MarshalGGF()))
+	return sh.stdinWrite(fmt.Sprintf("set Game %s\n", game.MarshalGGF()))
 }
 
 var ErrInvalidGameState = errors.New("game state GGF format is invalid")
@@ -207,22 +208,22 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 	return tiles, errs
 }
 
-func (sh *NTestShell) findBestMove(game OthelloGame, depth int) ([]RankTile, error) {
+func (sh *NTestShell) findBestMove(game OthelloGame, depth int) (RankTile, error) {
 	var tile RankTile
 	var err error
 
 	if err = sh.depthCmd(depth); err != nil {
-		return nil, err
+		return RankTile{}, err
 	}
 	if err = sh.setGameCmd(game); err != nil {
-		return nil, err
+		return RankTile{}, err
 	}
 	if tile, err = sh.goCmd(); err != nil {
-		return nil, err
+		return RankTile{}, err
 	}
 
 	slog.Info("found best tile", "depth", depth, "move", tile)
-	return []RankTile{tile}, err
+	return tile, err
 }
 
 func (sh *NTestShell) findRankedMoves(game OthelloGame, depth int) ([]RankTile, error) {
@@ -240,39 +241,39 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth int) ([]RankTile, 
 		return nil, errors.Join(errs...)
 	}
 
-	slog.Info("found ranked tiles", "depth", depth, "moves", tiles)
+	slog.Info("found ranked tiles", "depth", depth, "Moves", tiles)
 	return tiles, nil
 }
 
 func (sh *NTestShell) listenRequests() {
 	for req := range sh.moveReqCh {
-		var moves []RankTile
-		var err error
-
-		switch req.kind {
+		switch req.Kind {
 		case BestMoveKind:
-			moves, err = sh.findBestMove(req.game, req.depth)
+			move, err := sh.findBestMove(req.Game, req.Depth)
+			if err != nil {
+				slog.Info("failed to find best tile", "err", err)
+			}
+			req.RespCh <- MoveResp{Move: move, Ok: err == nil}
 		case RankMovesKind:
-			moves, err = sh.findRankedMoves(req.game, req.depth)
+			moves, err := sh.findRankedMoves(req.Game, req.Depth)
+			if err != nil {
+				slog.Info("failed to find ranked tiles", "err", err)
+			}
+			req.RespCh <- MoveResp{Moves: moves, Ok: err == nil}
 		default:
-			panic(fmt.Sprintf("invalid move request kind: %d", req.kind))
+			panic(fmt.Sprintf("invalid move request Kind: %d", req.Kind))
 		}
-
-		if err != nil {
-			slog.Info("failed to find tiles", "err", err)
-		}
-		req.respCh <- MoveResp{moves: moves, ok: err == nil}
 	}
 }
 
 func (sh *NTestShell) FindBestMove(game OthelloGame, depth int) chan MoveResp {
 	ch := make(chan MoveResp, 1)
-	sh.moveReqCh <- MoveReq{kind: BestMoveKind, game: game, depth: depth, respCh: ch}
+	sh.moveReqCh <- MoveReq{Kind: BestMoveKind, Game: game, Depth: depth, RespCh: ch}
 	return ch
 }
 
 func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth int) chan MoveResp {
 	ch := make(chan MoveResp, 1)
-	sh.moveReqCh <- MoveReq{kind: RankMovesKind, game: game, depth: depth, respCh: ch}
+	sh.moveReqCh <- MoveReq{Kind: RankMovesKind, Game: game, Depth: depth, RespCh: ch}
 	return ch
 }

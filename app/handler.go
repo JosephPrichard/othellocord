@@ -24,97 +24,97 @@ type Handler struct {
 
 var ErrUserNotProvided = errors.New("user not provided")
 
-func (h *Handler) HandeInteractionCreate(dg *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *Handler) HandeInteractionCreate(dg *discordgo.Session, ic *discordgo.InteractionCreate) {
 	ctx := context.WithValue(context.Background(), TraceKey, uuid.NewString())
 
 	var err error
 
-	switch i.Type {
+	switch ic.Type {
 	case discordgo.InteractionApplicationCommandAutocomplete:
 		fallthrough
 	case discordgo.InteractionApplicationCommand:
-		cmd := i.ApplicationCommandData()
+		cmd := ic.ApplicationCommandData()
 		slog.Info("received a command", "name", cmd.Name, "options", formatOptions(cmd.Options))
 
 		switch cmd.Name {
 		case "challenge":
-			err = h.HandleChallenge(ctx, dg, i)
+			err = h.HandleChallenge(ctx, dg, ic)
 		case "accept":
-			err = h.HandleAccept(ctx, dg, i)
+			err = h.HandleAccept(ctx, dg, ic)
 		case "forfeit":
-			err = h.HandleForfeit(ctx, dg, i)
+			err = h.HandleForfeit(ctx, dg, ic)
 		case "move":
-			if i.Interaction.Type == discordgo.InteractionApplicationCommandAutocomplete {
-				h.HandleMoveAutocomplete(ctx, dg, i)
+			if ic.Interaction.Type == discordgo.InteractionApplicationCommandAutocomplete {
+				h.HandleMoveAutocomplete(ctx, dg, ic)
 			} else {
-				err = h.HandleMove(ctx, dg, i)
+				err = h.HandleMove(ctx, dg, ic)
 			}
 		case "view":
-			err = h.HandleView(ctx, dg, i)
+			err = h.HandleView(ctx, dg, ic)
 		case "analyze":
-			err = h.HandleAnalyze(ctx, dg, i)
+			err = h.HandleAnalyze(ctx, dg, ic)
 		case "simulate":
-			err = h.HandleSimulate(ctx, dg, i)
+			err = h.HandleSimulate(ctx, dg, ic)
 		case "stats":
-			err = h.HandleStats(ctx, dg, i)
+			err = h.HandleStats(ctx, dg, ic)
 		case "leaderboard":
-			err = h.HandleLeaderboard(ctx, dg, i)
+			err = h.HandleLeaderboard(ctx, dg, ic)
 		}
 		// if a handler returns an error, it should not have sent an interaction response yet
 		if err != nil {
-			handleInteractionError(ctx, dg, i, err)
+			handleInteractionError(ctx, dg, ic, err)
 		}
 	case discordgo.InteractionMessageComponent:
-		msg := i.MessageComponentData()
+		msg := ic.MessageComponentData()
 		slog.Info("received a message component", "name", msg.CustomID)
 
 		cond, key := parseCustomId(msg.CustomID)
 
 		switch cond {
 		case SimPauseKey:
-			err = h.HandlePauseComponent(dg, i, key)
+			err = h.HandlePauseComponent(dg, ic, key)
 		case SimStopKey:
-			err = h.HandleStopComponent(dg, i, key)
+			err = h.HandleStopComponent(dg, ic, key)
 		default:
 			slog.Warn("unknown message component condition", "name", msg.CustomID, "cond", cond)
 		}
 		// if a handler returns an error, it should not have sent an interaction response yet
 		if err != nil {
-			handleInteractionError(ctx, dg, i, err)
+			handleInteractionError(ctx, dg, ic, err)
 		}
 	}
 }
 
 var ChallengeSubCmds = []string{"service", "user"}
 
-func (h *Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	subCmd, options := getSubcommand(i)
+func (h *Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
+	subCmd, options := getSubcommand(ic)
 	switch subCmd {
 	case "service":
-		return h.HandleBotChallengeCommand(ctx, dg, i, options)
+		return h.HandleBotChallengeCommand(ctx, dg, ic, options)
 	case "user":
-		return h.HandleUserChallengeCommand(ctx, dg, i, options)
+		return h.HandleUserChallengeCommand(ctx, dg, ic, options)
 	default:
 		return SubCmdError{Name: subCmd, ExpectedValues: ChallengeSubCmds}
 	}
 }
 
-func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
+func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
 	level, err := getLevelOpt(options, "level")
 	if err != nil {
 		return err
 	}
 
 	var player Player
-	if i.Interaction.Member != nil {
-		player = MakeHumanPlayer(*i.Interaction.Member.User)
+	if ic.Interaction.Member != nil {
+		player = MakeHumanPlayer(ic.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
 
 	game, err := CreateBotGame(ctx, h.Db, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
-		interactionRespond(dg, i.Interaction, createStringResponse("You're already in a OthelloGame."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("You're already in a OthelloGame."))
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to create service OthelloGame with level=%d, player=%v cmd: %s", level, player, err)
@@ -123,24 +123,24 @@ func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.S
 	embed := createGameStartEmbed(game)
 	img := h.Renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
 
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, img))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, img))
 	return nil
 }
 
-func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
+func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
 	opponent, err := h.getPlayerOpt(ctx, options, "opponent")
 	if err != nil {
 		return fmt.Errorf("failed to get plater opt: %s", err)
 	}
 
 	var player Player
-	if i.Interaction.Member != nil {
-		player = MakeHumanPlayer(*i.Interaction.Member.User)
+	if ic.Interaction.Member != nil {
+		player = MakeHumanPlayer(ic.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
 
-	channelID := i.ChannelID
+	channelID := ic.ChannelID
 	handleExpire := func() {
 		if _, err = dg.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> Challenge timed out!", player.ID)); err != nil {
 			slog.Error("failed to send user challenge expire", "err", err)
@@ -150,13 +150,13 @@ func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.
 
 	msg := fmt.Sprintf("<@%s>, %s has challenged you to a Game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
 
-	interactionRespond(dg, i.Interaction, createStringResponse(msg))
+	interactionRespond(dg, ic.Interaction, createStringResponse(msg))
 	return nil
 }
 
-func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cmd := i.ApplicationCommandData()
-	player := MakeHumanPlayer(*i.Interaction.Member.User)
+func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
+	cmd := ic.ApplicationCommandData()
+	player := MakeHumanPlayer(ic.Interaction.Member.User)
 
 	opponent, err := h.getPlayerOpt(ctx, cmd.Options, "challenger")
 	if err != nil {
@@ -165,7 +165,7 @@ func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *di
 
 	didAccept := h.ChallengeCache.AcceptChallenge(ctx, Challenge{Challenged: player, Challenger: opponent})
 	if !didAccept {
-		interactionRespond(dg, i.Interaction, createStringResponse("Cannot accept a challenge that does not exist."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("Cannot accept a challenge that does not exist."))
 		return nil
 	}
 	game, err := CreateGame(ctx, h.Db, opponent, player)
@@ -176,21 +176,21 @@ func (h *Handler) HandleAccept(ctx context.Context, dg *discordgo.Session, i *di
 	embed := createGameStartEmbed(game)
 	img := h.Renderer.DrawBoard(game.Board)
 
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, img))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, img))
 	return nil
 }
 
-func (h *Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (h *Handler) HandleView(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	var user *discordgo.User
-	if i.Interaction.Member != nil {
-		user = i.Interaction.Member.User
+	if ic.Interaction.Member != nil {
+		user = ic.Interaction.Member.User
 	} else {
 		return ErrUserNotProvided
 	}
 
 	game, err := GetGame(ctx, h.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		interactionRespond(dg, i.Interaction, createStringResponse("You're not playing a OthelloGame."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("You're not playing a OthelloGame."))
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to get OthelloGame for player=%s: %s", user.ID, err)
@@ -199,27 +199,27 @@ func (h *Handler) HandleView(ctx context.Context, dg *discordgo.Session, i *disc
 	embed := createGameEmbed(game)
 	img := h.Renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
 
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, img))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, img))
 	return nil
 }
 
-func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	var user *discordgo.User
-	if i.Interaction.Member != nil {
-		user = i.Interaction.Member.User
+	if ic.Interaction.Member != nil {
+		user = ic.Interaction.Member.User
 	} else {
 		return ErrUserNotProvided
 	}
 
 	game, err := GetGame(ctx, h.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		interactionRespond(dg, i.Interaction, createStringResponse("You're not currently in a game."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("You're not currently in a Game."))
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to get game for player=%s: %s", user.ID, err)
+		return fmt.Errorf("failed to get Game for player=%s: %s", user.ID, err)
 	}
 	if err := DeleteGame(ctx, h.Db, game); err != nil {
-		return fmt.Errorf("failed to delete game in forfeit: %s", err)
+		return fmt.Errorf("failed to delete Game in forfeit: %s", err)
 	}
 
 	gameResult := game.CreateForfeitResult(user.ID)
@@ -231,14 +231,14 @@ func (h *Handler) HandleForfeit(ctx context.Context, dg *discordgo.Session, i *d
 	embed := createForfeitEmbed(gameResult, statsResult)
 	img := h.Renderer.DrawBoard(game.Board)
 
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, img))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, img))
 	return nil
 }
 
-func (h *Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) {
 	var moves []Tile
-	if i.Interaction.Member != nil {
-		if game, err := GetGame(ctx, h.Db, i.Interaction.Member.User.ID); err == nil {
+	if ic.Interaction.Member != nil {
+		if game, err := GetGame(ctx, h.Db, ic.Interaction.Member.User.ID); err == nil {
 			moves = game.Board.FindCurrentMoves()
 		}
 	}
@@ -249,7 +249,7 @@ func (h *Handler) HandleMoveAutocomplete(ctx context.Context, dg *discordgo.Sess
 		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{Name: tileStr, Value: tileStr})
 	}
 
-	interactionRespond(dg, i.Interaction, createAutocompleteResponse(choices))
+	interactionRespond(dg, ic.Interaction, createAutocompleteResponse(choices))
 }
 
 func (h *Handler) handleGameOver(ctx context.Context, game OthelloGame, move Tile) (*discordgo.MessageEmbed, image.Image, error) {
@@ -267,14 +267,14 @@ func (h *Handler) handleGameOver(ctx context.Context, game OthelloGame, move Til
 	return embed, img, nil
 }
 
-func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
-	move, moveStr, err := getTileOpt(i.ApplicationCommandData().Options, "Move")
+func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
+	move, moveStr, err := getTileOpt(ic.ApplicationCommandData().Options, "move")
 	if err != nil {
 		return err
 	}
 	var player Player
-	if i.Interaction.Member != nil {
-		player = MakeHumanPlayer(*i.Interaction.Member.User)
+	if ic.Interaction.Member != nil {
+		player = MakeHumanPlayer(ic.Interaction.Member.User)
 	} else {
 		return ErrUserNotProvided
 	}
@@ -282,7 +282,7 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 	game, err := MakeMoveValidated(ctx, h.Db, player.ID, move)
 
 	if resp := createMoveErrorResp(err, moveStr); resp != nil {
-		interactionRespond(dg, i.Interaction, resp)
+		interactionRespond(dg, ic.Interaction, resp)
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to make move=%v for player=%s: %s", move, player.ID, err)
@@ -293,7 +293,7 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 
 	if game.IsGameOver() {
 		if embed, img, err = h.handleGameOver(ctx, game, move); err != nil {
-			return fmt.Errorf("failed to handle game over while handling moves: %s", err)
+			return fmt.Errorf("failed to handle Game over while handling Moves: %s", err)
 		}
 	} else {
 		img = h.Renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
@@ -305,77 +305,60 @@ func (h *Handler) HandleMove(ctx context.Context, dg *discordgo.Session, i *disc
 		}
 	}
 
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, img))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, img))
 	return nil
 }
 
-func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	trace := ctx.Value(TraceKey)
 
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*2))
 	defer cancel()
 
-	level, err := getLevelOpt(i.ApplicationCommandData().Options, "level")
+	level, err := getLevelOpt(ic.ApplicationCommandData().Options, "level")
 	if err != nil {
 		return err
 	}
 	var user *discordgo.User
-	if i.Interaction.Member != nil {
-		user = i.Interaction.Member.User
+	if ic.Interaction.Member != nil {
+		user = ic.Interaction.Member.User
 	} else {
 		return ErrUserNotProvided
 	}
 
 	game, err := GetGame(ctx, h.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		interactionRespond(dg, i.Interaction, createStringResponse("You're not currently in a OthelloGame."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("You're not currently in a OthelloGame."))
 		return nil
 	}
 
-	interactionRespond(dg, i.Interaction, createStringResponse("Analyzing... Wait a second..."))
+	interactionRespond(dg, ic.Interaction, createStringResponse("Analyzing... Wait a second..."))
 
 	respCh := h.Sh.FindRankedMoves(game, LevelToDepth(level))
 	select {
 	case resp := <-respCh:
-		if resp.ok {
+		if resp.Ok {
 			embed := createAnalysisEmbed(game, level)
-			img := h.Renderer.DrawBoardAnalysis(game.Board, resp.moves)
-			interactionResponseEdit(dg, i.Interaction, createEmbedEdit(embed, img))
+			img := h.Renderer.DrawBoardAnalysis(game.Board, resp.Moves)
+			interactionResponseEdit(dg, ic.Interaction, createEmbedEdit(embed, img))
 		} else {
-			interactionResponseEdit(dg, i.Interaction, createEmbedTextEdit("Failed to retrieve analysis data from engine."))
+			interactionResponseEdit(dg, ic.Interaction, createEmbedTextEdit("Failed to retrieve analysis data from engine."))
 		}
 	case <-ctx.Done():
 		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
-		interactionResponseEdit(dg, i.Interaction, createStringEdit("Timed out while waiting for a response."))
+		interactionResponseEdit(dg, ic.Interaction, createStringEdit("Timed out while waiting for a response."))
 	}
 	return nil
 }
 
-func (h *Handler) makeSendSimulate(dg *discordgo.Session, i *discordgo.InteractionCreate) func(msg SimPanel) {
-	return func(panel SimPanel) {
-		var edit *discordgo.WebhookEdit
-		img := h.Renderer.DrawBoardMoves(panel.Game.Board, panel.Game.Board.FindCurrentMoves())
+func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
+	trace := ctx.Value(TraceKey)
 
-		if !panel.Ok {
-			edit = createEmbedTextEdit("Failed to retrieve simulation data from engine.")
-		} else if panel.Finished {
-			updtEmbed := createSimulationEndEmbed(panel.Game, panel.Move)
-			edit = createEmbedEdit(updtEmbed, img)
-			edit.Components = &[]discordgo.MessageComponent{}
-		} else {
-			updtEmbed := createSimulationEmbed(panel.Game, panel.Move)
-			edit = createEmbedEdit(updtEmbed, img)
-		}
-
-		interactionResponseEdit(dg, i.Interaction, edit)
-	}
-}
-
-func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Hour*1)) // a simulation can stay paused for up to an hour
 	defer cancel()
 
-	cmd := i.ApplicationCommandData()
+	// extract simulation inputs and send the initial simulation response
+	cmd := ic.ApplicationCommandData()
 
 	var whiteLevel uint64
 	var blackLevel uint64
@@ -403,47 +386,61 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, i *
 	simulationID := uuid.New().String()
 
 	response := createComponentResponse(embed, img, createSimulationActionRow(simulationID, false))
-	interactionRespond(dg, i.Interaction, response)
+	interactionRespond(dg, ic.Interaction, response)
 
+	// run the simulation against the engine and add it to the cache (so it can be paused/resumed)
 	state := &SimState{StopChan: make(chan struct{})}
-	simChan := make(chan SimPanel, SimCount)
+	simChan := make(chan SimStep, MaxSimCount) // give this a size so we don't block on send
 
 	h.SimCache.Set(simulationID, state, SimulationTtl)
 
-	go BeginSimulate(ctx, BeginSimInput{
-		Sh:          h.Sh,
-		InitialGame: initialGame,
-		SimChan:     simChan,
-	})
+	go GenerateSimulation(ctx, h.Sh, initialGame, simChan)
 
+	// run the simulation user control, retrieve simulation steps and send them to the user
 	handleCancel := func() {
 		cancel()
 		edit := discordgo.WebhookEdit{Components: &[]discordgo.MessageComponent{}}
-		interactionResponseEdit(dg, i.Interaction, &edit)
+		interactionResponseEdit(dg, ic.Interaction, &edit)
 	}
-	handleSend := h.makeSendSimulate(dg, i)
 
-	ReceiveSimulate(ctx, RecvSimInput{
-		State:        state,
-		RecvChan:     simChan,
-		HandleCancel: handleCancel,
-		HandleSend:   handleSend,
-		Delay:        delay,
-	})
+	ticker := time.NewTicker(delay)
+RecvLoop:
+	for {
+		select {
+		case <-ticker.C:
+			if state.IsPaused.Load() { // paused? check again once the ticker executes
+				continue
+			}
+			step, ok := <-simChan
+			if !ok {
+				slog.Info("simulation receiver complete", "trace", trace)
+				break RecvLoop
+			}
+			interactionResponseEdit(dg, ic.Interaction, createStepEdit(h.Renderer, step))
+		case <-state.StopChan:
+			slog.Info("simulation receiver stopped", "trace", trace)
+			handleCancel()
+			break RecvLoop
+		case <-ctx.Done():
+			slog.Info("simulation receiver timed out", "trace", trace, "err", ctx.Err())
+			handleCancel()
+			break RecvLoop
+		}
+	}
 	return nil
 }
 
-func (h *Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (h *Handler) HandleStats(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	var user discordgo.User
 	var err error
 
-	userOpt := i.ApplicationCommandData().GetOption("player")
+	userOpt := ic.ApplicationCommandData().GetOption("player")
 	if userOpt != nil {
 		if user, err = h.UserCache.GetUser(ctx, userOpt.Value.(string)); err != nil {
 			return fmt.Errorf("failed to get user while handling stats: %s", err)
 		}
-	} else if i.Interaction.Member != nil {
-		user = *i.Interaction.Member.User
+	} else if ic.Interaction.Member != nil {
+		user = *ic.Interaction.Member.User
 	}
 
 	var stats Stats
@@ -452,13 +449,13 @@ func (h *Handler) HandleStats(ctx context.Context, dg *discordgo.Session, i *dis
 	}
 
 	embed := createStatsEmbed(user, stats)
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, nil))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, nil))
 	return nil
 }
 
 const LeaderboardSize = 50
 
-func (h *Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (h *Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	var stats []Stats
 	var err error
 
@@ -467,37 +464,48 @@ func (h *Handler) HandleLeaderboard(ctx context.Context, dg *discordgo.Session, 
 	}
 
 	embed := createLeaderboardEmbed(stats)
-	interactionRespond(dg, i.Interaction, createEmbedResponse(embed, nil))
+	interactionRespond(dg, ic.Interaction, createEmbedResponse(embed, nil))
 	return nil
 }
 
-func (h *Handler) HandlePauseComponent(dg *discordgo.Session, i *discordgo.InteractionCreate, simulationID string) error {
+func (h *Handler) HandlePauseComponent(dg *discordgo.Session, ic *discordgo.InteractionCreate, simulationID string) error {
+	acknowledge := func() {
+		interactionRespond(dg, ic.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage})
+	}
+
 	item := h.SimCache.Get(simulationID)
 	if item == nil {
-		return fmt.Errorf("simulation expired: %v", simulationID)
+		acknowledge()
+		return nil
 	}
+
 	simulationID = item.Key()
 	state := item.Value()
 
-	isPaused := state.IsPaused.Toggle()
-	isPaused = !isPaused // we need to reapply the operation because toggle returns the old value
+	isPaused := !state.IsPaused.Toggle() // negate this because it returns the old value
 
-	interactionRespond(dg, i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage})
+	acknowledge()
 
 	components := createSimulationActionRow(simulationID, isPaused)
-	interactionResponseEdit(dg, i.Interaction, &discordgo.WebhookEdit{Components: &components})
+	interactionResponseEdit(dg, ic.Interaction, &discordgo.WebhookEdit{Components: &components})
 	return nil
 }
 
-func (h *Handler) HandleStopComponent(dg *discordgo.Session, i *discordgo.InteractionCreate, simulationID string) error {
+func (h *Handler) HandleStopComponent(dg *discordgo.Session, ic *discordgo.InteractionCreate, simulationID string) error {
+	acknowledge := func() {
+		interactionRespond(dg, ic.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage})
+	}
+
 	item := h.SimCache.Get(simulationID)
 	if item == nil {
-		return fmt.Errorf("simulation expired: %v", simulationID)
+		acknowledge()
+		return nil
 	}
+
 	state := item.Value()
 	state.StopChan <- struct{}{}
 
-	interactionRespond(dg, i.Interaction, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseUpdateMessage})
+	acknowledge()
 	return nil
 }
 
@@ -519,7 +527,7 @@ func interactionResponseEdit(dg *discordgo.Session, i *discordgo.Interaction, e 
 	}
 }
 
-func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *discordgo.InteractionCreate, err error) {
+func handleInteractionError(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, err error) {
 	trace := ctx.Value(TraceKey)
 	slog.Error("error when handling command", "trace", trace, "err", err)
 
@@ -536,7 +544,7 @@ func handleInteractionError(ctx context.Context, dg *discordgo.Session, i *disco
 			Content: content,
 		},
 	}
-	if err := dg.InteractionRespond(i.Interaction, resp); err != nil {
+	if err := dg.InteractionRespond(ic.Interaction, resp); err != nil {
 		slog.Error("failed to respond interaction error", "err", err)
 	}
 }

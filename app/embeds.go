@@ -171,6 +171,22 @@ func createGameMoveEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
 	}
 }
 
+func createStepEdit(renderer Renderer, step SimStep) *discordgo.WebhookEdit {
+	var edit *discordgo.WebhookEdit
+	img := renderer.DrawBoardMoves(step.Game.Board, step.Game.Board.FindCurrentMoves())
+	if !step.Ok {
+		edit = createEmbedTextEdit("Failed to retrieve simulation data from engine.")
+	} else if step.Finished {
+		updtEmbed := createSimulationEndEmbed(step.Game, step.Move)
+		edit = createEmbedEdit(updtEmbed, img)
+		edit.Components = &[]discordgo.MessageComponent{}
+	} else {
+		updtEmbed := createSimulationEmbed(step.Game, step.Move)
+		edit = createEmbedEdit(updtEmbed, img)
+	}
+	return edit
+}
+
 func createSimulationEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
 	title := fmt.Sprintf("%s vs %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
 	desc := fmt.Sprintf("%s%s has moved: %s", getScoreText(game), game.OtherPlayer().Name, move.String())

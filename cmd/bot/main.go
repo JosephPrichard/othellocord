@@ -20,6 +20,7 @@ func main() {
 	}
 
 	token := os.Getenv("DISCORD_TOKEN")
+	path := os.Getenv("NTEST_PATH")
 
 	db, err := sql.Open("sqlite", "./othellocord.db?_busy_timeout=5000")
 	if err != nil {
@@ -39,10 +40,16 @@ func main() {
 		_ = dg.Close()
 	}()
 
+	sh, err := app.StartNTestShell(path)
+	if err != nil {
+		log.Fatalf("failed to open ntest shell: %v", err)
+	}
+
 	go app.ExpireGamesCron(db)
 
 	h := app.Handler{
 		Db:             db,
+		Sh:             sh,
 		Renderer:       app.MakeRenderCache(),
 		ChallengeCache: app.MakeChallengeCache(),
 		UserCache:      app.MakeUserCache(dg),

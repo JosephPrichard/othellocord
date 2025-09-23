@@ -20,7 +20,7 @@ type Player struct {
 	Level uint64 // only used for bot levels
 }
 
-func MakeHumanPlayer(user discordgo.User) Player {
+func MakeHumanPlayer(user *discordgo.User) Player {
 	return Player{ID: user.ID, Name: user.Username}
 }
 
@@ -31,7 +31,7 @@ func MakeBotPlayer(level uint64) Player {
 func MakePlayer(id string, name string) Player {
 	var player Player
 
-	if botId, err := strconv.Atoi(id); err == nil {
+	if botId, err := strconv.Atoi(id); err == nil && IsValidBotLevel(uint64(botId)) {
 		player = Player{ID: id, Name: fmt.Sprintf("NTest level %d", botId), Level: uint64(botId)}
 	} else {
 		player = Player{ID: id, Name: name}
@@ -72,6 +72,10 @@ func IsInvalidBotLevel(level uint64) bool {
 	return level < MinBotLevel || level > MaxBotLevel
 }
 
+func IsValidBotLevel(level uint64) bool {
+	return !IsInvalidBotLevel(level)
+}
+
 type UserFetcher interface {
 	User(userID string, options ...discordgo.RequestOption) (st *discordgo.User, err error)
 }
@@ -103,7 +107,7 @@ func (uc UserCache) GetPlayer(ctx context.Context, playerID string) (Player, err
 	if err != nil {
 		return Player{}, err
 	}
-	return MakeHumanPlayer(user), nil
+	return MakeHumanPlayer(&user), nil
 }
 
 const UserCacheTTl = time.Hour

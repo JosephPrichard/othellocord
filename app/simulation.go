@@ -30,31 +30,25 @@ func MakeSimCache() SimCache {
 	return cache
 }
 
-type SimPanel struct {
+type SimStep struct {
 	Game     OthelloGame
 	Move     Tile
 	Finished bool
 	Ok       bool
 }
 
-const SimCount = BoardSize * BoardSize // maximum number of possible simulation states
+const MaxSimCount = BoardSize * BoardSize // maximum number of possible simulation states
 
-type BeginSimInput struct {
-	Sh          *NTestShell
-	InitialGame OthelloGame
-	SimChan     chan SimPanel
-}
-
-func BeginSimulate(ctx context.Context, input BeginSimInput) {
+func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame OthelloGame, simChan chan SimStep) {
 	trace := ctx.Value(TraceKey)
 
-	defer close(input.SimChan)
+	defer close(simChan)
 
-	var game = input.InitialGame
+	var game = initialGame
 	var move RankTile
 
 	for i := 0; ; i++ {
-		respCh := input.Sh.FindBestMove(game, game.CurrentPlayer().LevelToDepth())
+		respCh := sh.FindBestMove(game, game.CurrentPlayer().LevelToDepth())
 		var resp MoveResp
 
 		select {
@@ -64,57 +58,20 @@ func BeginSimulate(ctx context.Context, input BeginSimInput) {
 			return
 		}
 
-		if !resp.ok {
-			input.SimChan <- SimPanel{Ok: false}
+		if !resp.Ok {
+			simChan <- SimStep{Ok: false}
 			return
 		}
-		if len(resp.moves) > 1 {
-			move = resp.moves[0]
-
+		if len(resp.Moves) >= 1 {
+			move = resp.Move
 			game.MakeMove(move.Tile)
 			game.TrySkipTurn()
 
-			input.SimChan <- SimPanel{Game: game, Move: move.Tile, Ok: true}
+			simChan <- SimStep{Game: game, Move: move.Tile, Ok: true}
 		} else {
-			slog.Info("finished simulation", "trace", trace, "moves", resp.moves, "move", move)
+			slog.Info("finished simulation", "trace", trace, "moves", resp.Moves, "move", move)
 
-			input.SimChan <- SimPanel{Game: game, Move: move.Tile, Finished: true, Ok: true}
-			return
-		}
-	}
-}
-
-type RecvSimInput struct {
-	State        *SimState
-	RecvChan     chan SimPanel
-	HandleCancel func()
-	HandleSend   func(SimPanel)
-	Delay        time.Duration
-}
-
-func ReceiveSimulate(ctx context.Context, input RecvSimInput) {
-	trace := ctx.Value(TraceKey)
-
-	ticker := time.NewTicker(input.Delay)
-	for index := 0; ; index++ {
-		select {
-		case <-ticker.C:
-			if input.State.IsPaused.Load() {
-				continue
-			}
-			msg, ok := <-input.RecvChan
-			if !ok {
-				slog.Info("simulation receiver complete", "trace", trace)
-				return
-			}
-			input.HandleSend(msg)
-		case <-input.State.StopChan:
-			input.HandleCancel()
-			slog.Info("simulation receiver stopped", "trace", trace)
-			return
-		case <-ctx.Done():
-			input.HandleCancel()
-			slog.Info("simulation receiver timed out", "trace", trace, "err", ctx.Err())
+			simChan <- SimStep{Game: game, Move: move.Tile, Finished: true, Ok: true}
 			return
 		}
 	}

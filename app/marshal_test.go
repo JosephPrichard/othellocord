@@ -44,7 +44,7 @@ func TestGame_UnmarshalStrings(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			moveList, err := UnmarshalMoveList(test.MoveListStr)
 			if err != nil {
-				t.Fatalf("failed to unmarshal game: %v", err)
+				t.Fatalf("failed to unmarshal Game: %v", err)
 			}
 			assert.Equal(t, test.MoveList, moveList)
 		})

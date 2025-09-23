@@ -10,17 +10,17 @@ const MaxDelay = 5
 
 var LevelDesc = fmt.Sprintf("Level of the service between %d and %d", MinBotLevel, MaxBotLevel)
 var ExpectedTileValue = "be a string of the form 'a1' where 'a' is the column and '1' is the row"
-var DelayDesc = fmt.Sprintf("Minimum delay between moves in seconds between %d and %d secs", MinDelay, MaxDelay)
+var DelayDesc = fmt.Sprintf("Minimum delay between Moves in seconds between %d and %d secs", MinDelay, MaxDelay)
 
 var Commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "challenge",
-		Description: "Challenges the service or another user to an Othello game",
+		Description: "Challenges the service or another user to an Othello Game",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
 				Name:        "user",
-				Description: "Challenges another user to a game",
+				Description: "Challenges another user to a Game",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Type:        discordgo.ApplicationCommandOptionUser,
@@ -33,7 +33,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
 				Name:        "service",
-				Description: "Challenges the service to a game",
+				Description: "Challenges the service to a Game",
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Type:        discordgo.ApplicationCommandOptionInteger,
@@ -59,11 +59,11 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "forfeit",
-		Description: "Forfeits the user's current game",
+		Description: "Forfeits the user's current Game",
 	},
 	{
 		Name:        "move",
-		Description: "Makes a move on user's current game",
+		Description: "Makes a move on user's current Game",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
@@ -76,7 +76,7 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "view",
-		Description: "Displays the game State including all the moves that can be made this turn",
+		Description: "Displays the Game State including all the Moves that can be made this turn",
 	},
 	{
 		Name:        "analyze",
@@ -92,7 +92,7 @@ var Commands = []*discordgo.ApplicationCommand{
 	},
 	{
 		Name:        "simulate",
-		Description: "Simulates a game between two bots",
+		Description: "Simulates a Game between two bots",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Type:        discordgo.ApplicationCommandOptionInteger,

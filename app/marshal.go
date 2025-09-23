@@ -41,7 +41,7 @@ func (b *OthelloBoard) MarshalString() string {
 	if b.IsBlackMove {
 		sb.WriteString("b")
 	} else {
-		sb.WriteString("stdin")
+		sb.WriteString("w")
 	}
 	sb.WriteString("+")
 

@@ -87,21 +87,29 @@ func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, na
 	makeErrRet := func(err error) (Tile, string, error) {
 		return Tile{}, "", err
 	}
+
+	var option *discordgo.ApplicationCommandInteractionDataOption
+
 	for _, opt := range options {
-		if opt.Name != name {
-			continue
+		if opt.Name == name {
+			option = opt
+			break
 		}
-		value, ok := opt.Value.(string)
-		if !ok {
-			return makeErrRet(OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue})
-		}
-		tile, err := ParseTileSafe(value)
-		if err != nil {
-			return makeErrRet(OptionError{Name: name, InvalidValue: opt.Value, ExpectedValue: ExpectedTileValue})
-		}
-		return tile, value, nil
+
 	}
-	return makeErrRet(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
+	if option == nil {
+		return makeErrRet(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
+	}
+
+	value, ok := option.Value.(string)
+	if !ok {
+		return makeErrRet(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+	}
+	tile, err := ParseTileSafe(value)
+	if err != nil {
+		return makeErrRet(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+	}
+	return tile, value, nil
 }
 
 func formatOptions(options []*discordgo.ApplicationCommandInteractionDataOption) string {
