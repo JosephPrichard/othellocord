@@ -79,10 +79,16 @@ func ParseRankTile(s1 string, s2 string) (RankTile, error) {
 	if err != nil {
 		return RankTile{}, err
 	}
-	h, err := strconv.ParseFloat(s2, 64)
-	if err != nil {
-		return RankTile{}, err
+
+	h := float64(0)
+
+	if s2 != "" {
+		h, err = strconv.ParseFloat(s2, 64)
+		if err != nil {
+			return RankTile{}, err
+		}
 	}
+
 	return RankTile{Tile: tile, H: h}, nil
 }
 

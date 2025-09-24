@@ -70,7 +70,7 @@ func createComponentResponse(embed *discordgo.MessageEmbed, img image.Image, com
 func createMoveErrorResp(err error, moveStr string) *discordgo.InteractionResponse {
 	var resp *discordgo.InteractionResponse
 	if errors.Is(err, ErrGameNotFound) {
-		resp = createStringResponse("You're not currently playing a OthelloGame.")
+		resp = createStringResponse("You're not currently playing a game.")
 	} else if errors.Is(err, ErrInvalidMove) {
 		resp = createStringResponse(fmt.Sprintf("Can't make a Move to %s.", moveStr))
 	} else if errors.Is(err, ErrTurn) {
@@ -138,11 +138,11 @@ func createEmbedTextEdit(edit string) *discordgo.WebhookEdit {
 
 func createGameStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
 	desc := fmt.Sprintf(
-		"Black: %s\n White: %s\n Use `/view` to view the OthelloGame and use `/Move` to make a Move.",
+		"Black: %s\n White: %s\n Use `/view` to view the game and use `/move` to make a move.",
 		game.BlackPlayer.Name,
 		game.WhitePlayer.Name)
 	return &discordgo.MessageEmbed{
-		Title:       "OthelloGame Started!",
+		Title:       "Game Started!",
 		Description: desc,
 		Color:       GreenEmbed,
 	}
@@ -220,7 +220,7 @@ func createGameEmbed(game OthelloGame) *discordgo.MessageEmbed {
 func createAnalysisEmbed(game OthelloGame, level uint64) *discordgo.MessageEmbed {
 	desc := getScoreText(game)
 	title := fmt.Sprintf("OthelloGame Analysis using service level %d", level)
-	footer := "Positive heuristics are better for black, and negative heuristics are better for white"
+	footer := "Positive heuristics are better for the player to move, and negative heuristics are worse"
 	return &discordgo.MessageEmbed{
 		Title:       title,
 		Description: desc,

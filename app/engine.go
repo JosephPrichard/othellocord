@@ -24,7 +24,6 @@ type MoveReq struct {
 }
 
 type MoveResp struct {
-	Move  RankTile
 	Moves []RankTile
 	Ok    bool
 }
@@ -126,7 +125,7 @@ func (sh *NTestShell) depthCmd(depth int) error {
 }
 
 func (sh *NTestShell) setGameCmd(game OthelloGame) error {
-	return sh.stdinWrite(fmt.Sprintf("set Game %s\n", game.MarshalGGF()))
+	return sh.stdinWrite(fmt.Sprintf("set game %s\n", game.MarshalGGF()))
 }
 
 var ErrInvalidGameState = errors.New("game state GGF format is invalid")
@@ -155,11 +154,14 @@ func (sh *NTestShell) goCmd() (RankTile, error) {
 	}
 
 	tokens := strings.Split(target, "/")
-	if len(tokens) < 2 {
-		return RankTile{}, fmt.Errorf("expected line to contain at least 2 tokens, got: %s", target)
+	if len(tokens) < 1 {
+		return RankTile{}, fmt.Errorf("expected line to contain at least 1 token, got: %s", target)
 	}
-
-	return ParseRankTile(tokens[0], tokens[1])
+	strH := ""
+	if len(tokens) >= 2 {
+		strH = tokens[1]
+	}
+	return ParseRankTile(tokens[0], strH)
 }
 
 func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
@@ -208,7 +210,14 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 	return tiles, errs
 }
 
+var ErrNoMoves = errors.New("no moves for game")
+
 func (sh *NTestShell) findBestMove(game OthelloGame, depth int) (RankTile, error) {
+	moves := game.Board.FindCurrentMoves()
+	if len(moves) == 0 {
+		return RankTile{}, ErrNoMoves
+	}
+
 	var tile RankTile
 	var err error
 
@@ -253,7 +262,11 @@ func (sh *NTestShell) listenRequests() {
 			if err != nil {
 				slog.Info("failed to find best tile", "err", err)
 			}
-			req.RespCh <- MoveResp{Move: move, Ok: err == nil}
+			var resp MoveResp // err no moves means the move response is empty - no moves but no err either
+			if !errors.Is(err, ErrNoMoves) {
+				resp = MoveResp{Moves: []RankTile{move}, Ok: err == nil}
+			}
+			req.RespCh <- resp
 		case RankMovesKind:
 			moves, err := sh.findRankedMoves(req.Game, req.Depth)
 			if err != nil {

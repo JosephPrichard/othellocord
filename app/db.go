@@ -17,15 +17,20 @@ var CreateTable = `
 	    lost INTEGER NOT NULL
 	);
 	CREATE TABLE IF NOT EXISTS games (
+	    id TEXT NOT NULL,
 	    board TEXT NOT NULL,
 	    white_id TEXT NOT NULL,
 	    black_id TEXT NOT NULL,
 	    white_name TEXT NOT NULL,
 		black_name TEXT NOT NULL,
-		Moves TEXT NOT NULL,
+		moves TEXT NOT NULL,
 		expire_time INTEGER NOT NULL,
 		PRIMARY KEY (white_id, black_id)
 	);
+	CREATE TABLE IF NOT EXISTS queue (
+	 	game_id TEXT NOT NULL,
+	    push_time INTEGER NOT NULL
+    );
 	`
 
 type Query interface {
@@ -36,14 +41,12 @@ type Query interface {
 func createTestDB() (*sql.DB, func()) {
 	db, err := sql.Open("sqlite", TestDb)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open test sqlite db: %v", err)
 	}
 	closer := func() {
-		if err := db.Close(); err != nil {
-			log.Fatal(err)
-		}
+		_ = db.Close()
 		if err := os.Remove(TestDb); err != nil {
-			log.Fatal(err)
+			log.Fatalf("failed to remove test sqlite db: %v", err)
 		}
 	}
 	if _, err := db.Exec(CreateTable); err != nil {

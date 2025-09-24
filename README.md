@@ -6,7 +6,7 @@ It includes graphical interface to see the othello board and a database with sta
 
 Othellocord uses the NTest engine for bot gameplay and game analysis.
 
-## Build & Execution
+## Build
 
 Install the NTest Othello Engine by using the MSI at this URL (https://web.archive.org/web/20131011003457/http://othellogateway.com/ntest/Ntest/), or by compiling it yourself
 

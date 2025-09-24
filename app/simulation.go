@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
@@ -12,7 +14,7 @@ import (
 const SimulationTtl = time.Hour
 
 type SimState struct {
-	StopChan chan struct{}
+	Cancel   func()
 	IsPaused atomic.Bool
 }
 
@@ -21,10 +23,10 @@ type SimCache = *ttlcache.Cache[string, *SimState]
 func MakeSimCache() SimCache {
 	cache := ttlcache.New[string, *SimState]()
 	cache.OnEviction(func(_ context.Context, _ ttlcache.EvictionReason, item *ttlcache.Item[string, *SimState]) {
-		slog.Info("stopping simulation", "key", item.Key())
+		slog.Info("cancelling simulation", "key", item.Key())
 		state := item.Value()
-		if state.StopChan != nil {
-			state.StopChan <- struct{}{}
+		if state.Cancel != nil {
+			state.Cancel()
 		}
 	})
 	return cache
@@ -63,7 +65,11 @@ func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame Othello
 			return
 		}
 		if len(resp.Moves) >= 1 {
-			move = resp.Move
+			move = resp.Moves[0]
+			if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
+				panic(fmt.Sprintf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF()))
+			}
+
 			game.MakeMove(move.Tile)
 			game.TrySkipTurn()
 

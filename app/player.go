@@ -131,6 +131,6 @@ func (uc UserCache) GetUser(ctx context.Context, playerID string) (discordgo.Use
 		slog.Info("set user back into the Cache", "trace", trace, "user", user.Username, "player", playerID)
 	}
 
-	slog.Info("fetched user", "trace", trace, "username", user.Username, "id", playerID)
+	slog.Info("fetched user", "trace", trace, "username", user.Username, "ID", playerID)
 	return user, nil
 }

@@ -85,12 +85,12 @@ func (h *Handler) HandeInteractionCreate(dg *discordgo.Session, ic *discordgo.In
 	}
 }
 
-var ChallengeSubCmds = []string{"service", "user"}
+var ChallengeSubCmds = []string{"bot", "user"}
 
 func (h *Handler) HandleChallenge(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
 	subCmd, options := getSubcommand(ic)
 	switch subCmd {
-	case "service":
+	case "bot":
 		return h.HandleBotChallengeCommand(ctx, dg, ic, options)
 	case "user":
 		return h.HandleUserChallengeCommand(ctx, dg, ic, options)
@@ -114,10 +114,10 @@ func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.S
 
 	game, err := CreateBotGame(ctx, h.Db, player, level)
 	if errors.Is(err, ErrAlreadyPlaying) {
-		interactionRespond(dg, ic.Interaction, createStringResponse("You're already in a OthelloGame."))
+		interactionRespond(dg, ic.Interaction, createStringResponse("You're already in a game."))
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to create service OthelloGame with level=%d, player=%v cmd: %s", level, player, err)
+		return fmt.Errorf("failed to create game with level=%d, player=%v cmd: %s", level, player, err)
 	}
 
 	embed := createGameStartEmbed(game)
@@ -130,7 +130,7 @@ func (h *Handler) HandleBotChallengeCommand(ctx context.Context, dg *discordgo.S
 func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, options []*discordgo.ApplicationCommandInteractionDataOption) error {
 	opponent, err := h.getPlayerOpt(ctx, options, "opponent")
 	if err != nil {
-		return fmt.Errorf("failed to get plater opt: %s", err)
+		return fmt.Errorf("failed to get player opt: %s", err)
 	}
 
 	var player Player
@@ -148,7 +148,7 @@ func (h *Handler) HandleUserChallengeCommand(ctx context.Context, dg *discordgo.
 	}
 	h.ChallengeCache.CreateChallenge(ctx, Challenge{Challenger: player, Challenged: opponent}, handleExpire)
 
-	msg := fmt.Sprintf("<@%s>, %s has challenged you to a Game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
+	msg := fmt.Sprintf("<@%s>, %s has challenged you to a game of Othello. Type `/accept` <@%s>, or ignore to decline", opponent.ID, player.Name, player.ID)
 
 	interactionRespond(dg, ic.Interaction, createStringResponse(msg))
 	return nil
@@ -352,8 +352,6 @@ func (h *Handler) HandleAnalyze(ctx context.Context, dg *discordgo.Session, ic *
 }
 
 func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
-	trace := ctx.Value(TraceKey)
-
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Hour*1)) // a simulation can stay paused for up to an hour
 	defer cancel()
 
@@ -389,24 +387,27 @@ func (h *Handler) HandleSimulate(ctx context.Context, dg *discordgo.Session, ic 
 	interactionRespond(dg, ic.Interaction, response)
 
 	// run the simulation against the engine and add it to the cache (so it can be paused/resumed)
-	state := &SimState{StopChan: make(chan struct{})}
+	state := &SimState{Cancel: cancel}
 	simChan := make(chan SimStep, MaxSimCount) // give this a size so we don't block on send
 
 	h.SimCache.Set(simulationID, state, SimulationTtl)
 
 	go GenerateSimulation(ctx, h.Sh, initialGame, simChan)
+	h.RecvSimulation(ctx, dg, ic, delay, state, simChan)
 
-	// run the simulation user control, retrieve simulation steps and send them to the user
-	handleCancel := func() {
-		cancel()
-		edit := discordgo.WebhookEdit{Components: &[]discordgo.MessageComponent{}}
-		interactionResponseEdit(dg, ic.Interaction, &edit)
-	}
+	return nil
+}
+
+func (h *Handler) RecvSimulation(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, delay time.Duration, state *SimState, simChan chan SimStep) {
+	trace := ctx.Value(TraceKey)
 
 	ticker := time.NewTicker(delay)
-RecvLoop:
 	for {
 		select {
+		case <-ctx.Done():
+			slog.Info("simulation receiver stopped", "trace", trace)
+			interactionResponseEdit(dg, ic.Interaction, &discordgo.WebhookEdit{Components: &[]discordgo.MessageComponent{}})
+			return
 		case <-ticker.C:
 			if state.IsPaused.Load() { // paused? check again once the ticker executes
 				continue
@@ -414,20 +415,11 @@ RecvLoop:
 			step, ok := <-simChan
 			if !ok {
 				slog.Info("simulation receiver complete", "trace", trace)
-				break RecvLoop
+				return
 			}
 			interactionResponseEdit(dg, ic.Interaction, createStepEdit(h.Renderer, step))
-		case <-state.StopChan:
-			slog.Info("simulation receiver stopped", "trace", trace)
-			handleCancel()
-			break RecvLoop
-		case <-ctx.Done():
-			slog.Info("simulation receiver timed out", "trace", trace, "err", ctx.Err())
-			handleCancel()
-			break RecvLoop
 		}
 	}
-	return nil
 }
 
 func (h *Handler) HandleStats(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate) error {
@@ -503,7 +495,7 @@ func (h *Handler) HandleStopComponent(dg *discordgo.Session, ic *discordgo.Inter
 	}
 
 	state := item.Value()
-	state.StopChan <- struct{}{}
+	state.Cancel()
 
 	acknowledge()
 	return nil

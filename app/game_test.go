@@ -16,11 +16,13 @@ func setupGamesTest(t *testing.T) (*sql.DB, func()) {
 
 	games := []OthelloGame{
 		{
+			ID:          "1",
 			Board:       InitialBoard(),
 			BlackPlayer: Player{ID: "id1", Name: "Player1"},
 			WhitePlayer: Player{ID: "id2", Name: "Player2"},
 		},
 		{
+			ID:          "2",
 			Board:       InitialBoard(),
 			BlackPlayer: Player{ID: "id10", Name: "Player10"},
 			WhitePlayer: Player{ID: "id20", Name: "Player20"},
@@ -48,10 +50,10 @@ func TestGameStore_CreateGame(t *testing.T) {
 
 	dbGame, err := GetGame(ctx, db, "id3")
 	if err != nil {
-		t.Fatalf("failed to get Game: %v", err)
+		t.Fatalf("failed to get game: %v", err)
 	}
 
-	expGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id3", Name: "Player3"}, WhitePlayer: Player{ID: "id4", Name: "Player4"}}
+	expGame := OthelloGame{ID: game.ID, Board: InitialBoard(), BlackPlayer: Player{ID: "id3", Name: "Player3"}, WhitePlayer: Player{ID: "id4", Name: "Player4"}}
 
 	assert.Equal(t, expGame, game)
 	assert.Equal(t, expGame, dbGame)
@@ -64,15 +66,15 @@ func TestGameStore_CreateBotGame(t *testing.T) {
 	ctx := context.WithValue(context.Background(), TraceKey, "test-create-bot-Game")
 	game, err := CreateBotGame(ctx, db, Player{ID: "id3", Name: "Player3"}, 5)
 	if err != nil {
-		t.Fatalf("failed to create the Game: %v", err)
+		t.Fatalf("failed to create the game: %v", err)
 	}
 
 	dbGame, err := GetGame(ctx, db, "id3")
 	if err != nil {
-		t.Fatalf("failed to get Game: %v", err)
+		t.Fatalf("failed to get game: %v", err)
 	}
 
-	expGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id3", Name: "Player3"}, WhitePlayer: MakeBotPlayer(5)}
+	expGame := OthelloGame{ID: game.ID, Board: InitialBoard(), BlackPlayer: Player{ID: "id3", Name: "Player3"}, WhitePlayer: MakeBotPlayer(5)}
 
 	assert.Equal(t, expGame, game)
 	assert.Equal(t, expGame, dbGame)
@@ -89,7 +91,7 @@ func TestGameStore_GetGame(t *testing.T) {
 		t.Fatalf("failed to get the Game: %v", err)
 	}
 
-	expGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
+	expGame := OthelloGame{ID: "1", Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
 	assert.Equal(t, game, expGame)
 }
 
@@ -121,7 +123,7 @@ func TestGameStore_MakeMove(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	initialGame := OthelloGame{Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
+	initialGame := OthelloGame{ID: "1", Board: InitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
 	testMove := initialGame.Board.FindCurrentMoves()[0]
 	expGame := initialGame
 	expGame.MakeMove(testMove)
