@@ -45,18 +45,21 @@ func main() {
 		log.Fatalf("failed to open ntest shell: %v", err)
 	}
 
+	go sh.ListenRequests()
 	go app.ExpireGamesCron(db)
+	taskCh := app.PollQueue(db, sh, HandleBotMove)
 
-	h := app.Handler{
+	state := app.State{
 		Db:             db,
 		Sh:             sh,
+		TaskCh:         taskCh,
 		Renderer:       app.MakeRenderCache(),
 		ChallengeCache: app.MakeChallengeCache(),
 		UserCache:      app.MakeUserCache(dg),
 		SimCache:       app.MakeSimCache(),
 	}
 
-	dg.AddHandler(h.HandeInteractionCreate)
+	dg.AddHandler(state.HandeInteractionCreate)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)

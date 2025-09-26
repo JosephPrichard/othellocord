@@ -40,7 +40,7 @@ func MakePlayer(id string, name string) Player {
 	return player
 }
 
-func LevelToDepth(level uint64) int {
+func LevelToDepth(level uint64) uint64 {
 	switch level {
 	case 1:
 		return 5
@@ -56,7 +56,7 @@ func LevelToDepth(level uint64) int {
 	return 0
 }
 
-func (player Player) LevelToDepth() int {
+func (player Player) LevelToDepth() uint64 {
 	return LevelToDepth(player.Level)
 }
 

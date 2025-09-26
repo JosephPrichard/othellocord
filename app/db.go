@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
@@ -25,17 +26,25 @@ var CreateTable = `
 		black_name TEXT NOT NULL,
 		moves TEXT NOT NULL,
 		expire_time INTEGER NOT NULL,
-		PRIMARY KEY (white_id, black_id)
+		PRIMARY KEY (id)
 	);
-	CREATE TABLE IF NOT EXISTS queue (
+	CREATE TABLE IF NOT EXISTS bot_tasks (
 	 	game_id TEXT NOT NULL,
+	 	channel_id TEXT NOT NULL,
 	    push_time INTEGER NOT NULL
     );
+
+	CREATE INDEX idx_stats_elo ON stats(elo);
+	CREATE INDEX idx_games_expire_time ON games(expire_time);
+	CREATE INDEX idx_game_id ON bot_tasks(game_id);
+	CREATE INDEX idx_push_time ON bot_tasks(push_time);
 	`
 
 type Query interface {
 	Query(query string, args ...any) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func createTestDB() (*sql.DB, func()) {

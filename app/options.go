@@ -19,12 +19,12 @@ func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.Applica
 	return "", nil
 }
 
-func (h *Handler) getPlayerOpt(ctx context.Context, options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Player, error) {
+func getPlayerOpt(ctx context.Context, uc *UserCache, options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Player, error) {
 	for _, opt := range options {
 		if opt.Name != name {
 			continue
 		}
-		opponent, err := h.UserCache.GetPlayer(ctx, opt.Value.(string))
+		opponent, err := uc.GetPlayer(ctx, opt.Value.(string))
 		if err != nil {
 			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
 		}
@@ -84,7 +84,7 @@ func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 }
 
 func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Tile, string, error) {
-	makeErrRet := func(err error) (Tile, string, error) {
+	fail := func(err error) (Tile, string, error) {
 		return Tile{}, "", err
 	}
 
@@ -95,19 +95,18 @@ func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, na
 			option = opt
 			break
 		}
-
 	}
 	if option == nil {
-		return makeErrRet(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
+		return fail(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
 	}
 
 	value, ok := option.Value.(string)
 	if !ok {
-		return makeErrRet(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+		return fail(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
 	}
 	tile, err := ParseTileSafe(value)
 	if err != nil {
-		return makeErrRet(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+		return fail(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
 	}
 	return tile, value, nil
 }

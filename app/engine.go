@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type MoveRequestKind int
@@ -19,7 +21,7 @@ const (
 type MoveReq struct {
 	Kind   MoveRequestKind
 	Game   OthelloGame
-	Depth  int
+	Depth  uint64
 	RespCh chan MoveResp
 }
 
@@ -68,9 +70,6 @@ func StartNTestShell(path string) (*NTestShell, error) {
 			return nil, err
 		}
 	}
-
-	go sh.listenRequests()
-
 	return sh, nil
 }
 
@@ -106,7 +105,7 @@ func (sh *NTestShell) expect(expected string) error {
 	return nil
 }
 
-func (sh *NTestShell) depthCmd(depth int) error {
+func (sh *NTestShell) depthCmd(depth uint64) error {
 	if err := sh.stdinWrite(fmt.Sprintf("set depth %d\n", depth)); err != nil {
 		return err
 	}
@@ -176,7 +175,7 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 
 	var tiles []RankTile
 	var errs []error
-	tileMap := make(map[Tile]Pair)
+	var tileMap [BoardSize][BoardSize]Pair
 
 	for sh.stdout.Scan() {
 		line := sh.stdoutText()
@@ -191,7 +190,7 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 			}
 			tile, err := ParseRankTile(tokens[1], tokens[2])
 			if err == nil {
-				tileMap[tile.Tile] = Pair{set: true, tile: tile}
+				tileMap[tile.Tile.Row][tile.Tile.Col] = Pair{set: true, tile: tile}
 			} else {
 				errs = append(errs, err)
 			}
@@ -201,9 +200,12 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 		errs = append(errs, err)
 	}
 
-	for _, pair := range tileMap {
-		if pair.set {
-			tiles = append(tiles, pair.tile)
+	for row := 0; row < BoardSize; row++ {
+		for col := 0; col < BoardSize; col++ {
+			pair := tileMap[row][col]
+			if pair.set {
+				tiles = append(tiles, pair.tile)
+			}
 		}
 	}
 
@@ -212,7 +214,7 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 
 var ErrNoMoves = errors.New("no moves for game")
 
-func (sh *NTestShell) findBestMove(game OthelloGame, depth int) (RankTile, error) {
+func (sh *NTestShell) findBestMove(game OthelloGame, depth uint64) (RankTile, error) {
 	moves := game.Board.FindCurrentMoves()
 	if len(moves) == 0 {
 		return RankTile{}, ErrNoMoves
@@ -235,7 +237,7 @@ func (sh *NTestShell) findBestMove(game OthelloGame, depth int) (RankTile, error
 	return tile, err
 }
 
-func (sh *NTestShell) findRankedMoves(game OthelloGame, depth int) ([]RankTile, error) {
+func (sh *NTestShell) findRankedMoves(game OthelloGame, depth uint64) ([]RankTile, error) {
 	if err := sh.depthCmd(depth); err != nil {
 		return nil, err
 	}
@@ -254,13 +256,14 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth int) ([]RankTile, 
 	return tiles, nil
 }
 
-func (sh *NTestShell) listenRequests() {
+func (sh *NTestShell) ListenRequests() {
 	for req := range sh.moveReqCh {
+		start := time.Now()
 		switch req.Kind {
 		case BestMoveKind:
 			move, err := sh.findBestMove(req.Game, req.Depth)
 			if err != nil {
-				slog.Info("failed to find best tile", "err", err)
+				slog.Error("failed to find best tile", "err", err)
 			}
 			var resp MoveResp // err no moves means the move response is empty - no moves but no err either
 			if !errors.Is(err, ErrNoMoves) {
@@ -270,22 +273,23 @@ func (sh *NTestShell) listenRequests() {
 		case RankMovesKind:
 			moves, err := sh.findRankedMoves(req.Game, req.Depth)
 			if err != nil {
-				slog.Info("failed to find ranked tiles", "err", err)
+				slog.Error("failed to find ranked tiles", "err", err)
 			}
 			req.RespCh <- MoveResp{Moves: moves, Ok: err == nil}
 		default:
-			panic(fmt.Sprintf("invalid move request Kind: %d", req.Kind))
+			log.Fatalf("invalid move request Kind: %d", req.Kind)
 		}
+		slog.Info("move request complete", "duration", start.Sub(time.Now()))
 	}
 }
 
-func (sh *NTestShell) FindBestMove(game OthelloGame, depth int) chan MoveResp {
+func (sh *NTestShell) FindBestMove(game OthelloGame, depth uint64) chan MoveResp {
 	ch := make(chan MoveResp, 1)
 	sh.moveReqCh <- MoveReq{Kind: BestMoveKind, Game: game, Depth: depth, RespCh: ch}
 	return ch
 }
 
-func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth int) chan MoveResp {
+func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth uint64) chan MoveResp {
 	ch := make(chan MoveResp, 1)
 	sh.moveReqCh <- MoveReq{Kind: RankMovesKind, Game: game, Depth: depth, RespCh: ch}
 	return ch

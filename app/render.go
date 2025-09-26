@@ -10,6 +10,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"log"
 	"math"
 	"strconv"
 )
@@ -45,7 +46,7 @@ var (
 func init() {
 	font, err := truetype.Parse(TtfFont)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create font: %v", err))
+		log.Fatalf("failed to create font: %v", err)
 	}
 	draw2d.RegisterFont(FontData, font)
 }

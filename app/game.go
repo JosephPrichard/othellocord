@@ -83,24 +83,30 @@ var ErrGameNotFound = errors.New("game not found")
 
 func GetGame(ctx context.Context, q Query, playerID string) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
+	fail := func(err error) (OthelloGame, error) {
+		slog.Error("failed to select game", "trace", trace, "err", err)
+		return OthelloGame{}, fmt.Errorf("failed select game: %v", err)
+	}
 
-	rows, err := q.Query("SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;", playerID)
+	rows, err := q.QueryContext(ctx, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;", playerID)
 	if err != nil {
-		slog.Error("failed to get game", "trace", trace, "err", err)
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
 		return OthelloGame{}, ErrGameNotFound
 	}
-
-	game, err := scanGame(rows)
+	var row GameRow
+	if err := rows.Scan(&row.ID, &row.boardStr, &row.moveListStr, &row.whiteID, &row.blackID, &row.whiteName, &row.blackName); err != nil {
+		return fail(err)
+	}
+	game, err := mapGameRow(row)
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 
-	slog.Info("selected Game", "trace", trace, "game", game, "playerID", playerID)
+	slog.Info("selected game", "trace", trace, "game", game, "playerID", playerID)
 	return game, nil
 }
 
@@ -116,42 +122,40 @@ type GameRow struct {
 
 func scanGameList(rows *sql.Rows) ([]OthelloGame, error) {
 	var gameList []OthelloGame
-
 	for rows.Next() {
-		game, err := scanGame(rows)
+		var row GameRow
+		if err := rows.Scan(&row.ID, &row.boardStr, &row.moveListStr, &row.whiteID, &row.blackID, &row.whiteName, &row.blackName); err != nil {
+			return nil, fmt.Errorf("failed to scan game: %v", err)
+		}
+		game, err := mapGameRow(row)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan Game: %s", err)
+			return nil, fmt.Errorf("failed to map game row: %v", err)
 		}
 		gameList = append(gameList, game)
 	}
-
 	return gameList, nil
 }
 
-func scanGame(rows *sql.Rows) (OthelloGame, error) {
-	var row GameRow
-	if err := rows.Scan(&row.ID, &row.boardStr, &row.moveListStr, &row.whiteID, &row.blackID, &row.whiteName, &row.blackName); err != nil {
-		return OthelloGame{}, err
+func mapGameRow(row GameRow) (OthelloGame, error) {
+	fail := func(err error) (OthelloGame, error) {
+		return OthelloGame{}, fmt.Errorf("failed to map game row: %v", err)
 	}
-
 	game := OthelloGame{ID: row.ID, WhitePlayer: MakePlayer(row.whiteID, row.whiteName), BlackPlayer: MakePlayer(row.blackID, row.blackName)}
-
 	if err := game.Board.UnmarshalString(row.boardStr); err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	moveList, err := UnmarshalMoveList(row.moveListStr)
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	game.MoveList = moveList
-
 	return game, nil
 }
 
 func CheckGameParticipation(ctx context.Context, q Query, player1Id string, player2Id *string) error {
 	trace := ctx.Value("trace")
 
-	row, err := q.Query("SELECT COUNT(*) FROM games WHERE white_id = $1 OR black_id = $1 OR white_id = $2 OR black_id = $2;", player1Id, player2Id)
+	row, err := q.QueryContext(ctx, "SELECT COUNT(*) FROM games WHERE white_id = $1 OR black_id = $1 OR white_id = $2 OR black_id = $2;", player1Id, player2Id)
 	if err != nil {
 		slog.Error("failed to get game", "trace", trace, "err", err)
 		return err
@@ -161,12 +165,10 @@ func CheckGameParticipation(ctx context.Context, q Query, player1Id string, play
 	if !row.Next() {
 		panic("assertion error: a count select query should return at least one record")
 	}
-
 	var count int
 	if err = row.Scan(&count); err != nil {
 		return err
 	}
-
 	if count > 0 {
 		return ErrAlreadyPlaying
 	}
@@ -179,7 +181,7 @@ func SetGame(ctx context.Context, q Query, game OthelloGame, expireTime time.Tim
 	boardStr := game.Board.MarshalString()
 	moveListStr := MarshalMoveList(game.MoveList)
 
-	_, err := q.Exec(
+	_, err := q.ExecContext(ctx,
 		"INSERT OR REPLACE INTO games (id, board, white_id, black_id, white_name, black_name, moves, expire_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
 		game.ID,
 		boardStr,
@@ -200,7 +202,7 @@ func SetGame(ctx context.Context, q Query, game OthelloGame, expireTime time.Tim
 func DeleteGame(ctx context.Context, q Query, game OthelloGame) error {
 	trace := ctx.Value("trace")
 
-	_, err := q.Exec("DELETE FROM games WHERE white_id = $1 AND black_id = $2;", game.WhitePlayer.ID, game.BlackPlayer.ID)
+	_, err := q.ExecContext(ctx, "DELETE FROM games WHERE white_id = $1 AND black_id = $2;", game.WhitePlayer.ID, game.BlackPlayer.ID)
 	if err != nil {
 		slog.Error("failed to delete game", "trace", trace, "err", err)
 		return err
@@ -234,16 +236,20 @@ func GameExpireTime() time.Time {
 func CreateGame(ctx context.Context, db *sql.DB, blackPlayer Player, whitePlayer Player) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
 
+	fail := func(err error) (OthelloGame, error) {
+		slog.Error("failed to create game", "trace", trace, "err", err)
+		return OthelloGame{}, err
+	}
+
 	id, err := uuid.NewUUID()
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	game := OthelloGame{ID: id.String(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: InitialBoard()}
 
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		slog.Error("failed to open create Game tx", "trace", trace, "err", err)
-		return OthelloGame{}, err
+		return fail(fmt.Errorf("failed to open create game tx: %s", err))
 	}
 	defer tx.Rollback()
 
@@ -254,18 +260,17 @@ func CreateGame(ctx context.Context, db *sql.DB, blackPlayer Player, whitePlayer
 
 	err = CheckGameParticipation(ctx, tx, blackPlayer.ID, player2Id)
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	if err := SetGame(ctx, tx, game, GameExpireTime()); err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		slog.Error("failed to commit create Game tx", "trace", trace, "err", err)
-		return OthelloGame{}, err
+		return fail(fmt.Errorf("failed to commit create game tx: %s", err))
 	}
 
-	slog.Info("created and inserted Game", "trace", trace, "game", game)
+	slog.Info("created and inserted game", "trace", trace, "game", game)
 	return game, nil
 }
 
@@ -293,17 +298,20 @@ func MakeMove(ctx context.Context, q Query, game OthelloGame, move Tile) (Othell
 
 func MakeMoveValidated(ctx context.Context, db *sql.DB, playerID string, move Tile) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
+	fail := func(err error) (OthelloGame, error) {
+		slog.Error("failed to make move", "trace", trace, "err", err)
+		return OthelloGame{}, err
+	}
 
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		slog.Error("failed to open make move Game tx", "trace", trace, "err", err)
-		return OthelloGame{}, err
+		return fail(fmt.Errorf("failed to open make move tx: %s", err))
 	}
 	defer tx.Rollback()
 
 	game, err := GetGame(ctx, tx, playerID)
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 
 	if game.CurrentPlayer().ID != playerID {
@@ -315,11 +323,10 @@ func MakeMoveValidated(ctx context.Context, db *sql.DB, playerID string, move Ti
 
 	game, err = MakeMove(ctx, tx, game, move)
 	if err != nil {
-		return OthelloGame{}, err
+		return fail(err)
 	}
 	if err := tx.Commit(); err != nil {
-		slog.Error("failed to commit make move tx", "trace", trace, "err", err)
-		return OthelloGame{}, err
+		return fail(fmt.Errorf("failed to commit make move tx: %s", err))
 	}
 
 	return game, nil
@@ -350,7 +357,7 @@ func ExpireGames(ctx context.Context, db *sql.DB) error {
 
 	t := time.Now()
 
-	rows, err := tx.Query("SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE expire_time < $1;", t)
+	rows, err := tx.QueryContext(ctx, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE expire_time < $1;", t)
 	if err != nil {
 		return fmt.Errorf("failed to select expired games: %s", err)
 	}
@@ -361,7 +368,7 @@ func ExpireGames(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
-	_, err = tx.Exec("DELETE FROM games WHERE expire_time < $1;", t)
+	_, err = tx.ExecContext(ctx, "DELETE FROM games WHERE expire_time < $1;", t)
 	if err != nil {
 		return fmt.Errorf("failed to delete expire games: %s", err)
 	}

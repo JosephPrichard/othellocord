@@ -42,7 +42,7 @@ func TestGameStore_CreateGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-create-Game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-create-game")
 	game, err := CreateGame(ctx, db, Player{ID: "id3", Name: "Player3"}, Player{ID: "id4", Name: "Player4"})
 	if err != nil {
 		t.Fatalf("failed to create the Game: %v", err)
@@ -63,7 +63,7 @@ func TestGameStore_CreateBotGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-create-bot-Game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-create-bot-game")
 	game, err := CreateBotGame(ctx, db, Player{ID: "id3", Name: "Player3"}, 5)
 	if err != nil {
 		t.Fatalf("failed to create the game: %v", err)
@@ -84,7 +84,7 @@ func TestGameStore_GetGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-get-Game")
+	ctx := context.WithValue(context.Background(), TraceKey, "test-get-game")
 
 	game, err := GetGame(ctx, db, "id1")
 	if err != nil {
@@ -152,7 +152,7 @@ func TestGameStore_MakeMove(t *testing.T) {
 			if err == nil {
 				dbGame, err := GetGame(ctx, db, "id1")
 				if err != nil {
-					t.Fatalf("failed to get the Game: %v", err)
+					t.Fatalf("failed to get the game: %v", err)
 				}
 
 				assert.Equal(t, test.expGame, game)

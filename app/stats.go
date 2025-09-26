@@ -62,7 +62,7 @@ func GetOrInsertStats(ctx context.Context, q Query, playerID string) (StatsRow, 
 func GetOrInsertStatsDefault(ctx context.Context, q Query, defaultStats StatsRow) (StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
-	rows, err := q.Query("SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
+	rows, err := q.QueryContext(ctx, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
 	if err != nil {
 		slog.Error("failed to get stats", "trace", trace, "playerID", defaultStats.PlayerID, "err", err)
 		return StatsRow{}, err
@@ -77,7 +77,7 @@ func GetOrInsertStatsDefault(ctx context.Context, q Query, defaultStats StatsRow
 		}
 	} else {
 		stats = defaultStats
-		_, err := q.Exec("INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
+		_, err := q.ExecContext(ctx, "INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
 			stats.PlayerID,
 			stats.Elo,
 			stats.Won,
@@ -98,7 +98,7 @@ func GetOrInsertStatsDefault(ctx context.Context, q Query, defaultStats StatsRow
 func GetTopStats(ctx context.Context, db *sql.DB, count int) ([]StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
-	rows, err := db.Query("SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT $1;", count)
+	rows, err := db.QueryContext(ctx, "SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT $1;", count)
 	if err != nil {
 		slog.Error("failed to get top stats", "trace", trace, "err", err)
 		return nil, err
@@ -120,7 +120,7 @@ func GetTopStats(ctx context.Context, db *sql.DB, count int) ([]StatsRow, error)
 }
 
 func updateStat(ctx context.Context, tx *sql.Tx, stats StatsRow) error {
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		"UPDATE stats SET elo = ?, won = ?, lost = ?, drawn = ? WHERE player_id = ?;",
 		stats.Elo,
 		stats.Won,
@@ -161,20 +161,23 @@ func (s StatsResult) FormatLoserEloDiff() string {
 func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
+	fail := func(err error) (StatsResult, error) {
+		return StatsResult{}, err
+	}
+
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		slog.Error("failed to open update stats tx", "trace", trace, "err", err)
-		return StatsResult{}, err
+		return fail(fmt.Errorf("failed to open update stats tx: %s", err))
 	}
 	defer tx.Rollback()
 
 	winner, err := GetOrInsertStats(ctx, tx, gr.Winner.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get winner stats: %s", err)
+		return fail(fmt.Errorf("failed to get winner stats: %s", err))
 	}
 	loser, err := GetOrInsertStats(ctx, tx, gr.Loser.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get loser stats: %s", err)
+		return fail(fmt.Errorf("failed to get loser stats: %s", err))
 	}
 
 	if gr.IsDraw || gr.Winner.ID == gr.Loser.ID {
@@ -189,15 +192,14 @@ func UpdateStats(ctx context.Context, db *sql.DB, gr GameResult) (StatsResult, e
 	loser.Lost++
 
 	if err := updateStat(ctx, tx, winner); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update winner stat: %s", err)
+		return fail(fmt.Errorf("failed to update winner stat: %s", err))
 	}
 	if err := updateStat(ctx, tx, loser); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update loser stat: %s", err)
+		return fail(fmt.Errorf("failed to update loser stat: %s", err))
 	}
 
 	if err := tx.Commit(); err != nil {
-		slog.Error("failed to commit update stats tx", "trace", trace, "err", err)
-		return StatsResult{}, err
+		return fail(fmt.Errorf("failed to commit update stats tx: %s", err))
 	}
 
 	winDiff := winner.Elo - winBefore

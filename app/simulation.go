@@ -2,7 +2,7 @@ package app
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"log/slog"
 	"slices"
 	"time"
@@ -67,7 +67,7 @@ func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame Othello
 		if len(resp.Moves) >= 1 {
 			move = resp.Moves[0]
 			if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
-				panic(fmt.Sprintf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF()))
+				log.Fatalf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF())
 			}
 
 			game.MakeMove(move.Tile)
