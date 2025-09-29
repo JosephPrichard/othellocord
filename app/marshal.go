@@ -7,16 +7,22 @@ import (
 	"strings"
 )
 
-func UnmarshalMoveList(moveListStr string) ([]Tile, error) {
-	var moveList []Tile
+func UnmarshalMoveList(moveListStr string) ([]Move, error) {
+	var moveList []Move
 
 	isSplit := func(r rune) bool {
 		return r == ','
 	}
 	for tileMove := range strings.FieldsFuncSeq(moveListStr, isSplit) {
-		move, err := ParseTileSafe(tileMove)
-		if err != nil {
-			return nil, err
+		var move Move
+		if tileMove == "PA" {
+			move = Move{Pass: true}
+		} else {
+			tile, err := ParseTileSafe(tileMove)
+			if err != nil {
+				return nil, err
+			}
+			move = Move{Tile: tile}
 		}
 		moveList = append(moveList, move)
 	}
@@ -24,7 +30,7 @@ func UnmarshalMoveList(moveListStr string) ([]Tile, error) {
 	return moveList, nil
 }
 
-func MarshalMoveList(moveList []Tile) string {
+func MarshalMoveList(moveList []Move) string {
 	var sb strings.Builder
 
 	for _, move := range moveList {

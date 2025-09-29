@@ -68,7 +68,7 @@ var Commands = []*discordgo.ApplicationCommand{
 			{
 				Type:         discordgo.ApplicationCommandOptionString,
 				Name:         "move",
-				Description:  "Move to make on the OthelloBoard",
+				Description:  "ColorMove to make on the OthelloBoard",
 				Required:     true,
 				Autocomplete: true,
 			},
@@ -129,5 +129,9 @@ var Commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "leaderboard",
 		Description: "Retrieves the highest rated players by ELO",
+	},
+	{
+		Name:        "ggf",
+		Description: "Retrieves the game state in GGF format",
 	},
 }

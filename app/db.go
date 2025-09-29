@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"os"
 )
@@ -28,17 +29,13 @@ var CreateTable = `
 		expire_time INTEGER NOT NULL,
 		PRIMARY KEY (id)
 	);
-	CREATE TABLE IF NOT EXISTS bot_tasks (
-	 	game_id TEXT NOT NULL,
-	 	channel_id TEXT NOT NULL,
-	    push_time INTEGER NOT NULL
-    );
 
-	CREATE INDEX idx_stats_elo ON stats(elo);
-	CREATE INDEX idx_games_expire_time ON games(expire_time);
-	CREATE INDEX idx_game_id ON bot_tasks(game_id);
-	CREATE INDEX idx_push_time ON bot_tasks(push_time);
+	CREATE INDEX IF NOT EXISTS idx_stats_elo ON stats(elo);
+	CREATE INDEX IF NOT EXISTS idx_games_expire_time ON games(expire_time);
+	CREATE INDEX IF NOT EXISTS idx_games_player_ids ON games(white_id, black_id);
 	`
+
+var ErrExpectedOneRow = errors.New("expected at least one row")
 
 type Query interface {
 	Query(query string, args ...any) (*sql.Rows, error)

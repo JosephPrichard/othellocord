@@ -47,12 +47,11 @@ func main() {
 
 	go sh.ListenRequests()
 	go app.ExpireGamesCron(db)
-	taskCh := app.PollQueue(db, sh, HandleBotMove)
 
 	state := app.State{
 		Db:             db,
+		Dg:             dg,
 		Sh:             sh,
-		TaskCh:         taskCh,
 		Renderer:       app.MakeRenderCache(),
 		ChallengeCache: app.MakeChallengeCache(),
 		UserCache:      app.MakeUserCache(dg),

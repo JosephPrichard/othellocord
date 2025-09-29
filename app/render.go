@@ -30,8 +30,6 @@ const (
 
 var (
 	GreenBg      = color.RGBA{R: 88, G: 184, B: 91, A: 255}
-	WoodBg       = color.RGBA{R: 213, G: 176, B: 124, A: 255}
-	GreyBg       = color.RGBA{R: 128, G: 128, B: 128, A: 255}
 	BlackBg      = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	CyanBg       = color.RGBA{R: 0, G: 255, B: 255, A: 255}
 	YellowBg     = color.RGBA{R: 255, G: 255, B: 0, A: 255}

@@ -20,28 +20,28 @@ func sortTiles(tiles []Tile) {
 	})
 }
 
-var TestMoves = []Move{
-	{Notation: "f1", color: White},
-	{Notation: "d2", color: White},
-	{Notation: "e2", color: White},
-	{Notation: "c3", color: Black},
-	{Notation: "d3", color: White},
-	{Notation: "e3", color: Black},
-	{Notation: "a4", color: Black},
-	{Notation: "b4", color: Black},
-	{Notation: "c4", color: Black},
-	{Notation: "d4", color: White},
-	{Notation: "e4", color: Black},
-	{Notation: "d5", color: White},
-	{Notation: "e5", color: Black},
-	{Notation: "f5", color: Black},
-	{Notation: "e6", color: Black},
-	{Notation: "e7", color: Black},
+var TestMoves = []ColorMove{
+	{Notation: "f1", Color: White},
+	{Notation: "d2", Color: White},
+	{Notation: "e2", Color: White},
+	{Notation: "c3", Color: Black},
+	{Notation: "d3", Color: White},
+	{Notation: "e3", Color: Black},
+	{Notation: "a4", Color: Black},
+	{Notation: "b4", Color: Black},
+	{Notation: "c4", Color: Black},
+	{Notation: "d4", Color: White},
+	{Notation: "e4", Color: Black},
+	{Notation: "d5", Color: White},
+	{Notation: "e5", Color: Black},
+	{Notation: "f5", Color: Black},
+	{Notation: "e6", Color: Black},
+	{Notation: "e7", Color: Black},
 }
 
 func TestBoard_FindCurrentMoves(t *testing.T) {
 	type Test struct {
-		moves    []Move
+		moves    []ColorMove
 		expMoves []string
 	}
 
@@ -49,7 +49,7 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 
 	tests := []Test{
 		{
-			moves:    []Move{},
+			moves:    []ColorMove{},
 			expMoves: []string{"c4", "d3", "e6", "f5"},
 		},
 		{
@@ -80,18 +80,18 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 
 func TestBoard_MakeMoved(t *testing.T) {
 	type Test struct {
-		preMoves  []Move
+		preMoves  []ColorMove
 		move      Tile
-		postMoves []Move
+		postMoves []ColorMove
 	}
 	tests := []Test{
 		{
 			preMoves: TestMoves,
 			move:     ParseTile("c5"),
-			postMoves: []Move{
-				{Notation: "c5", color: Black},
-				{Notation: "d4", color: Black},
-				{Notation: "d5", color: Black},
+			postMoves: []ColorMove{
+				{Notation: "c5", Color: Black},
+				{Notation: "d4", Color: Black},
+				{Notation: "d5", Color: Black},
 			},
 		},
 	}

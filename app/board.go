@@ -56,7 +56,7 @@ func ParseTileSafe(s string) (Tile, error) {
 func ParseTile(s string) Tile {
 	tile, err := ParseTileSafe(s)
 	if err != nil {
-		log.Fatalf("failed to parse Notation %s: %v", s, err)
+		log.Fatalf("failed to parse notation %s: %v", s, err)
 	}
 	return tile
 }
@@ -109,13 +109,13 @@ func InitialBoard() OthelloBoard {
 	return b
 }
 
-func RandomBoard(count int) (OthelloBoard, []Tile) {
+func RandomBoard(count int) (OthelloBoard, []Move) {
 	if count > 60 {
 		count = 60
 	}
 
 	b := InitialBoard()
-	var moves []Tile
+	var moves []Move
 
 	s := rand.NewPCG(42, 1024)
 	r := rand.New(s)
@@ -126,9 +126,9 @@ func RandomBoard(count int) (OthelloBoard, []Tile) {
 			break
 		}
 		i := r.Int() % len(tiles)
-		move := tiles[i]
-		b.MakeMove(move)
-		moves = append(moves, move)
+		tile := tiles[i]
+		b.MakeMove(tile)
+		moves = append(moves, Move{Tile: tile})
 	}
 
 	return b, moves
@@ -290,15 +290,15 @@ func (b *OthelloBoard) MakeMove(move Tile) {
 	b.IsBlackMove = !b.IsBlackMove
 }
 
-type Move struct {
+type ColorMove struct {
 	Notation string
-	color    byte
+	Color    byte
 }
 
-func (b *OthelloBoard) SetSquareByNotation(move Move) OthelloBoard {
+func (b *OthelloBoard) SetSquareByNotation(move ColorMove) OthelloBoard {
 	tile := ParseTile(move.Notation)
 	b2 := *b
-	b2.SetSquare(tile.Row, tile.Col, move.color)
+	b2.SetSquare(tile.Row, tile.Col, move.Color)
 	return b2
 }
 

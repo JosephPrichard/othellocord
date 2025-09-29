@@ -22,17 +22,17 @@ func TestGame_MarshalGGF(t *testing.T) {
 func TestGame_UnmarshalStrings(t *testing.T) {
 	type Test struct {
 		MoveListStr string
-		MoveList    []Tile
+		MoveList    []Move
 	}
 
 	tests := []Test{
 		{
 			MoveListStr: "a1,a2,a3,a4",
-			MoveList:    []Tile{{Row: 0, Col: 0}, {Row: 1, Col: 0}, {Row: 2, Col: 0}, {Row: 3, Col: 0}},
+			MoveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}, {Tile: Tile{Row: 1, Col: 0}}, {Tile: Tile{Row: 2, Col: 0}}, {Tile: Tile{Row: 3, Col: 0}}},
 		},
 		{
 			MoveListStr: "a1,",
-			MoveList:    []Tile{{}},
+			MoveList:    []Move{{}},
 		},
 		{
 			MoveListStr: "",

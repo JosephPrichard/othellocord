@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/llgcode/draw2d/draw2dimg"
+	"log"
 	"log/slog"
 	"os"
 	"othellocord/app"
@@ -27,7 +28,7 @@ func main() {
 		slog.Error("failed to remove file", "err", err)
 	}
 	if err := draw2dimg.SaveToPngFile(pathBoard, imgBoard); err != nil {
-		panic(err)
+		log.Fatalf("failed to save png file: %v", err)
 	}
 
 	imgDisc := app.DrawDisc(app.WhiteFill, 1)
@@ -36,6 +37,6 @@ func main() {
 		slog.Error("failed to remove file", "err", err)
 	}
 	if err := draw2dimg.SaveToPngFile(pathDisc, imgDisc); err != nil {
-		panic(err)
+		log.Fatalf("failed to save png file: %v", err)
 	}
 }

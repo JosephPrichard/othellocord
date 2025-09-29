@@ -20,17 +20,22 @@ func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.Applica
 }
 
 func getPlayerOpt(ctx context.Context, uc *UserCache, options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Player, error) {
+	var option *discordgo.ApplicationCommandInteractionDataOption
 	for _, opt := range options {
-		if opt.Name != name {
-			continue
+		if opt.Name == name {
+			option = opt
+			break
 		}
-		opponent, err := uc.GetPlayer(ctx, opt.Value.(string))
-		if err != nil {
-			return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
-		}
-		return opponent, nil
+
 	}
-	return Player{}, OptionError{Name: name}
+	if option == nil {
+		return Player{}, OptionError{Name: name}
+	}
+	opponent, err := uc.GetPlayer(ctx, option.Value.(string))
+	if err != nil {
+		return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
+	}
+	return opponent, nil
 }
 
 const DefaultLevel = 3

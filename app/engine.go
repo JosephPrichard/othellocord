@@ -7,6 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 )
@@ -27,7 +28,7 @@ type MoveReq struct {
 
 type MoveResp struct {
 	Moves []RankTile
-	Ok    bool
+	Err   error
 }
 
 type NTestShell struct {
@@ -185,7 +186,7 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 		if strings.HasPrefix(line, "search") || strings.HasPrefix(line, "book") {
 			tokens := strings.Fields(line)
 			if len(tokens) < 3 {
-				errs = append(errs, fmt.Errorf(""))
+				errs = append(errs, fmt.Errorf("expected line to contain at least 3 token, got: %s", line))
 				continue
 			}
 			tile, err := ParseRankTile(tokens[1], tokens[2])
@@ -265,17 +266,13 @@ func (sh *NTestShell) ListenRequests() {
 			if err != nil {
 				slog.Error("failed to find best tile", "err", err)
 			}
-			var resp MoveResp // err no moves means the move response is empty - no moves but no err either
-			if !errors.Is(err, ErrNoMoves) {
-				resp = MoveResp{Moves: []RankTile{move}, Ok: err == nil}
-			}
-			req.RespCh <- resp
+			req.RespCh <- MoveResp{Moves: []RankTile{move}, Err: err}
 		case RankMovesKind:
 			moves, err := sh.findRankedMoves(req.Game, req.Depth)
 			if err != nil {
 				slog.Error("failed to find ranked tiles", "err", err)
 			}
-			req.RespCh <- MoveResp{Moves: moves, Ok: err == nil}
+			req.RespCh <- MoveResp{Moves: moves, Err: err}
 		default:
 			log.Fatalf("invalid move request Kind: %d", req.Kind)
 		}
@@ -293,4 +290,27 @@ func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth uint64) chan MoveR
 	ch := make(chan MoveResp, 1)
 	sh.moveReqCh <- MoveReq{Kind: RankMovesKind, Game: game, Depth: depth, RespCh: ch}
 	return ch
+}
+
+func (resp MoveResp) assertValidMove(game OthelloGame) RankTile {
+	if len(resp.Moves) == 0 {
+		log.Fatalf("engine produced no moves for best move request for game: %s", game.MarshalGGF())
+	}
+	move := resp.Moves[0]
+	if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
+		log.Fatalf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF())
+	}
+	return move
+}
+
+func (resp MoveResp) assertValidMoves(game OthelloGame) {
+	var tileMap [BoardSize][BoardSize]bool
+	for _, tile := range resp.Moves {
+		tileMap[tile.Row][tile.Col] = true
+	}
+	for _, tile := range game.Board.FindCurrentMoves() {
+		if !tileMap[tile.Row][tile.Col] {
+			log.Fatalf("engine produced illegal tiles: %s for game: %s", resp.Moves, game.MarshalGGF())
+		}
+	}
 }

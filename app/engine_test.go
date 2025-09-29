@@ -90,7 +90,7 @@ func TestNTestShell_FindRankedMoves(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, len(test.game.Board.FindCurrentMoves()), len(moves))
 			case <-timer.C:
-				t.Fatalf("ntest find ranked moveList test has timed out")
+				t.Fatalf("ntest find ranked moves test has timed out")
 			}
 		})
 	}

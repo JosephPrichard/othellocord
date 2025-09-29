@@ -47,7 +47,7 @@ func setupStatsTest(t *testing.T) (*sql.DB, func()) {
 		},
 		{
 			PlayerID: "id7",
-			Elo:      1500,
+			Elo:      1250,
 			Won:      5,
 			Lost:     2,
 			Drawn:    0,
@@ -112,7 +112,7 @@ func TestGetTopStats(t *testing.T) {
 				{Player: Player{ID: "id2", Name: "Player2"}, Elo: 1600, Won: 2, Lost: 4, Drawn: 1},
 				{Player: MakeBotPlayer(3), Elo: 1550, Won: 5, Lost: 2, Drawn: 0},
 				{Player: Player{ID: "id6", Name: "Player6"}, Elo: 1500, Won: 2, Lost: 4, Drawn: 1},
-				{Player: Player{ID: "id7", Name: "Player7"}, Elo: 1500, Won: 5, Lost: 2, Drawn: 0},
+				{Player: Player{ID: "id7", Name: "Player7"}, Elo: 1250, Won: 5, Lost: 2, Drawn: 0},
 			},
 		},
 	}
@@ -151,10 +151,17 @@ func TestUpdateStats(t *testing.T) {
 		},
 		{
 			gr:            GameResult{Winner: Player{ID: "id6"}, Loser: Player{ID: "id7"}, IsDraw: false},
-			expSr:         StatsResult{WinnerElo: 1515, LoserElo: 1486, WinDiff: 15, LoseDiff: -14},
-			expWinStats:   StatsRow{PlayerID: "id6", Elo: 1515, Won: 3, Drawn: 1, Lost: 4},
-			expLoserStats: StatsRow{PlayerID: "id7", Elo: 1486, Won: 5, Drawn: 0, Lost: 3},
+			expSr:         StatsResult{WinnerElo: 1506, LoserElo: 1244, WinDiff: 6, LoseDiff: -6},
+			expWinStats:   StatsRow{PlayerID: "id6", Elo: 1506, Won: 3, Drawn: 1, Lost: 4},
+			expLoserStats: StatsRow{PlayerID: "id7", Elo: 1244, Won: 5, Drawn: 0, Lost: 3},
 		},
+	}
+
+	roundElo := func(sr *StatsResult) {
+		sr.WinnerElo = math.Round(sr.WinnerElo)
+		sr.WinDiff = math.Round(sr.WinDiff)
+		sr.LoserElo = math.Round(sr.LoserElo)
+		sr.LoseDiff = math.Round(sr.LoseDiff)
 	}
 
 	for i, test := range tests {
@@ -166,23 +173,22 @@ func TestUpdateStats(t *testing.T) {
 				t.Fatalf("failed to update stats: %v", err)
 			}
 
-			sr.LoserElo = math.Round(sr.LoserElo)
-			sr.LoseDiff = math.Round(sr.LoseDiff)
+			roundElo(&sr)
 			assert.Equal(t, test.expSr, sr)
 
-			winnerStats, err := GetOrInsertStats(ctx, db, test.gr.Winner.ID)
+			ws, err := GetOrInsertStats(ctx, db, test.gr.Winner.ID)
 			if err != nil {
-				t.Fatalf("failed to insert winner stats: %v", err)
+				t.Fatalf("failed to get or insert winner stats: %v", err)
 			}
-			loserStats, err := GetOrInsertStats(ctx, db, test.gr.Loser.ID)
+			ls, err := GetOrInsertStats(ctx, db, test.gr.Loser.ID)
 			if err != nil {
-				t.Fatalf("failed to insert loser stats: %v", err)
+				t.Fatalf("failed to get or insert loser stats: %v", err)
 			}
-			winnerStats.Elo = math.Round(winnerStats.Elo)
-			loserStats.Elo = math.Round(loserStats.Elo)
+			ws.Elo = math.Round(ws.Elo)
+			ls.Elo = math.Round(ls.Elo)
 
-			assert.Equal(t, test.expWinStats, winnerStats)
-			assert.Equal(t, test.expLoserStats, loserStats)
+			assert.Equal(t, test.expWinStats, ws)
+			assert.Equal(t, test.expLoserStats, ls)
 		})
 	}
 }

@@ -2,9 +2,7 @@ package app
 
 import (
 	"context"
-	"log"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/jellydator/ttlcache/v3"
@@ -50,33 +48,26 @@ func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame Othello
 	var move RankTile
 
 	for i := 0; ; i++ {
-		respCh := sh.FindBestMove(game, game.CurrentPlayer().LevelToDepth())
-		var resp MoveResp
+		if game.HasMoves() {
+			respCh := sh.FindBestMove(game, game.CurrentPlayer().LevelToDepth())
+			var resp MoveResp
 
-		select {
-		case resp = <-respCh:
-		case <-ctx.Done():
-			slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
-			return
-		}
-
-		if !resp.Ok {
-			simChan <- SimStep{Ok: false}
-			return
-		}
-		if len(resp.Moves) >= 1 {
-			move = resp.Moves[0]
-			if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
-				log.Fatalf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF())
+			select {
+			case resp = <-respCh:
+			case <-ctx.Done():
+				slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
+				return
+			}
+			if resp.Err != nil {
+				simChan <- SimStep{Ok: false}
+				return
 			}
 
+			move = resp.assertValidMove(game)
 			game.MakeMove(move.Tile)
-			game.TrySkipTurn()
-
 			simChan <- SimStep{Game: game, Move: move.Tile, Ok: true}
 		} else {
-			slog.Info("finished simulation", "trace", trace, "moves", resp.Moves, "move", move)
-
+			slog.Info("finished simulation", "trace", trace, "move", move)
 			simChan <- SimStep{Game: game, Move: move.Tile, Finished: true, Ok: true}
 			return
 		}
