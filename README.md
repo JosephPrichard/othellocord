@@ -20,6 +20,9 @@ DISCORD_APP_ID=<your-bots-api-key>
 NTEST_PATH=C:\Program Files (x86)\Welty\NBoard\NTest.exe
 ```
 
+Run the Tests
+`$env:NTEST_PATH="C:\Program Files (x86)\Welty\NBoard\NTest.exe"; go test ./...`
+
 Run the Program
 `go run cmd/bot/main.go`
 
