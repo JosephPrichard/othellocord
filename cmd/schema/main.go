@@ -15,7 +15,7 @@ func main() {
 	defer func() {
 		_ = db.Close()
 	}()
-	if _, err := db.Exec(app.CreateTable); err != nil {
+	if _, err := db.Exec(app.CreateSchema); err != nil {
 		log.Fatalf("failed to create schema: %v", err)
 	}
 }

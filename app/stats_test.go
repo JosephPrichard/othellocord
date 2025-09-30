@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"math"
 	"testing"
 
@@ -11,7 +11,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func setupStatsTest(t *testing.T) (*sql.DB, func()) {
+func setupStatsTest(t *testing.T) (*sqlx.DB, func()) {
 	db, cleanup := createTestDB()
 
 	ctx := context.WithValue(context.Background(), TraceKey, "seed-insert-stats")

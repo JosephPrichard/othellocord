@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"math"
 	"testing"
 	"time"
@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupGamesTest(t *testing.T) (*sql.DB, func()) {
+func setupGamesTest(t *testing.T) (*sqlx.DB, func()) {
 	db, cleanup := createTestDB()
 	ctx := context.WithValue(context.Background(), TraceKey, "seed-insert-games")
 

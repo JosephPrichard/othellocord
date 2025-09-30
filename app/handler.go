@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"image"
 	"log/slog"
 	"time"
@@ -15,7 +15,7 @@ import (
 
 type State struct {
 	Dg             *discordgo.Session
-	Db             *sql.DB
+	Db             *sqlx.DB
 	Sh             *NTestShell
 	Renderer       Renderer
 	UserCache      UserCache
