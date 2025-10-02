@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"image"
+	"log"
 	"log/slog"
 	"time"
 
@@ -21,6 +22,27 @@ type State struct {
 	UserCache      UserCache
 	ChallengeCache ChallengeCache
 	SimCache       SimCache
+}
+
+func MakeState(db *sqlx.DB, dg *discordgo.Session, sh *NTestShell) State {
+	if db == nil {
+		log.Fatalf("db must be non nil")
+	}
+	if dg == nil {
+		log.Fatalf("discord session must be non nil")
+	}
+	if sh == nil {
+		log.Fatalf("ntest shell must be non nil")
+	}
+	return State{
+		Db:             db,
+		Dg:             dg,
+		Sh:             sh,
+		Renderer:       MakeRenderCache(),
+		ChallengeCache: MakeChallengeCache(),
+		UserCache:      MakeUserCache(dg),
+		SimCache:       MakeSimCache(),
+	}
 }
 
 var ErrUserNotProvided = errors.New("user not provided")
@@ -411,7 +433,7 @@ func HandleSimulate(ctx context.Context, state *State, ic *discordgo.Interaction
 	initialGame := OthelloGame{
 		WhitePlayer: MakeBotPlayer(whiteLevel),
 		BlackPlayer: MakeBotPlayer(blackLevel),
-		Board:       InitialBoard(),
+		Board:       MakeInitialBoard(),
 	}
 	embed := createSimulationStartEmbed(initialGame)
 	img := state.Renderer.DrawBoard(initialGame.Board)

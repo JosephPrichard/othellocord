@@ -15,7 +15,7 @@ import (
 	"strconv"
 )
 
-//go:embed fonts/Courier.ttf
+//go:embed Courier.ttf
 var TtfFont []byte
 
 const (

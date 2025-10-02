@@ -116,15 +116,17 @@ type GameRow struct {
 func mapGameRow(row GameRow) (OthelloGame, error) {
 	game := OthelloGame{ID: row.ID, WhitePlayer: MakePlayer(row.WhiteID, row.WhiteName), BlackPlayer: MakePlayer(row.BlackID, row.BlackName)}
 
-	if err := game.Board.UnmarshalString(row.BoardStr); err != nil {
+	board, err := UnmarshalBoard(row.BoardStr)
+	if err != nil {
 		return OthelloGame{}, err
 	}
 	moveList, err := UnmarshalMoveList(row.MoveListStr)
 	if err != nil {
 		return OthelloGame{}, err
 	}
-	game.MoveList = moveList
 
+	game.Board = board
+	game.MoveList = moveList
 	return game, nil
 }
 
@@ -253,7 +255,7 @@ func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePla
 		return OthelloGame{}, err
 	}
 
-	game := OthelloGame{ID: uuid.NewString(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: InitialBoard()}
+	game := OthelloGame{ID: uuid.NewString(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: MakeInitialBoard()}
 	var player2Id *string
 	if whitePlayer.IsHuman() {
 		player2Id = &whitePlayer.ID

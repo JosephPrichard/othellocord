@@ -25,7 +25,7 @@ func setupShell(t *testing.T) *NTestShell {
 }
 
 func TestNTestShell_FindBestMove(t *testing.T) {
-	game := OthelloGame{WhitePlayer: MakePlayer("id1", "name1"), BlackPlayer: MakePlayer("id2", "name2"), Board: InitialBoard()}
+	game := OthelloGame{WhitePlayer: MakePlayer("id1", "name1"), BlackPlayer: MakePlayer("id2", "name2"), Board: MakeInitialBoard()}
 	t.Logf("find best move test board:\n%s", game.Board.String())
 
 	var err error
@@ -50,7 +50,7 @@ func TestNTestShell_FindBestMove(t *testing.T) {
 
 func TestNTestShell_FindRankedMoves(t *testing.T) {
 	// we need to run this twice to account for 'search' and 'book' lines
-	cnstBoard := InitialBoard()
+	cnstBoard := MakeInitialBoard()
 	rndBoard, moveList := RandomBoard(50)
 
 	player1 := MakePlayer("id1", "name1")

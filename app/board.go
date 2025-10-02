@@ -99,7 +99,9 @@ type OthelloBoard struct {
 	boardB      uint64
 }
 
-func InitialBoard() OthelloBoard {
+var InitialBoard = MakeInitialBoard()
+
+func MakeInitialBoard() OthelloBoard {
 	var b OthelloBoard
 	b.IsBlackMove = true
 	b.SetSquare(BoardSize/2-1, BoardSize/2-1, White)
@@ -114,7 +116,7 @@ func RandomBoard(count int) (OthelloBoard, []Move) {
 		count = 60
 	}
 
-	b := InitialBoard()
+	b := MakeInitialBoard()
 	var moves []Move
 
 	s := rand.NewPCG(42, 1024)
@@ -362,14 +364,11 @@ func (b *OthelloBoard) String() string {
 		sb.WriteString(" ")
 		for col := 0; col < BoardSize; col++ {
 			str := "."
-			t := b.GetSquare(row, col)
-			if t != Empty {
-				switch t {
-				case White:
-					str = "w"
-				case Black:
-					str = "b"
-				}
+			switch b.GetSquare(row, col) {
+			case White:
+				str = "w"
+			case Black:
+				str = "b"
 			}
 			sb.WriteString(str)
 			sb.WriteString(" ")
@@ -377,4 +376,132 @@ func (b *OthelloBoard) String() string {
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+func UnmarshalMoveList(moveListStr string) ([]Move, error) {
+	var moveList []Move
+
+	isSplit := func(r rune) bool {
+		return r == ','
+	}
+	for tileMove := range strings.FieldsFuncSeq(moveListStr, isSplit) {
+		var move Move
+		if tileMove == "PA" {
+			move = Move{Pass: true}
+		} else {
+			tile, err := ParseTileSafe(tileMove)
+			if err != nil {
+				return nil, err
+			}
+			move = Move{Tile: tile}
+		}
+		moveList = append(moveList, move)
+	}
+
+	return moveList, nil
+}
+
+func MarshalMoveList(moveList []Move) string {
+	var sb strings.Builder
+
+	for _, move := range moveList {
+		sb.WriteString(move.String())
+		sb.WriteRune(',')
+	}
+
+	return sb.String()
+}
+
+func (b *OthelloBoard) MarshalString() string {
+	var sb strings.Builder
+
+	if b.IsBlackMove {
+		sb.WriteString("b")
+	} else {
+		sb.WriteString("w")
+	}
+	sb.WriteString("+")
+
+	emptyCount := 0
+
+	writeEmpty := func() {
+		if emptyCount > 0 {
+			sb.WriteString(strconv.Itoa(emptyCount))
+		}
+		emptyCount = 0
+	}
+
+	for row := 0; row < BoardSize; row++ {
+		for col := 0; col < BoardSize; col++ {
+			t := b.GetSquare(row, col)
+			switch t {
+			case Empty:
+				emptyCount++
+			case Black:
+				writeEmpty()
+				sb.WriteRune('b')
+			case White:
+				writeEmpty()
+				sb.WriteRune('w')
+			}
+		}
+	}
+	writeEmpty()
+
+	return sb.String()
+}
+
+var ErrBoardUnmarshal = errors.New("failed to unmarshal board from string")
+
+func UnmarshalBoard(str string) (OthelloBoard, error) {
+	var b OthelloBoard
+	tileIndex := 0
+	for strIndex := 0; strIndex < len(str); {
+		ch := str[strIndex]
+		switch strIndex {
+		case 0:
+			switch ch {
+			case 'b':
+				b.IsBlackMove = true
+			case 'w':
+				b.IsBlackMove = false
+			default:
+				return b, ErrBoardUnmarshal
+			}
+			strIndex++
+		case 1:
+			if ch != '+' {
+				return b, ErrBoardUnmarshal
+			}
+			strIndex++
+		default:
+			row := tileIndex / BoardSize
+			col := tileIndex % BoardSize
+			switch ch {
+			case 'b':
+				b.SetSquare(row, col, Black)
+				tileIndex++
+				strIndex++
+			case 'w':
+				b.SetSquare(row, col, White)
+				tileIndex++
+				strIndex++
+			default:
+				firstIndex := strIndex
+				for ; strIndex < len(str); strIndex++ {
+					ch := str[strIndex]
+					if ch == 'w' || ch == 'b' {
+						break
+					}
+				}
+				numStr := str[firstIndex:strIndex]
+				num, err := strconv.Atoi(numStr)
+				if err != nil {
+					return b, ErrBoardUnmarshal
+				}
+				tileIndex += num
+			}
+		}
+	}
+	return b, nil
 }

@@ -55,7 +55,7 @@ func setupStatsTest(t *testing.T) (*sqlx.DB, func()) {
 	}
 
 	for _, row := range rows {
-		if _, err := GetOrInsertStatsDefault(ctx, db, row); err != nil {
+		if _, err := GetStatsDefault(ctx, db, row); err != nil {
 			t.Fatal("failed to insert stats:", err)
 		}
 	}
@@ -176,11 +176,11 @@ func TestUpdateStats(t *testing.T) {
 			roundElo(&sr)
 			assert.Equal(t, test.expSr, sr)
 
-			ws, err := GetOrInsertStats(ctx, db, test.gr.Winner.ID)
+			ws, err := GetStats(ctx, db, test.gr.Winner.ID)
 			if err != nil {
 				t.Fatalf("failed to get or insert winner stats: %v", err)
 			}
-			ls, err := GetOrInsertStats(ctx, db, test.gr.Loser.ID)
+			ls, err := GetStats(ctx, db, test.gr.Loser.ID)
 			if err != nil {
 				t.Fatalf("failed to get or insert loser stats: %v", err)
 			}

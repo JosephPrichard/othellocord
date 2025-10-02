@@ -48,16 +48,7 @@ func main() {
 	go sh.ListenRequests()
 	go app.ExpireGamesCron(db)
 
-	state := app.State{
-		Db:             db,
-		Dg:             dg,
-		Sh:             sh,
-		Renderer:       app.MakeRenderCache(),
-		ChallengeCache: app.MakeChallengeCache(),
-		UserCache:      app.MakeUserCache(dg),
-		SimCache:       app.MakeSimCache(),
-	}
-
+	state := app.MakeState(db, dg, sh)
 	dg.AddHandler(state.HandeInteractionCreate)
 
 	signalChan := make(chan os.Signal, 1)

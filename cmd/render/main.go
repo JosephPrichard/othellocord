@@ -12,7 +12,7 @@ const pathBoard = "test_board.png"
 const pathDisc = "test_disc.png"
 
 func main() {
-	board := app.InitialBoard()
+	board := app.MakeInitialBoard()
 	tiles := board.FindCurrentMoves()
 
 	var moves []app.RankTile
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	rc := app.MakeRenderCache()
-	imgBoard := rc.DrawBoardAnalysis(app.InitialBoard(), moves)
+	imgBoard := rc.DrawBoardAnalysis(app.MakeInitialBoard(), moves)
 
 	if err := os.Remove(pathBoard); err != nil {
 		slog.Error("failed to remove file", "err", err)
