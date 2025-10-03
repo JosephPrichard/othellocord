@@ -81,8 +81,6 @@ func (state *State) HandeInteractionCreate(_ *discordgo.Session, ic *discordgo.I
 			HandleStats(ctx, state, ic)
 		case "leaderboard":
 			HandleLeaderboard(ctx, state, ic)
-		case "ggf":
-			HandleGGF(ctx, state, ic)
 		}
 	case discordgo.InteractionMessageComponent:
 		msg := ic.MessageComponentData()
@@ -512,15 +510,6 @@ func HandleLeaderboard(ctx context.Context, state *State, ic *discordgo.Interact
 
 	embed := createLeaderboardEmbed(stats)
 	interactionRespond(state.Dg, ic.Interaction, createEmbedResponse(embed, nil))
-}
-
-func HandleGGF(ctx context.Context, state *State, ic *discordgo.InteractionCreate) {
-	game, _, ok := handleGetGame(ctx, state, ic)
-	if !ok {
-		return
-	}
-	ggf := fmt.Sprintf("```%s```", game.MarshalGGF())
-	interactionRespond(state.Dg, ic.Interaction, createStringResponse(ggf))
 }
 
 func HandlePauseComponent(state *State, ic *discordgo.InteractionCreate, simulationID string) {

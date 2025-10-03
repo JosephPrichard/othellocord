@@ -194,7 +194,7 @@ func calcEloLost(rating, probability float64) float64 {
 func ReadStats(ctx context.Context, db *sqlx.DB, uc UserCacheApi, playerID string) (Stats, error) {
 	row, err := GetStats(ctx, db, playerID)
 	if err != nil {
-		return Stats{}, fmt.Errorf("failed to read row: %w", err)
+		return Stats{}, fmt.Errorf("failed to next row: %w", err)
 	}
 	stats := MapStats(row)
 
@@ -211,7 +211,7 @@ func ReadTopStats(ctx context.Context, db *sqlx.DB, uc UserCacheApi, count int) 
 
 	rowList, err := GetTopStats(ctx, db, count)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read top stats: %w", err)
+		return nil, fmt.Errorf("failed to next top stats: %w", err)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)

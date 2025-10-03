@@ -63,7 +63,7 @@ func TestNTestShell_FindRankedMoves(t *testing.T) {
 	tests := []Test{
 		// this will get 'book' or 'search' depending on whether this is the first run or not
 		{game: OthelloGame{WhitePlayer: player1, BlackPlayer: player2, Board: cnstBoard}},
-		// this will get 'book' because the previous search haas the same board
+		// this will get 'book' because the previous search has the same board
 		{game: OthelloGame{WhitePlayer: player1, BlackPlayer: player2, Board: cnstBoard}},
 		// this will get 'search' always since the board is cryptographically so random there is *ZERO* chance it could be in the book
 		{game: OthelloGame{WhitePlayer: player1, BlackPlayer: player2, Board: rndBoard, MoveList: moveList}},

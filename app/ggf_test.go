@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -17,30 +16,4 @@ func TestGame_MarshalGGF(t *testing.T) {
 	str := game.MarshalGGF()
 
 	assert.Equal(t, str, "(;GM[Othello]PB[Player2]PW[Player1]TY[8]BO[8 ---------------------------O*------*O--------------------------- *]B[A1]W[A2]B[B1]W[B2];)")
-}
-
-func TestGame_UnmarshalGGF(t *testing.T) {
-	type Test struct {
-		input   string
-		expGame OthelloGame
-		hasErr  bool
-	}
-	tests := []Test{
-		{
-			input:   "(;GM[Othello]PB[Player2]PW[Player1]TY[8]BO[8 ---------------------------O*------*O--------------------------- *]B[A1]W[A2]B[B1]W[B2];)",
-			expGame: OthelloGame{},
-			hasErr:  true,
-		},
-	}
-
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			game, err := UnmarshalGGF(test.input)
-			if test.hasErr {
-				assert.NotNil(t, err)
-			} else {
-				assert.Equal(t, test.expGame, game)
-			}
-		})
-	}
 }

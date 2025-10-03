@@ -84,12 +84,12 @@ func TestReadStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-read-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-next-stats")
 
 			uc := MakeUserCache(&MockUserFetcher{})
 			stats, err := ReadStats(ctx, db, &uc, test.playerID)
 			if err != nil {
-				t.Fatalf("failed to read stats: %v", err)
+				t.Fatalf("failed to next stats: %v", err)
 			}
 			assert.Equal(t, test.expStats, stats)
 		})
@@ -119,12 +119,12 @@ func TestGetTopStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-read-top-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
 
 			uc := MakeUserCache(&MockUserFetcher{})
 			stats, err := ReadTopStats(ctx, db, &uc, 20)
 			if err != nil {
-				t.Fatalf("failed to read stats: %v", err)
+				t.Fatalf("failed to next stats: %v", err)
 			}
 
 			assert.Equal(t, test.expStats, stats)
@@ -166,7 +166,7 @@ func TestUpdateStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-read-top-stats")
+			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
 
 			sr, err := UpdateStats(ctx, db, test.gr)
 			if err != nil {
