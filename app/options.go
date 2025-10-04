@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"slices"
 	"strings"
 	"time"
 )
 
-func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.ApplicationCommandInteractionDataOption) {
+type Option = discordgo.ApplicationCommandInteractionDataOption
+
+func getSubcommand(i *discordgo.InteractionCreate) (string, []*Option) {
 	cmd := i.ApplicationCommandData()
 	if len(cmd.Options) > 0 {
 		firstOpt := cmd.Options[0]
@@ -19,17 +22,22 @@ func getSubcommand(i *discordgo.InteractionCreate) (string, []*discordgo.Applica
 	return "", nil
 }
 
-func getPlayerOpt(ctx context.Context, uc *UserCache, options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Player, error) {
-	var option *discordgo.ApplicationCommandInteractionDataOption
-	for _, opt := range options {
-		if opt.Name == name {
-			option = opt
-			break
-		}
+func getOpt(options []*Option, name string) *Option {
+	index := slices.IndexFunc(options, func(opt *Option) bool {
+		return opt.Name == name
+	})
+	if index > 0 {
+		return options[index]
 	}
+	return nil
+}
+
+func getPlayerOpt(ctx context.Context, uc *UserCache, options []*Option, name string) (Player, error) {
+	option := getOpt(options, name)
 	if option == nil {
 		return Player{}, OptionError{Name: name}
 	}
+
 	name, ok := option.Value.(string)
 	if !ok {
 		return Player{}, fmt.Errorf("expected player to be string, was: %T", option.Value)
@@ -63,14 +71,8 @@ func getDefaultPlayer(ctx context.Context, uc *UserCache, ic *discordgo.Interact
 
 const DefaultLevel = 3
 
-func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (uint64, error) {
-	var option *discordgo.ApplicationCommandInteractionDataOption
-	for _, opt := range options {
-		if opt.Name == name {
-			option = opt
-			break
-		}
-	}
+func getLevelOpt(options []*Option, name string) (uint64, error) {
+	option := getOpt(options, name)
 	if option == nil {
 		return DefaultLevel, nil
 	}
@@ -88,14 +90,8 @@ func getLevelOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 
 const DefaultDelay = time.Second * 2
 
-func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (time.Duration, error) {
-	var option *discordgo.ApplicationCommandInteractionDataOption
-	for _, opt := range options {
-		if opt.Name == name {
-			option = opt
-			break
-		}
-	}
+func getDelayOpt(options []*Option, name string) (time.Duration, error) {
+	option := getOpt(options, name)
 	if option == nil {
 		return DefaultDelay, nil
 	}
@@ -111,19 +107,12 @@ func getDelayOpt(options []*discordgo.ApplicationCommandInteractionDataOption, n
 	return time.Second * time.Duration(delay), nil
 }
 
-func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, name string) (Tile, string, error) {
+func getTileOpt(options []*Option, name string) (Tile, string, error) {
 	fail := func(err error) (Tile, string, error) {
 		return Tile{}, "", err
 	}
 
-	var option *discordgo.ApplicationCommandInteractionDataOption
-
-	for _, opt := range options {
-		if opt.Name == name {
-			option = opt
-			break
-		}
-	}
+	option := getOpt(options, name)
 	if option == nil {
 		return fail(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
 	}
@@ -139,7 +128,7 @@ func getTileOpt(options []*discordgo.ApplicationCommandInteractionDataOption, na
 	return tile, value, nil
 }
 
-func formatOptions(options []*discordgo.ApplicationCommandInteractionDataOption) string {
+func formatOptions(options []*Option) string {
 	var sb strings.Builder
 	sb.WriteRune('[')
 	for i, opt := range options {
