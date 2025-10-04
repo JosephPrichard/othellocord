@@ -86,12 +86,12 @@ type UserCacheApi interface {
 }
 
 type UserCache struct {
-	Cache *ttlcache.Cache[string, discordgo.User]
+	Cache *ttlcache.Cache[string, *discordgo.User]
 	Uf    UserFetcher
 }
 
 func MakeUserCache(uf UserFetcher) UserCache {
-	return UserCache{Cache: ttlcache.New[string, discordgo.User](), Uf: uf}
+	return UserCache{Cache: ttlcache.New[string, *discordgo.User](), Uf: uf}
 }
 
 func (uc UserCache) GetUsername(ctx context.Context, playerID string) (string, error) {
@@ -107,15 +107,15 @@ func (uc UserCache) GetPlayer(ctx context.Context, playerID string) (Player, err
 	if err != nil {
 		return Player{}, err
 	}
-	return MakeHumanPlayer(&user), nil
+	return MakeHumanPlayer(user), nil
 }
 
 const UserCacheTTl = time.Hour
 
-func (uc UserCache) GetUser(ctx context.Context, playerID string) (discordgo.User, error) {
+func (uc UserCache) GetUser(ctx context.Context, playerID string) (*discordgo.User, error) {
 	trace := ctx.Value(TraceKey)
 
-	var user discordgo.User
+	var user *discordgo.User
 
 	item := uc.Cache.Get(playerID)
 	if item != nil {
@@ -124,11 +124,11 @@ func (uc UserCache) GetUser(ctx context.Context, playerID string) (discordgo.Use
 		u, err := uc.Uf.User(playerID, discordgo.WithContext(ctx))
 		if err != nil {
 			slog.Error("failed to fetch user from discord", "trace", trace, "player", playerID, "err", err)
-			return discordgo.User{}, err
+			return nil, err
 		}
-		user = *u
+		user = u
 		uc.Cache.Set(playerID, user, UserCacheTTl)
-		slog.Info("set user back into the Cache", "trace", trace, "user", user.Username, "player", playerID)
+		slog.Info("set user back into the cache", "trace", trace, "user", user.Username, "player", playerID)
 	}
 
 	slog.Info("fetched user", "trace", trace, "username", user.Username, "ID", playerID)

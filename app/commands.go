@@ -130,4 +130,8 @@ var Commands = []*discordgo.ApplicationCommand{
 		Name:        "leaderboard",
 		Description: "Retrieves the highest rated players by ELO",
 	},
+	{
+		Name:        "moves",
+		Description: "Retrieves the all moves made in the current game",
+	},
 }

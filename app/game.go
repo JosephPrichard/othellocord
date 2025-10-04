@@ -331,10 +331,11 @@ func ExpireGamesCron(db *sqlx.DB) {
 	trace := "expire-games-task"
 	ctx := context.WithValue(context.Background(), TraceKey, trace)
 
-	ticker := time.NewTicker(time.Second * 15)
+	ticker := time.NewTicker(time.Minute * 1)
 	defer ticker.Stop()
 
 	for range ticker.C {
+		slog.Info("executing expire games task", "trace", trace)
 		if err := ExpireGames(ctx, db); err != nil {
 			slog.Error("failed to expire games", "trace", trace, "err", err)
 		}
@@ -342,6 +343,7 @@ func ExpireGamesCron(db *sqlx.DB) {
 }
 
 func ExpireGames(ctx context.Context, db *sqlx.DB) error {
+	trace := ctx.Value(TraceKey)
 	t := time.Now()
 
 	rows, err := db.QueryxContext(ctx, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE expire_time < $1;", t)
@@ -362,6 +364,8 @@ func ExpireGames(ctx context.Context, db *sqlx.DB) error {
 		}
 		games = append(games, game)
 	}
+
+	slog.Info("expiring games", "trace", trace, "games", games)
 
 	for _, game := range games {
 		sr, err := GameOverTx(ctx, db, game, GameResult{Winner: game.OtherPlayer(), Loser: game.CurrentPlayer(), IsDraw: false})

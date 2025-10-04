@@ -214,9 +214,9 @@ func drawCenterString(g *draw2dimg.GraphicContext, fontSize float64, text string
 	left, top, right, bottom := g.GetStringBounds(text)
 	strWidth := right - left
 	strHeight := top - bottom
-	// Determine the X coordinate for the stdoutText
+	// determine the X coordinate for the str
 	xDraw := float64(x) + (float64(width)-strWidth)/2
-	// Determine the Y coordinate for the stdoutText (note we add the ascent, as 2d 0 is top of the screen)
+	// determine the Y coordinate for the star (note we add the ascent, as 2d 0 is top of the screen)
 	yDraw := float64(y) + ((float64(height) - strHeight) / 2)
 
 	g.FillStringAt(text, xDraw, yDraw)

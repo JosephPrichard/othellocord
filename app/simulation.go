@@ -62,8 +62,8 @@ func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame Othello
 				simChan <- SimStep{Ok: false}
 				return
 			}
+			move = resp.Move
 
-			move = resp.assertValidMove(game)
 			game.MakeMove(move.Tile)
 			simChan <- SimStep{Game: game, Move: move.Tile, Ok: true}
 		} else {

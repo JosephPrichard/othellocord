@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"log"
 	"log/slog"
 	"os/exec"
-	"slices"
 	"strings"
 	"time"
 )
@@ -27,6 +27,7 @@ type MoveReq struct {
 }
 
 type MoveResp struct {
+	Move  RankTile
 	Moves []RankTile
 	Err   error
 }
@@ -74,10 +75,10 @@ func StartNTestShell(path string) (*NTestShell, error) {
 	return sh, nil
 }
 
-func (sh *NTestShell) stdinWrite(cmd string) error {
+func (sh *NTestShell) write(cmd string) error {
 	slog.Info("writing cmd to stdin", "cmd", cmd)
 	if _, err := sh.stdin.WriteString(cmd); err != nil {
-		return fmt.Errorf("failed to stdinWrite to ntest stdin: %v", err)
+		return fmt.Errorf("failed to write to ntest stdin: %v", err)
 	}
 	if err := sh.stdin.Flush(); err != nil {
 		return fmt.Errorf("failed to flush ntest stdin: %v", err)
@@ -107,7 +108,7 @@ func (sh *NTestShell) expect(expected string) error {
 }
 
 func (sh *NTestShell) depthCmd(depth uint64) error {
-	if err := sh.stdinWrite(fmt.Sprintf("set depth %d\n", depth)); err != nil {
+	if err := sh.write(fmt.Sprintf("set depth %d\n", depth)); err != nil {
 		return err
 	}
 
@@ -125,13 +126,13 @@ func (sh *NTestShell) depthCmd(depth uint64) error {
 }
 
 func (sh *NTestShell) setGameCmd(game OthelloGame) error {
-	return sh.stdinWrite(fmt.Sprintf("set game %s\n", game.MarshalGGF()))
+	return sh.write(fmt.Sprintf("set game %s\n", game.MarshalGGF()))
 }
 
 var ErrInvalidGameState = errors.New("game state GGF format is invalid")
 
 func (sh *NTestShell) goCmd() (RankTile, error) {
-	if err := sh.stdinWrite("go\n"); err != nil {
+	if err := sh.write("go\n"); err != nil {
 		return RankTile{}, err
 	}
 
@@ -165,7 +166,7 @@ func (sh *NTestShell) goCmd() (RankTile, error) {
 }
 
 func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
-	if err := sh.stdinWrite("hint 64\n"); err != nil {
+	if err := sh.write("hint 64\n"); err != nil {
 		return nil, []error{err}
 	}
 
@@ -234,6 +235,14 @@ func (sh *NTestShell) findBestMove(game OthelloGame, depth uint64) (RankTile, er
 		return RankTile{}, err
 	}
 
+	if len(moves) == 0 {
+		return RankTile{}, fmt.Errorf("engine produced no moves for best move request for game: %s", game.MarshalGGF())
+	}
+	move := moves[0]
+	if !slices.Contains(game.Board.FindCurrentMoves(), move) {
+		return RankTile{}, fmt.Errorf("engine produced an illegal move: %s for game: %s", move, game.MarshalGGF())
+	}
+
 	slog.Info("found best tile", "depth", depth, "move", tile)
 	return tile, err
 }
@@ -253,6 +262,29 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth uint64) ([]RankTil
 		return nil, errors.Join(errs...)
 	}
 
+	actualTiles := game.Board.FindCurrentMoves()
+
+	failRules := func() ([]RankTile, error) {
+		return nil, fmt.Errorf("engine produced illegal moves=%v for game=%s, expected=%s", tiles, game.MarshalGGF(), actualTiles)
+	}
+
+	if len(actualTiles) != len(tiles) {
+		return failRules()
+	}
+	var tileMap [BoardSize][BoardSize]bool
+	for _, tile := range tiles {
+		tileMap[tile.Row][tile.Col] = true
+	}
+	for _, tile := range actualTiles {
+		if !tileMap[tile.Row][tile.Col] {
+			return failRules()
+		}
+	}
+
+	slices.SortFunc(tiles, func(tile1 RankTile, tile2 RankTile) int {
+		return int(tile2.H - tile1.H)
+	})
+
 	slog.Info("found ranked tiles", "depth", depth, "Moves", tiles)
 	return tiles, nil
 }
@@ -260,13 +292,14 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth uint64) ([]RankTil
 func (sh *NTestShell) ListenRequests() {
 	for req := range sh.moveReqCh {
 		start := time.Now()
+
 		switch req.Kind {
 		case BestMoveKind:
 			move, err := sh.findBestMove(req.Game, req.Depth)
 			if err != nil {
 				slog.Error("failed to find best tile", "err", err)
 			}
-			req.RespCh <- MoveResp{Moves: []RankTile{move}, Err: err}
+			req.RespCh <- MoveResp{Move: move, Err: err}
 		case RankMovesKind:
 			moves, err := sh.findRankedMoves(req.Game, req.Depth)
 			if err != nil {
@@ -274,9 +307,10 @@ func (sh *NTestShell) ListenRequests() {
 			}
 			req.RespCh <- MoveResp{Moves: moves, Err: err}
 		default:
-			log.Fatalf("invalid move request Kind: %d", req.Kind)
+			log.Fatalf("invalid move request kind: %d", req.Kind)
 		}
-		slog.Info("move request complete", "duration", start.Sub(time.Now()))
+
+		slog.Info("move request complete", "duration", time.Now().Sub(start))
 	}
 }
 
@@ -290,27 +324,4 @@ func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth uint64) chan MoveR
 	ch := make(chan MoveResp, 1)
 	sh.moveReqCh <- MoveReq{Kind: RankMovesKind, Game: game, Depth: depth, RespCh: ch}
 	return ch
-}
-
-func (resp MoveResp) assertValidMove(game OthelloGame) RankTile {
-	if len(resp.Moves) == 0 {
-		log.Fatalf("engine produced no moves for best move request for game: %s", game.MarshalGGF())
-	}
-	move := resp.Moves[0]
-	if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
-		log.Fatalf("engine produced an illegal tile: %s for game: %s", move.Tile, game.MarshalGGF())
-	}
-	return move
-}
-
-func (resp MoveResp) assertValidMoves(game OthelloGame) {
-	var tileMap [BoardSize][BoardSize]bool
-	for _, tile := range resp.Moves {
-		tileMap[tile.Row][tile.Col] = true
-	}
-	for _, tile := range game.Board.FindCurrentMoves() {
-		if !tileMap[tile.Row][tile.Col] {
-			log.Fatalf("engine produced illegal tiles: %s for game: %s", resp.Moves, game.MarshalGGF())
-		}
-	}
 }

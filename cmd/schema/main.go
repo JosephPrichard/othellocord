@@ -10,7 +10,7 @@ import (
 func main() {
 	db, err := sql.Open("sqlite", "./othellocord.db")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open db file: %v", err)
 	}
 	defer func() {
 		_ = db.Close()

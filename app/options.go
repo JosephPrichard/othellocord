@@ -26,16 +26,39 @@ func getPlayerOpt(ctx context.Context, uc *UserCache, options []*discordgo.Appli
 			option = opt
 			break
 		}
-
 	}
 	if option == nil {
 		return Player{}, OptionError{Name: name}
 	}
-	opponent, err := uc.GetPlayer(ctx, option.Value.(string))
+	name, ok := option.Value.(string)
+	if !ok {
+		return Player{}, fmt.Errorf("expected player to be string, was: %T", option.Value)
+	}
+	opponent, err := uc.GetPlayer(ctx, name)
 	if err != nil {
 		return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
 	}
 	return opponent, nil
+}
+
+func getDefaultPlayer(ctx context.Context, uc *UserCache, ic *discordgo.InteractionCreate) (*discordgo.User, error) {
+	var user *discordgo.User
+	var err error
+
+	userOpt := ic.ApplicationCommandData().GetOption("player")
+	if userOpt != nil {
+		un, ok := userOpt.Value.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected player to be string, was: %T", userOpt.Value)
+		}
+		if user, err = uc.GetUser(ctx, un); err != nil {
+			return nil, err
+		}
+	} else if ic.Interaction.Member != nil {
+		user = ic.Interaction.Member.User
+	}
+
+	return user, nil
 }
 
 const DefaultLevel = 3

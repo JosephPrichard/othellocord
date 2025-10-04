@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	slog.Info("starting othellocord service")
+
 	if err := godotenv.Load(); err != nil {
 		slog.Info("failed to load .env file")
 	}
@@ -24,7 +26,7 @@ func main() {
 
 	db, err := sqlx.Connect("sqlite", "./othellocord.db?_busy_timeout=5000")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open db file: %v", err)
 	}
 	defer db.Close()
 
@@ -54,7 +56,6 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	slog.Info("starting othellocord service")
 	if err = dg.Open(); err != nil {
 		log.Fatalf("failed to connect to events: %v", err)
 	}

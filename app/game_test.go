@@ -27,6 +27,7 @@ func setupGamesTest(t *testing.T) (*sqlx.DB, func()) {
 			Board:       MakeInitialBoard(),
 			BlackPlayer: Player{ID: "id10", Name: "Player10"},
 			WhitePlayer: Player{ID: "id20", Name: "Player20"},
+			MoveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}},
 		},
 	}
 
@@ -89,11 +90,26 @@ func TestGameStore_GetGame(t *testing.T) {
 
 	game, err := GetGame(ctx, db, "id1")
 	if err != nil {
-		t.Fatalf("failed to get the Game: %v", err)
+		t.Fatalf("failed to get the game: %v", err)
 	}
 
 	expGame := OthelloGame{ID: "1", Board: MakeInitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
-	assert.Equal(t, game, expGame)
+	assert.Equal(t, expGame, game)
+}
+
+func TestGameStore_GetGameMoves(t *testing.T) {
+	db, cleanup := setupGamesTest(t)
+	defer cleanup()
+
+	ctx := context.WithValue(context.Background(), TraceKey, "test-get-moves")
+
+	game, err := GetGame(ctx, db, "id10")
+	if err != nil {
+		t.Fatalf("failed to get the moves: %v", err)
+	}
+
+	expMoves := []Move{{Tile: Tile{Row: 0, Col: 0}}}
+	assert.Equal(t, expMoves, game.MoveList)
 }
 
 func TestGameStore_ExpireGames(t *testing.T) {

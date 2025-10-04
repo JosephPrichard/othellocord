@@ -14,7 +14,7 @@ import (
 
 const GreenEmbed = 0x00ff00
 
-func createStringResponse(msg string) *discordgo.InteractionResponse {
+func makeStringResponse(msg string) *discordgo.InteractionResponse {
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -23,7 +23,7 @@ func createStringResponse(msg string) *discordgo.InteractionResponse {
 	}
 }
 
-func createStringEdit(msg string) *discordgo.WebhookEdit {
+func makeStringEdit(msg string) *discordgo.WebhookEdit {
 	return &discordgo.WebhookEdit{Content: &msg}
 }
 
@@ -51,11 +51,11 @@ func addEmbedFiles(embed *discordgo.MessageEmbed, img image.Image) []*discordgo.
 	return files
 }
 
-func createEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discordgo.InteractionResponse {
-	return createComponentResponse(embed, img, nil)
+func makeEmbedResponse(embed *discordgo.MessageEmbed, img image.Image) *discordgo.InteractionResponse {
+	return makeComponentResponse(embed, img, nil)
 }
 
-func createComponentResponse(embed *discordgo.MessageEmbed, img image.Image, components []discordgo.MessageComponent) *discordgo.InteractionResponse {
+func makeComponentResponse(embed *discordgo.MessageEmbed, img image.Image, components []discordgo.MessageComponent) *discordgo.InteractionResponse {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -67,31 +67,32 @@ func createComponentResponse(embed *discordgo.MessageEmbed, img image.Image, com
 	}
 }
 
-func createMoveErrorResp(err error, moveStr string) *discordgo.InteractionResponse {
+func makeMoveErrorResp(err error, moveStr string) *discordgo.InteractionResponse {
 	var resp *discordgo.InteractionResponse
 	if errors.Is(err, ErrGameNotFound) {
-		resp = createStringResponse("You're not currently playing a game.")
+		resp = makeStringResponse("You're not currently playing a game.")
 	} else if errors.Is(err, ErrInvalidMove) {
-		resp = createStringResponse(fmt.Sprintf("Can't make a ColorMove to %s.", moveStr))
+		resp = makeStringResponse(fmt.Sprintf("Can't make a ColorMove to %s.", moveStr))
 	} else if errors.Is(err, ErrTurn) {
-		resp = createStringResponse("It isn't your turn.")
+		resp = makeStringResponse("It isn't your turn.")
 	}
 	return resp
 }
 
-func createEmbedSend(embed *discordgo.MessageEmbed, img image.Image) *discordgo.MessageSend {
+func makeEmbedSend(embed *discordgo.MessageEmbed, img image.Image, target Player) *discordgo.MessageSend {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.MessageSend{
-		Embeds: []*discordgo.MessageEmbed{embed},
-		Files:  files,
+		Embeds:  []*discordgo.MessageEmbed{embed},
+		Files:   files,
+		Content: fmt.Sprintf("<@%s>", target.ID),
 	}
 }
 
-func createStringSend(text string) *discordgo.MessageSend {
+func makeStringSend(text string) *discordgo.MessageSend {
 	return &discordgo.MessageSend{Content: text}
 }
 
-func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
+func makeAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionChoice) *discordgo.InteractionResponse {
 	return &discordgo.InteractionResponse{
 		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
 		Data: &discordgo.InteractionResponseData{
@@ -103,7 +104,7 @@ func createAutocompleteResponse(choices []*discordgo.ApplicationCommandOptionCho
 const SimPauseKey = "sim-pause-key"
 const SimStopKey = "sim-stop-key"
 
-func createSimulationActionRow(simulationID string, isPaused bool) []discordgo.MessageComponent {
+func makeSimulationActionRow(simulationID string, isPaused bool) []discordgo.MessageComponent {
 	stopID := fmt.Sprintf("%s+%s", SimStopKey, simulationID)
 	pauseID := fmt.Sprintf("%s+%s", SimPauseKey, simulationID)
 
@@ -122,7 +123,7 @@ func createSimulationActionRow(simulationID string, isPaused bool) []discordgo.M
 
 var empty = ""
 
-func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
+func makeEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.WebhookEdit{
 		Embeds:      &[]*discordgo.MessageEmbed{embed},
@@ -132,7 +133,7 @@ func createEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.
 	}
 }
 
-func createEmbedTextEdit(edit string) *discordgo.WebhookEdit {
+func makeEmbedTextEdit(edit string) *discordgo.WebhookEdit {
 	return &discordgo.WebhookEdit{
 		Embeds:      &[]*discordgo.MessageEmbed{},
 		Attachments: &[]*discordgo.MessageAttachment{},
@@ -140,7 +141,7 @@ func createEmbedTextEdit(edit string) *discordgo.WebhookEdit {
 	}
 }
 
-func createGameStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
+func makeGameStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
 	desc := fmt.Sprintf(
 		"Black: %s\n White: %s\n Use `/view` to view the game and use `/move` to make a move.",
 		game.BlackPlayer.Name,
@@ -152,108 +153,103 @@ func createGameStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
 	}
 }
 
-func createSimulationStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
-	desc := fmt.Sprintf("Black: %s\n White: %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
+func makeSimulationStartEmbed(game OthelloGame) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
 		Title:       "Simulation started!",
-		Description: desc,
+		Description: fmt.Sprintf("Black: %s\n White: %s", game.BlackPlayer.Name, game.WhitePlayer.Name),
 		Color:       GreenEmbed,
 	}
 }
 
-func createGameMoveEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
-	desc := fmt.Sprintf("%sYour opponent has moved: %s", getScoreText(game), move.String())
+func makeMoveFooter(isBlack bool) string {
 	footer := "White to move"
-	if game.Board.IsBlackMove {
+	if isBlack {
 		footer = "Black to move"
 	}
+	return footer
+}
+
+func makeGameTitle(game OthelloGame) string {
+	return fmt.Sprintf("%s vs %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
+}
+
+func makeGameMoveEmbed(game OthelloGame, move Tile, mover Player) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("Your game with %s", game.OtherPlayer().Name),
-		Description: desc,
-		Footer:      &discordgo.MessageEmbedFooter{Text: footer},
+		Title:       makeGameTitle(game),
+		Description: fmt.Sprintf("%s%s made move: %s", getScoreText(game), mover.Name, move),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: makeMoveFooter(game.Board.IsBlackMove),
+		},
+		Color: GreenEmbed,
+	}
+}
+
+func makeGameEmbed(game OthelloGame) *discordgo.MessageEmbed {
+	return &discordgo.MessageEmbed{
+		Title:       makeGameTitle(game),
+		Description: fmt.Sprintf("%s%s to move", getScoreText(game), game.CurrentPlayer().Name),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: makeMoveFooter(game.Board.IsBlackMove),
+		},
+		Color: GreenEmbed,
+	}
+}
+
+func makeAnalysisEmbed(game OthelloGame, level uint64) *discordgo.MessageEmbed {
+	return &discordgo.MessageEmbed{
+		Title:       fmt.Sprintf("Game analysis using engine level %d", level),
+		Description: getScoreText(game),
+		Footer:      &discordgo.MessageEmbedFooter{Text: "Positive heuristics are better for the player to move, and negative heuristics are worse"},
+	}
+}
+
+func makeGameOverEmbed(game OthelloGame, result GameResult, statsResult StatsResult, move Tile) *discordgo.MessageEmbed {
+	return &discordgo.MessageEmbed{
+		Title: "Game has ended",
+		Description: fmt.Sprintf("%s%s\n%s",
+			getMoveMessage(result.Winner, move.String()),
+			getScoreMessage(game.Board.WhiteScore(), game.Board.BlackScore()),
+			getStatsMessage(result, statsResult),
+		),
+	}
+}
+
+func makeForfeitEmbed(result GameResult, statsResult StatsResult) *discordgo.MessageEmbed {
+	return &discordgo.MessageEmbed{
+		Title:       "Game has ended",
+		Description: fmt.Sprintf("%s\n%s", getForfeitMessage(result.Winner), getStatsMessage(result, statsResult)),
 		Color:       GreenEmbed,
 	}
 }
 
-func createStepEdit(renderer Renderer, step SimStep) *discordgo.WebhookEdit {
+func makeStepEdit(renderer Renderer, step SimStep) *discordgo.WebhookEdit {
 	var edit *discordgo.WebhookEdit
 	img := renderer.DrawBoardMoves(step.Game.Board, step.Game.Board.FindCurrentMoves())
 	if !step.Ok {
-		edit = createEmbedTextEdit("Failed to retrieve simulation data from engine.")
+		edit = makeEmbedTextEdit("Failed to retrieve simulation data from engine.")
 	} else if step.Finished {
-		updtEmbed := createSimulationEndEmbed(step.Game, step.Move)
-		edit = createEmbedEdit(updtEmbed, img)
+		updtEmbed := makeSimulationEndEmbed(step.Game, step.Move)
+		edit = makeEmbedEdit(updtEmbed, img)
 		edit.Components = &[]discordgo.MessageComponent{}
 	} else {
-		updtEmbed := createSimulationEmbed(step.Game, step.Move)
-		edit = createEmbedEdit(updtEmbed, img)
+		updtEmbed := makeSimulationEmbed(step.Game, step.Move)
+		edit = makeEmbedEdit(updtEmbed, img)
 	}
 	return edit
 }
 
-func createSimulationEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
-	title := fmt.Sprintf("%s vs %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
-	desc := fmt.Sprintf("%s%s has moved: %s", getScoreText(game), game.OtherPlayer().Name, move.String())
-	footer := "White to move"
-	if game.Board.IsBlackMove {
-		footer = "Black to move"
-	}
+func makeSimulationEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
-		Title:       title,
-		Description: desc,
-		Footer:      &discordgo.MessageEmbedFooter{Text: footer},
-		Color:       GreenEmbed,
+		Title:       makeGameTitle(game),
+		Description: fmt.Sprintf("%s%s has moved: %s", getScoreText(game), game.OtherPlayer().Name, move.String()),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: makeMoveFooter(game.Board.IsBlackMove),
+		},
+		Color: GreenEmbed,
 	}
 }
 
-func createGameEmbed(game OthelloGame) *discordgo.MessageEmbed {
-	title := fmt.Sprintf("%s vs %s", game.BlackPlayer.Name, game.WhitePlayer.Name)
-	desc := fmt.Sprintf("%s%s to move", getScoreText(game), game.CurrentPlayer().Name)
-	footer := "White to move"
-	if game.Board.IsBlackMove {
-		footer = "Black to move"
-	}
-	return &discordgo.MessageEmbed{
-		Title:       title,
-		Description: desc,
-		Footer:      &discordgo.MessageEmbedFooter{Text: footer},
-		Color:       GreenEmbed,
-	}
-}
-
-func createAnalysisEmbed(game OthelloGame, level uint64) *discordgo.MessageEmbed {
-	desc := getScoreText(game)
-	title := fmt.Sprintf("Game analysis using service level %d", level)
-	footer := "Positive heuristics are better for the player to move, and negative heuristics are worse"
-	return &discordgo.MessageEmbed{
-		Title:       title,
-		Description: desc,
-		Footer:      &discordgo.MessageEmbedFooter{Text: footer},
-	}
-}
-
-func createGameOverEmbed(game OthelloGame, result GameResult, statsResult StatsResult, move Tile) *discordgo.MessageEmbed {
-	desc := fmt.Sprintf("%s%s\n%s",
-		getMoveMessage(result.Winner, move.String()),
-		getScoreMessage(game.Board.WhiteScore(), game.Board.BlackScore()),
-		getStatsMessage(result, statsResult),
-	)
-	return &discordgo.MessageEmbed{Title: "Game has ended", Description: desc}
-}
-
-func createForfeitEmbed(result GameResult, statsResult StatsResult) *discordgo.MessageEmbed {
-	desc := fmt.Sprintf("%s\n%s",
-		getForfeitMessage(result.Winner),
-		getStatsMessage(result, statsResult),
-	)
-	return &discordgo.MessageEmbed{
-		Title:       "Game has ended",
-		Description: desc,
-		Color:       GreenEmbed,
-	}
-}
-
-func createSimulationEndEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
+func makeSimulationEndEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
 	result := game.CreateResult()
 	desc := fmt.Sprintf("%s%s",
 		getMoveMessage(result.Winner, move.String()),
@@ -266,7 +262,7 @@ func createSimulationEndEmbed(game OthelloGame, move Tile) *discordgo.MessageEmb
 	}
 }
 
-func createStatsEmbed(user discordgo.User, stats Stats) *discordgo.MessageEmbed {
+func makeStatsEmbed(user *discordgo.User, stats Stats) *discordgo.MessageEmbed {
 	return &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("%s's stats", user.Username),
 		Fields: []*discordgo.MessageEmbedField{
@@ -285,16 +281,21 @@ func createStatsEmbed(user discordgo.User, stats Stats) *discordgo.MessageEmbed 
 	}
 }
 
-func createLeaderboardEmbed(stats []Stats) *discordgo.MessageEmbed {
+func makeLeaderboardEmbed(stats []Stats) *discordgo.MessageEmbed {
 	var desc strings.Builder
-	desc.WriteString("```\n")
-	for i, stats := range stats {
-		desc.WriteString(rightPad(fmt.Sprintf("%d)", i+1), 4))
-		desc.WriteString(leftPad(stats.Player.Name, 32))
-		desc.WriteString(leftPad(fmt.Sprintf("%.2f", stats.Elo), 12))
-		desc.WriteString("\n")
+
+	if len(stats) == 0 {
+		desc.WriteString("No players have registered their stats")
+	} else {
+		desc.WriteString("```\n")
+		for i, stats := range stats {
+			desc.WriteString(rightPad(fmt.Sprintf("%d)", i+1), 4))
+			desc.WriteString(leftPad(stats.Player.Name, 32))
+			desc.WriteString(leftPad(fmt.Sprintf("%.2f", stats.Elo), 12))
+			desc.WriteString("\n")
+		}
+		desc.WriteString("```")
 	}
-	desc.WriteString("```")
 
 	return &discordgo.MessageEmbed{
 		Title:       "Leaderboard",
@@ -303,6 +304,28 @@ func createLeaderboardEmbed(stats []Stats) *discordgo.MessageEmbed {
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: fmt.Sprintf("Top %d rated players", LeaderboardSize),
 		},
+	}
+}
+
+func makeMovesEmbed(game OthelloGame) *discordgo.MessageEmbed {
+	var desc strings.Builder
+
+	desc.WriteString("```\n")
+	desc.WriteString("Black\t\tWhite\n")
+
+	for i, move := range game.MoveList {
+		if i%2 == 0 {
+			fmt.Fprintf(&desc, "%d. %s", i/2+1, move)
+		} else {
+			fmt.Fprintf(&desc, "\t\t%s\n", move)
+		}
+	}
+	desc.WriteString("```")
+
+	return &discordgo.MessageEmbed{
+		Title:       makeGameTitle(game),
+		Description: desc.String(),
+		Color:       GreenEmbed,
 	}
 }
 
