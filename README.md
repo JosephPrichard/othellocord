@@ -71,5 +71,7 @@ Run a game between two bots real time in a text channel.
 
 ## Examples
 
-<img src="https://github.com/JosephPrichard/OthelloCord/assets/58538077/0096a164-cfb9-44a1-be89-30896e93f0ff" width="45%" height="45%">
-<img src="https://github.com/JosephPrichard/OthelloCord/assets/58538077/c53ecbc3-800b-4767-8553-498f9c529874" width="45%" height="45%">
+<img width="370" height="678" alt="Screenshot 2025-10-04 131235" src="https://github.com/user-attachments/assets/cdb1382f-db8c-4f0d-b4e2-30815000d48d" />
+<img width="520" height="718" alt="Screenshot 2025-10-04 144214" src="https://github.com/user-attachments/assets/00ffb43c-1237-43ea-aa1a-20ec2daeef5b" />
+<img width="494" height="600" alt="Screenshot 2025-10-04 144257" src="https://github.com/user-attachments/assets/e5fdfe53-9435-47a4-aec7-307c5c8ac021" />
+
