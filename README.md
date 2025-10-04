@@ -44,10 +44,15 @@ Accept a challenge from a user.
 `/forfeit`
 
 Forfeits the game currently being played.
+<br>
+<img width="329" height="400" alt="Screenshot 2025-10-04 144257" src="https://github.com/user-attachments/assets/e5fdfe53-9435-47a4-aec7-307c5c8ac021" />
 
 `/move move`
 
 Make a move on the current game. Move format is column-row.
+<br>
+<img width="247" height="452" alt="Screenshot 2025-10-04 131235" src="https://github.com/user-attachments/assets/cdb1382f-db8c-4f0d-b4e2-30815000d48d" />
+<img width="347" height="479" alt="Screenshot 2025-10-04 144214" src="https://github.com/user-attachments/assets/00ffb43c-1237-43ea-aa1a-20ec2daeef5b" />
 
 `/view`
 
@@ -56,6 +61,8 @@ View the current board state the game the user is playing, and all available mov
 `/analyze level`
 
 Performs an analysis on the current game. Displays the bot's heuristic ranking for each move.
+
+<img width="347" height="479" alt="Screenshot 2025-10-04 170432" src="https://github.com/user-attachments/assets/3eab6b7c-c1a7-46e2-aa9d-e9594ec29866" />
 
 `/stats`
 
@@ -68,10 +75,10 @@ Shows the top users with the highest elo in the entire database.
 `/simulate`
 
 Run a game between two bots real time in a text channel.
+<br><br>
+<a href="https://drive.google.com/file/d/1PCL-ekr0RS1c7hmFjZVrB6bj_-uqz2om/view" target="_blank">Watch a demo</a>
 
-## Examples
+`/moves`
 
-<img width="370" height="678" alt="Screenshot 2025-10-04 131235" src="https://github.com/user-attachments/assets/cdb1382f-db8c-4f0d-b4e2-30815000d48d" />
-<img width="520" height="718" alt="Screenshot 2025-10-04 144214" src="https://github.com/user-attachments/assets/00ffb43c-1237-43ea-aa1a-20ec2daeef5b" />
-<img width="494" height="600" alt="Screenshot 2025-10-04 144257" src="https://github.com/user-attachments/assets/e5fdfe53-9435-47a4-aec7-307c5c8ac021" />
+Displays all the move log for the current game.
 
