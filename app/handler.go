@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"image"
-	"log"
 	"log/slog"
 	"time"
 
@@ -26,13 +25,13 @@ type State struct {
 
 func MakeState(db *sqlx.DB, dg *discordgo.Session, sh *NTestShell) State {
 	if db == nil {
-		log.Fatalf("db must be non nil")
+		panic("db must be non nil")
 	}
 	if dg == nil {
-		log.Fatalf("discord session must be non nil")
+		panic("discord session must be non nil")
 	}
 	if sh == nil {
-		log.Fatalf("ntest shell must be non nil")
+		panic("ntest shell must be non nil")
 	}
 	return State{
 		Db:             db,

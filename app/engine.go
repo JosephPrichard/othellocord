@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slices"
-	"log"
 	"log/slog"
 	"os/exec"
 	"strings"
@@ -307,7 +306,7 @@ func (sh *NTestShell) ListenRequests() {
 			}
 			req.RespCh <- MoveResp{Moves: moves, Err: err}
 		default:
-			log.Fatalf("invalid move request kind: %d", req.Kind)
+			panic(fmt.Sprintf("invalid move request kind: %d", req.Kind))
 		}
 
 		slog.Info("move request complete", "duration", time.Now().Sub(start))

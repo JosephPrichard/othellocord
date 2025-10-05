@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"strconv"
 	"strings"
@@ -56,7 +55,7 @@ func ParseTileSafe(s string) (Tile, error) {
 func ParseTile(s string) Tile {
 	tile, err := ParseTileSafe(s)
 	if err != nil {
-		log.Fatalf("failed to parse notation %s: %v", s, err)
+		panic(fmt.Sprintf("failed to parse notation %s: %v", s, err))
 	}
 	return tile
 }
