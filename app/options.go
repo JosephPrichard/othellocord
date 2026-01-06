@@ -107,23 +107,19 @@ func getDelayOpt(options []*Option, name string) (time.Duration, error) {
 	return time.Second * time.Duration(delay), nil
 }
 
-func getTileOpt(options []*Option, name string) (Tile, string, error) {
-	fail := func(err error) (Tile, string, error) {
-		return Tile{}, "", err
-	}
-
+func getTileOpt(options []*Option, name string) (t Tile, v string, err error) {
 	option := getOpt(options, name)
 	if option == nil {
-		return fail(OptionError{Name: name, ExpectedValue: ExpectedTileValue})
+		return t, v, OptionError{Name: name, ExpectedValue: ExpectedTileValue}
 	}
 
 	value, ok := option.Value.(string)
 	if !ok {
-		return fail(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+		return t, v, OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue}
 	}
 	tile, err := ParseTileSafe(value)
 	if err != nil {
-		return fail(OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue})
+		return t, v, OptionError{Name: name, InvalidValue: value, ExpectedValue: ExpectedTileValue}
 	}
 	return tile, value, nil
 }

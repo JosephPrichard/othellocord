@@ -202,7 +202,7 @@ func TestGameStore_MakeMove(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-make-move")
 
-			game, sr, err := MakeMoveAgainstHuman(ctx, db, test.playerID, test.move)
+			game, sr, err := MakeMoveAgainstHuman(ctx, db, MoveAgainstHuman{test.playerID, test.move})
 			if err != nil {
 				assert.ErrorIs(t, err, test.expErr)
 			} else {

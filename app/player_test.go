@@ -43,5 +43,5 @@ func TestUserCache_GetUsername(t *testing.T) {
 
 	user := uc.Cache.Get("id1")
 	assert.NotNil(t, user)
-	assert.Equal(t, discordgo.User{ID: "id1", Username: "Player1"}, user.Value())
+	assert.Equal(t, discordgo.User{ID: "id1", Username: "Player1"}, *user.Value())
 }

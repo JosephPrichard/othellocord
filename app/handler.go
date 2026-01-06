@@ -358,7 +358,7 @@ func HandleMove(ctx context.Context, state *State, ic *discordgo.InteractionCrea
 		return
 	}
 
-	game, sr, err := MakeMoveAgainstHuman(ctx, state.Db, player.ID, move)
+	game, sr, err := MakeMoveAgainstHuman(ctx, state.Db, MoveAgainstHuman{player.ID, move})
 
 	if errors.Is(err, ErrIsAgainstBot) {
 		handleMoveAgainstBot(ctx, state, ic, game, move)
