@@ -34,8 +34,8 @@ Challenges another user to an othello game. Another player can accept the challe
 
 `/challengebot level`
 
-Challenges the bot to an othello game. The bot can be level 1-6, each level using a different depth 
-(for the bot to feel snappy on level 6 you need very good hardware).
+Challenges the bot to an othello game. The bot can be level 1–6, each level using a different depth 
+(for the bot to feel snappy on level 6, you need very good hardware).
 
 `/accept @user`
 
@@ -45,14 +45,14 @@ Accept a challenge from a user.
 
 Forfeits the game currently being played.
 <br>
-<img width="329" height="400" alt="Screenshot 2025-10-04 144257" src="https://github.com/user-attachments/assets/e5fdfe53-9435-47a4-aec7-307c5c8ac021" />
+![screenshot](examples/forfeit.png)
 
 `/move move`
 
 Make a move on the current game. Move format is column-row.
 <br>
-<img width="247" height="452" alt="Screenshot 2025-10-04 131235" src="https://github.com/user-attachments/assets/cdb1382f-db8c-4f0d-b4e2-30815000d48d" />
-<img width="347" height="479" alt="Screenshot 2025-10-04 144214" src="https://github.com/user-attachments/assets/00ffb43c-1237-43ea-aa1a-20ec2daeef5b" />
+![screenshot](examples/move1.png)
+![screenshot](examples/move2.png)
 
 `/view`
 
@@ -62,7 +62,7 @@ View the current board state the game the user is playing, and all available mov
 
 Performs an analysis on the current game. Displays the bot's heuristic ranking for each move.
 
-<img width="347" height="479" alt="Screenshot 2025-10-04 170432" src="https://github.com/user-attachments/assets/3eab6b7c-c1a7-46e2-aa9d-e9594ec29866" />
+![screenshot](examples/analysis.png)
 
 `/stats`
 
