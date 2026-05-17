@@ -2,13 +2,16 @@ package app
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"log/slog"
 	"os/exec"
 	"strings"
 	"time"
+
+	"go.uber.org/atomic"
+	"golang.org/x/exp/slices"
 )
 
 type MoveRequestKind int
@@ -18,28 +21,35 @@ const (
 	RankMovesKind
 )
 
-type MoveReq struct {
+type moveReq struct {
 	Kind   MoveRequestKind
 	Game   OthelloGame
 	Depth  uint64
-	RespCh chan MoveResp
+	RespCh chan moveResp
+	IsCancelled atomic.Bool
+	Trace any
 }
 
-type MoveResp struct {
-	Move  RankTile
-	Moves []RankTile
+type moveResp struct {
+	MoveResult
 	Err   error
 }
 
+type MoveResult struct {
+	Move  RankTile
+	Moves []RankTile
+}
+
 type NTestShell struct {
+	name      string
 	stdout    *bufio.Scanner
 	stdin     *bufio.Writer
-	moveReqCh chan MoveReq
+	moveReqCh chan moveReq
 }
 
 var ErrEmptyPath = errors.New("path argument should not be empty")
 
-func StartNTestShell(path string) (*NTestShell, error) {
+func StartNTestShell(name string, path string, moveReqCh chan moveReq) (*NTestShell, error) {
 	if path == "" {
 		return nil, ErrEmptyPath
 	}
@@ -54,7 +64,7 @@ func StartNTestShell(path string) (*NTestShell, error) {
 		return nil, fmt.Errorf("failed to open stdin pipe to ntest: %v", err)
 	}
 
-	sh := &NTestShell{stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: make(chan MoveReq)}
+	sh := &NTestShell{stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: moveReqCh}
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start ntest: %v", err)
@@ -100,10 +110,7 @@ func (sh *NTestShell) expect(expected string) error {
 			return fmt.Errorf("expected: %s from ntest stdout, got: %s", expected, line)
 		}
 	}
-	if err := sh.stdout.Err(); err != nil {
-		return err
-	}
-	return nil
+	return sh.stdout.Err()
 }
 
 func (sh *NTestShell) depthCmd(depth uint64) error {
@@ -117,11 +124,7 @@ func (sh *NTestShell) depthCmd(depth uint64) error {
 			break
 		}
 	}
-	if err := sh.stdout.Err(); err != nil {
-		return err
-	}
-
-	return nil
+	return sh.stdout.Err()
 }
 
 func (sh *NTestShell) setGameCmd(game OthelloGame) error {
@@ -201,8 +204,8 @@ func (sh *NTestShell) hintCmd() ([]RankTile, []error) {
 		errs = append(errs, err)
 	}
 
-	for row := 0; row < BoardSize; row++ {
-		for col := 0; col < BoardSize; col++ {
+	for row := range BoardSize {
+		for col := range BoardSize {
 			pair := tileMap[row][col]
 			if pair.set {
 				tiles = append(tiles, pair.tile)
@@ -284,43 +287,92 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth uint64) ([]RankTil
 		return int(tile2.H - tile1.H)
 	})
 
-	slog.Info("found ranked tiles", "depth", depth, "Moves", tiles)
 	return tiles, nil
 }
 
 func (sh *NTestShell) ListenRequests() {
 	for req := range sh.moveReqCh {
+		trace := req.Trace
+
+		if req.IsCancelled.Load() {
+			slog.Warn("skipping cancelled move request", "trace", trace, "name", sh.name)
+			continue
+		}
+
 		start := time.Now()
 
+		slog.Info("move request begin", "req", req, "trace", trace, "name", sh.name)
+
+		var resp moveResp
 		switch req.Kind {
 		case BestMoveKind:
 			move, err := sh.findBestMove(req.Game, req.Depth)
 			if err != nil {
-				slog.Error("failed to find best tile", "err", err)
+				slog.Error("failed to find best tile", "trace", trace, "err", err)
 			}
-			req.RespCh <- MoveResp{Move: move, Err: err}
+			resp = moveResp{MoveResult: MoveResult{Move: move}, Err: err}
 		case RankMovesKind:
 			moves, err := sh.findRankedMoves(req.Game, req.Depth)
 			if err != nil {
-				slog.Error("failed to find ranked tiles", "err", err)
+				slog.Error("failed to find ranked tiles", "trace", trace, "err", err)
 			}
-			req.RespCh <- MoveResp{Moves: moves, Err: err}
+			resp = moveResp{MoveResult: MoveResult{Moves: moves}, Err: err}
 		default:
 			panic(fmt.Sprintf("invalid move request kind: %d", req.Kind))
 		}
 
-		slog.Info("move request complete", "duration", time.Now().Sub(start))
+		slog.Info("move request complete", "req", req, "resp", resp, "name", sh.name, "trace", trace, "duration", time.Since(start))
+		req.RespCh <- resp
 	}
 }
 
-func (sh *NTestShell) FindBestMove(game OthelloGame, depth uint64) chan MoveResp {
-	ch := make(chan MoveResp, 1)
-	sh.moveReqCh <- MoveReq{Kind: BestMoveKind, Game: game, Depth: depth, RespCh: ch}
-	return ch
+type NTestShellPool struct {
+	moveReqCh chan moveReq
 }
 
-func (sh *NTestShell) FindRankedMoves(game OthelloGame, depth uint64) chan MoveResp {
-	ch := make(chan MoveResp, 1)
-	sh.moveReqCh <- MoveReq{Kind: RankMovesKind, Game: game, Depth: depth, RespCh: ch}
-	return ch
+func MakeShellPool(path string, shellCount int) (*NTestShellPool, error) {
+	moveReqCh := make(chan moveReq)
+	pool := &NTestShellPool{moveReqCh: moveReqCh}
+
+	var shells []*NTestShell
+
+	for i := range shellCount {
+		sh, err := StartNTestShell(fmt.Sprintf("node-%d", i), path, moveReqCh)
+		if err != nil {
+			return nil, fmt.Errorf("starting ntest shell: %w", err)
+		}
+		shells = append(shells, sh)
+	}
+	for _, sh := range shells {
+		go sh.ListenRequests()
+	}
+
+	return pool, nil
+}
+
+func (sh *NTestShellPool) sendRequest(ctx context.Context, req moveReq) (MoveResult, error) {
+	req.RespCh = make(chan moveResp, 1)
+
+	sh.moveReqCh <- req
+
+	select {
+	case resp := <-req.RespCh:
+		if resp.Err != nil {
+			return MoveResult{}, resp.Err
+		} else {
+			return resp.MoveResult, nil
+		}
+	case <-ctx.Done():
+		// marks a request as cancelled so if it is in the queue, it will be ignored once handled. does not cancel inflight requests (we cannot).
+		req.IsCancelled.Store(true)
+		return MoveResult{}, ctx.Err()
+	}
+}
+
+func (sh *NTestShellPool) FindBestMove(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error) {
+	return sh.sendRequest(ctx, moveReq{Kind: BestMoveKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
+}
+
+func (sh *NTestShellPool) FindRankedMoves(ctx context.Context,game OthelloGame, depth uint64) (MoveResult, error)  {
+	return sh.sendRequest(ctx, moveReq{Kind: RankMovesKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
 }

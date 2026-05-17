@@ -9,8 +9,8 @@ var expBo = fmt.Sprintf("%d %s *", BoardSize, InitialBoard.MarshallGGF())
 
 func (b *OthelloBoard) MarshallGGF() string {
 	var sb strings.Builder
-	for row := 0; row < BoardSize; row++ {
-		for col := 0; col < BoardSize; col++ {
+	for row := range BoardSize {
+		for col := range BoardSize {
 			str := "-"
 			switch b.GetSquare(row, col) {
 			case White:

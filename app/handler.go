@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"image"
 	"log/slog"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/google/uuid"
@@ -16,23 +17,14 @@ import (
 type State struct {
 	Dg             *discordgo.Session
 	Db             *sqlx.DB
-	Sh             *NTestShell
+	Sh             *NTestShellPool
 	Renderer       Renderer
 	UserCache      UserCache
 	ChallengeCache ChallengeCache
 	SimCache       SimCache
 }
 
-func MakeState(db *sqlx.DB, dg *discordgo.Session, sh *NTestShell) State {
-	if db == nil {
-		panic("db must be non nil")
-	}
-	if dg == nil {
-		panic("discord session must be non nil")
-	}
-	if sh == nil {
-		panic("ntest shell must be non nil")
-	}
+func MakeState(db *sqlx.DB, dg *discordgo.Session, sh *NTestShellPool) State {
 	return State{
 		Db:             db,
 		Dg:             dg,
@@ -203,31 +195,31 @@ func HandleAccept(ctx context.Context, state *State, ic *discordgo.InteractionCr
 	interactionRespond(state.Dg, ic.Interaction, makeEmbedResponse(embed, img))
 }
 
-func handleGetGame(ctx context.Context, state *State, ic *discordgo.InteractionCreate) (OthelloGame, *discordgo.User, bool) {
+func handleGetGame(ctx context.Context, state *State, ic *discordgo.InteractionCreate) (OthelloGame, *discordgo.User, func()) {
 	var user *discordgo.User
 	if ic.Interaction.Member != nil {
 		user = ic.Interaction.Member.User
 	} else {
-		handleInteractionError(ctx, state.Dg, ic, ErrUserNotProvided)
-		return OthelloGame{}, nil, false
+		return OthelloGame{}, nil, func() { handleInteractionError(ctx, state.Dg, ic, ErrUserNotProvided) }
 	}
 
 	game, err := GetGame(ctx, state.Db, user.ID)
 	if errors.Is(err, ErrGameNotFound) {
-		interactionRespond(state.Dg, ic.Interaction, makeStringResponse("You're not playing a game."))
-		return OthelloGame{}, nil, false
+		return OthelloGame{}, nil, func() { interactionRespond(state.Dg, ic.Interaction, makeStringResponse("You're not playing a game.")) }
 	}
 	if err != nil {
-		handleInteractionError(ctx, state.Dg, ic, fmt.Errorf("failed to get game for player=%s: %w", user.ID, err))
-		return OthelloGame{}, nil, false
+		return OthelloGame{}, nil, func() {
+			handleInteractionError(ctx, state.Dg, ic, fmt.Errorf("failed to get game for player=%s: %w", user.ID, err))
+		}
 	}
 
-	return game, user, true
+	return game, user, nil
 }
 
 func HandleView(ctx context.Context, state *State, ic *discordgo.InteractionCreate) {
-	game, _, ok := handleGetGame(ctx, state, ic)
-	if !ok {
+	game, _, handleError := handleGetGame(ctx, state, ic)
+	if handleError != nil {
+		handleError()
 		return
 	}
 
@@ -238,8 +230,9 @@ func HandleView(ctx context.Context, state *State, ic *discordgo.InteractionCrea
 }
 
 func HandleForfeit(ctx context.Context, state *State, ic *discordgo.InteractionCreate) {
-	game, user, ok := handleGetGame(ctx, state, ic)
-	if !ok {
+	game, user, handleError := handleGetGame(ctx, state, ic)
+	if handleError != nil {
+		handleError()
 		return
 	}
 
@@ -305,17 +298,9 @@ func handleMoveAgainstBot(ctx context.Context, state *State, ic *discordgo.Inter
 	targetPlayer := game.OtherPlayer()
 
 	for game.HasMoves() {
-		respCh := state.Sh.FindBestMove(game, botLevel)
-		var resp MoveResp
-
-		select {
-		case resp = <-respCh:
-		case <-ctx.Done():
-			handleErr(fmt.Errorf("timed out while waiting for engine: %w", ctx.Err()))
-			return
-		}
-		if resp.Err != nil {
-			handleErr(fmt.Errorf("failed to retrieve analyis data from engine: %w", resp.Err))
+		resp, err := state.Sh.FindBestMove(ctx, game, botLevel)
+		if err != nil {
+			handleErr(fmt.Errorf("failed to retrieve analyis data from engine: %w", ctx.Err()))
 			return
 		}
 
@@ -387,28 +372,26 @@ func HandleAnalyze(ctx context.Context, state *State, ic *discordgo.InteractionC
 		handleInteractionError(ctx, state.Dg, ic, err)
 		return
 	}
-	game, _, ok := handleGetGame(ctx, state, ic)
-	if !ok {
+	game, _, handleError := handleGetGame(ctx, state, ic)
+	if handleError != nil {
+		handleError()
 		return
 	}
 
 	interactionRespond(state.Dg, ic.Interaction, makeStringResponse("Analyzing... Wait a second..."))
 
-	respCh := state.Sh.FindRankedMoves(game, LevelToDepth(level))
-	select {
-	case resp := <-respCh:
-		if resp.Err != nil {
-			interactionResponseEdit(state.Dg, ic.Interaction, makeEmbedTextEdit("Failed to retrieve analysis data from engine."))
-			return
-		}
-		embed := makeAnalysisEmbed(game, level)
-		img := state.Renderer.DrawBoardAnalysis(game.Board, resp.Moves)
-		interactionResponseEdit(state.Dg, ic.Interaction, makeEmbedEdit(embed, img))
-	case <-ctx.Done():
+	resp, err := state.Sh.FindRankedMoves(ctx, game, LevelToDepth(level))
+	if errors.Is(err, context.Canceled) {
 		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
 		interactionResponseEdit(state.Dg, ic.Interaction, makeStringEdit("Timed out while waiting for a response."))
+	} else if err != nil {
+		interactionResponseEdit(state.Dg, ic.Interaction, makeEmbedTextEdit("Failed to retrieve analysis data from engine."))
+		return
 	}
-	return
+
+	embed := makeAnalysisEmbed(game, level)
+	img := state.Renderer.DrawBoardAnalysis(game.Board, resp.Moves)
+	interactionResponseEdit(state.Dg, ic.Interaction, makeEmbedEdit(embed, img))
 }
 
 func HandleSimulate(ctx context.Context, state *State, ic *discordgo.InteractionCreate) {
@@ -517,8 +500,9 @@ func HandleLeaderboard(ctx context.Context, state *State, ic *discordgo.Interact
 }
 
 func HandleMoves(ctx context.Context, state *State, ic *discordgo.InteractionCreate) {
-	game, _, ok := handleGetGame(ctx, state, ic)
-	if !ok {
+	game, _, handleError := handleGetGame(ctx, state, ic)
+	if handleError != nil {
+		handleError()
 		return
 	}
 	embed := makeMovesEmbed(game)

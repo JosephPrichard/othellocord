@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
 )
 
 func setupShell(t *testing.T) *NTestShell {
@@ -17,7 +18,7 @@ func setupShell(t *testing.T) *NTestShell {
 	path := os.Getenv("NTEST_PATH")
 	t.Logf("making ntest shell with path: %s", path)
 
-	sh, err := StartNTestShell(path)
+	sh, err := StartNTestShell("shell", path, make(chan moveReq))
 	if err != nil {
 		t.Fatalf("failed to start ntest shell: %v", err)
 	}
@@ -56,11 +57,9 @@ func TestNTestShell_FindRankedMoves(t *testing.T) {
 	player1 := MakePlayer("id1", "name1")
 	player2 := MakePlayer("id2", "name2")
 
-	type Test struct {
+	tests := []struct {
 		game OthelloGame
-	}
-
-	tests := []Test{
+	}{
 		// this will get 'book' or 'search' depending on whether this is the first run or not
 		{game: OthelloGame{WhitePlayer: player1, BlackPlayer: player2, Board: cnstBoard}},
 		// this will get 'book' because the previous search has the same board

@@ -40,14 +40,12 @@ var TestMoves = []ColorMove{
 }
 
 func TestBoard_FindCurrentMoves(t *testing.T) {
-	type Test struct {
-		moves    []ColorMove
-		expMoves []string
-	}
-
 	initialBoard := MakeInitialBoard()
 
-	tests := []Test{
+	tests := []struct {
+		moves    []ColorMove
+		expMoves []string
+	}{
 		{
 			moves:    []ColorMove{},
 			expMoves: []string{"c4", "d3", "e6", "f5"},
@@ -79,12 +77,11 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 }
 
 func TestBoard_MakeMoved(t *testing.T) {
-	type Test struct {
+	tests := []struct {
 		preMoves  []ColorMove
 		move      Tile
 		postMoves []ColorMove
-	}
-	tests := []Test{
+	}{
 		{
 			preMoves: TestMoves,
 			move:     ParseTile("c5"),
@@ -121,12 +118,10 @@ func TestBoard_MakeMoved(t *testing.T) {
 }
 
 func TestMoveList_UnmarshalStrings(t *testing.T) {
-	type Test struct {
+	tests := []struct {
 		MoveListStr string
 		MoveList    []Move
-	}
-
-	tests := []Test{
+	}{
 		{
 			MoveListStr: "a1,a2,a3,a4",
 			MoveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}, {Tile: Tile{Row: 1, Col: 0}}, {Tile: Tile{Row: 2, Col: 0}}, {Tile: Tile{Row: 3, Col: 0}}},
@@ -153,12 +148,10 @@ func TestMoveList_UnmarshalStrings(t *testing.T) {
 }
 
 func TestBoard_MarshalString(t *testing.T) {
-	type Test struct {
+	tests := []struct {
 		Moves  []Tile
 		String string
-	}
-
-	tests := []Test{
+	}{
 		{
 			Moves:  []Tile{},
 			String: "b+27wb6bw27",

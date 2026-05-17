@@ -3,9 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"math"
 	"testing"
+
+	"github.com/bwmarrin/discordgo"
+	gomock "github.com/golang/mock/gomock"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/stretchr/testify/assert"
 	_ "modernc.org/sqlite"
@@ -67,11 +70,10 @@ func TestReadStats(t *testing.T) {
 	db, cleanup := setupStatsTest(t)
 	defer cleanup()
 
-	type Test struct {
+	tests := []struct {
 		playerID string
 		expStats Stats
-	}
-	tests := []Test{
+	}{
 		{
 			playerID: "id1",
 			expStats: Stats{Player: Player{ID: "id1", Name: "Player1"}, Elo: 1750, Won: 3, Lost: 2, Drawn: 1},
@@ -86,8 +88,20 @@ func TestReadStats(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-next-stats")
 
-			uc := MakeUserCache(&MockUserFetcher{})
-			stats, err := ReadStats(ctx, db, &uc, test.playerID)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			fetcher := NewMockUserFetcher(ctrl)
+
+			fetcher.EXPECT().
+				User(gomock.Eq("id1"), gomock.Any()).
+				Return(&discordgo.User{ID: "id1", Username: "Player1"})
+			fetcher.EXPECT().
+				User(gomock.Eq("id4"), gomock.Any()).
+				Return(&discordgo.User{ID: "id4", Username: "Player4"})
+
+			userCache := MakeUserCache(fetcher)
+			stats, err := ReadStats(ctx, db, &userCache, test.playerID)
 			if err != nil {
 				t.Fatalf("failed to next stats: %v", err)
 			}
@@ -100,11 +114,10 @@ func TestGetTopStats(t *testing.T) {
 	db, cleanup := setupStatsTest(t)
 	defer cleanup()
 
-	type Test struct {
+	tests := []struct {
 		playerID string
 		expStats []Stats
-	}
-	tests := []Test{
+	}{
 		{
 			playerID: "1",
 			expStats: []Stats{
@@ -121,8 +134,27 @@ func TestGetTopStats(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
 
-			uc := MakeUserCache(&MockUserFetcher{})
-			stats, err := ReadTopStats(ctx, db, &uc, 20)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			fetcher := NewMockUserFetcher(ctrl)
+
+			for _, mock := range []struct {
+				id string
+				username string
+			} {
+				{id: "id1", username: "Player1"},
+				{id: "id2", username: "Player2"},
+				{id: "id6", username: "Player6"},
+				{id: "id7", username: "Player7"},
+			} {
+				fetcher.EXPECT().
+					User(gomock.Eq(mock.id), gomock.Any()).
+					Return(&discordgo.User{ID: mock.id, Username: mock.username})
+			}
+
+			userCache := MakeUserCache(fetcher)
+			stats, err := ReadTopStats(ctx, db, &userCache, 20)
 			if err != nil {
 				t.Fatalf("failed to next stats: %v", err)
 			}
@@ -136,13 +168,12 @@ func TestUpdateStats(t *testing.T) {
 	db, cleanup := setupStatsTest(t)
 	defer cleanup()
 
-	type Test struct {
+	tests := []struct {
 		gr            GameResult
 		expSr         StatsResult
 		expWinStats   StatsRow
 		expLoserStats StatsRow
-	}
-	tests := []Test{
+	}{
 		{
 			gr:            GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id1"}, IsDraw: false},
 			expSr:         StatsResult{WinnerElo: 1750, LoserElo: 1750, WinDiff: 0, LoseDiff: 0},

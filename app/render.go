@@ -159,7 +159,7 @@ func drawBackground(boardSize int) image.Image {
 	g.SetFillColor(BlackBg)
 
 	// draw black horizontal lines
-	for i := 0; i < boardSize+1; i++ {
+	for i := range boardSize+1 {
 		y := float64(i*TileSize + SideOffset)
 		g.MoveTo(SideOffset, y)
 		g.LineTo(float64(width), y)
@@ -168,7 +168,7 @@ func drawBackground(boardSize int) image.Image {
 	}
 
 	// draw black vertical lines
-	for i := 0; i < boardSize+1; i++ {
+	for i := range boardSize+1 {
 		x := float64(i*TileSize + SideOffset)
 		g.MoveTo(x, SideOffset)
 		g.LineTo(x, float64(height))
@@ -179,14 +179,14 @@ func drawBackground(boardSize int) image.Image {
 	g.SetFillColor(WhiteFill)
 
 	// draw letters on horizontal sidebar
-	for i := 0; i < boardSize; i++ {
+	for i := range boardSize {
 		text := string(rune(i) + 'A')
 		x := SideOffset + i*TileSize
 		drawCenterString(g, SideFont, text, x, 0, TileSize, SideOffset)
 	}
 
 	// draw numbers on vertical sidebar
-	for i := 0; i < boardSize; i++ {
+	for i := range boardSize {
 		text := strconv.Itoa(i + 1)
 		y := SideOffset + i*TileSize
 		drawCenterString(g, SideFont, text, 0, y, SideOffset, TileSize)

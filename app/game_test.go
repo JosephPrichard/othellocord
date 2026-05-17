@@ -184,14 +184,13 @@ func TestGameStore_MakeMove(t *testing.T) {
 	expGame := initialGame
 	expGame.MakeMove(testMove)
 
-	type Test struct {
+	tests := []struct {
 		playerID string
 		move     Tile
 		expGame  OthelloGame
 		expSr    StatsResult
 		expErr   error
-	}
-	tests := []Test{
+	}{
 		{playerID: "id5", expErr: ErrGameNotFound},
 		{playerID: "id2", expErr: ErrTurn},
 		{playerID: "id1", move: Tile{Row: 0, Col: 1}, expErr: ErrInvalidMove},

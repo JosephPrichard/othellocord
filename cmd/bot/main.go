@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 	"log"
 	"log/slog"
-	_ "modernc.org/sqlite"
 	"os"
 	"os/signal"
 	"othellocord/app"
+	"strconv"
 	"syscall"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -23,6 +25,15 @@ func main() {
 
 	token := os.Getenv("DISCORD_TOKEN")
 	path := os.Getenv("NTEST_PATH")
+	shellCountStr := os.Getenv("SHELL_COUNT")
+
+	if shellCountStr == "" {
+		shellCountStr = "1"
+	}
+	shellCount, err := strconv.Atoi(shellCountStr)
+	if err != nil {
+		log.Fatalf("node count envvar must be an integer: %v", err)
+	}
 
 	db, err := sqlx.Connect("sqlite", "./othellocord.db?_busy_timeout=5000")
 	if err != nil {
@@ -38,16 +49,13 @@ func main() {
 	}
 
 	dg, _ := discordgo.New(fmt.Sprintf("Bot %s", token))
-	defer func() {
-		_ = dg.Close()
-	}()
+	defer dg.Close()
 
-	sh, err := app.StartNTestShell(path)
+	sh, err := app.MakeShellPool(path, shellCount)
 	if err != nil {
 		log.Fatalf("failed to open ntest shell: %v", err)
 	}
 
-	go sh.ListenRequests()
 	go app.ExpireGamesCron(db)
 
 	state := app.MakeState(db, dg, sh)

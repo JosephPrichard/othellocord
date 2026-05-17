@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -39,7 +40,7 @@ type SimStep struct {
 
 const MaxSimCount = BoardSize * BoardSize // maximum number of possible simulation states
 
-func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame OthelloGame, simChan chan SimStep) {
+func GenerateSimulation(ctx context.Context, sh *NTestShellPool, initialGame OthelloGame, simChan chan SimStep) {
 	trace := ctx.Value(TraceKey)
 
 	defer close(simChan)
@@ -49,19 +50,15 @@ func GenerateSimulation(ctx context.Context, sh *NTestShell, initialGame Othello
 
 	for i := 0; ; i++ {
 		if game.HasMoves() {
-			respCh := sh.FindBestMove(game, game.CurrentPlayer().LevelToDepth())
-			var resp MoveResp
-
-			select {
-			case resp = <-respCh:
-			case <-ctx.Done():
+			resp, err := sh.FindBestMove(ctx, game, game.CurrentPlayer().LevelToDepth())
+			if errors.Is(err, context.Canceled) {
 				slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
 				return
-			}
-			if resp.Err != nil {
+			} else if err != nil {
 				simChan <- SimStep{Ok: false}
 				return
 			}
+
 			move = resp.Move
 
 			game.MakeMove(move.Tile)

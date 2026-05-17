@@ -25,8 +25,8 @@ type Tile struct {
 
 func makeTiles() []Tile {
 	var tiles []Tile
-	for row := 0; row < BoardSize; row++ {
-		for col := 0; col < BoardSize; col++ {
+	for row := range BoardSize {
+		for col := range BoardSize {
 			tiles = append(tiles, Tile{Row: row, Col: col})
 		}
 	}
@@ -358,10 +358,10 @@ func (b *OthelloBoard) String() string {
 		sb.WriteString(" ")
 	}
 	sb.WriteRune('\n')
-	for row := 0; row < BoardSize; row++ {
+	for row := range BoardSize {
 		sb.WriteString(strconv.Itoa(row + 1))
 		sb.WriteString(" ")
-		for col := 0; col < BoardSize; col++ {
+		for col := range BoardSize {
 			str := "."
 			switch b.GetSquare(row, col) {
 			case White:
@@ -430,8 +430,8 @@ func (b *OthelloBoard) MarshalString() string {
 		emptyCount = 0
 	}
 
-	for row := 0; row < BoardSize; row++ {
-		for col := 0; col < BoardSize; col++ {
+	for row := range BoardSize {
+		for col := range BoardSize {
 			t := b.GetSquare(row, col)
 			switch t {
 			case Empty:
