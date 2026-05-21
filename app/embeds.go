@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"image"
@@ -65,18 +64,6 @@ func makeComponentResponse(embed *discordgo.MessageEmbed, img image.Image, compo
 			Components: components,
 		},
 	}
-}
-
-func makeMoveErrorResp(err error, moveStr string) *discordgo.InteractionResponse {
-	var resp *discordgo.InteractionResponse
-	if errors.Is(err, ErrGameNotFound) {
-		resp = makeStringResponse("You're not currently playing a game.")
-	} else if errors.Is(err, ErrInvalidMove) {
-		resp = makeStringResponse(fmt.Sprintf("Can't make a ColorMove to %s.", moveStr))
-	} else if errors.Is(err, ErrTurn) {
-		resp = makeStringResponse("It isn't your turn.")
-	}
-	return resp
 }
 
 func makeEmbedSend(embed *discordgo.MessageEmbed, img image.Image, target Player) *discordgo.MessageSend {
@@ -290,8 +277,8 @@ func makeLeaderboardEmbed(stats []Stats) *discordgo.MessageEmbed {
 		desc.WriteString("```\n")
 		for i, stats := range stats {
 			desc.WriteString(rightPad(fmt.Sprintf("%d)", i+1), 4))
-			desc.WriteString(leftPad(stats.Player.Name, 32))
-			desc.WriteString(leftPad(fmt.Sprintf("%.2f", stats.Elo), 12))
+			desc.WriteString(rightPad(stats.Player.Name, 25))
+			desc.WriteString(rightPad(fmt.Sprintf("%.2f", stats.Elo), 25))
 			desc.WriteString("\n")
 		}
 		desc.WriteString("```")

@@ -26,7 +26,7 @@ func getOpt(options []*Option, name string) *Option {
 	index := slices.IndexFunc(options, func(opt *Option) bool {
 		return opt.Name == name
 	})
-	if index > 0 {
+	if index >= 0 {
 		return options[index]
 	}
 	return nil

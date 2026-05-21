@@ -134,18 +134,19 @@ const GameStoreTtl = time.Hour * 24
 
 var ErrGameNotFound = errors.New("game not found")
 
-func GetGame(ctx context.Context, db *sqlx.DB, playerID string) (game OthelloGame, err error) {
+func GetGame(ctx context.Context, db *sqlx.DB, playerID string) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
 
 	var row GameRow
-	err = db.GetContext(ctx, &row, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;", playerID)
+	err := db.GetContext(ctx, &row, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;", playerID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return game, ErrGameNotFound
+		return OthelloGame{}, ErrGameNotFound
 	} else if err != nil {
-		return game, fmt.Errorf("failed to select game by id: %w", err)
+		return OthelloGame{}, fmt.Errorf("failed to select game by id: %w", err)
 	}
-	if game, err = mapGameRow(row); err != nil {
-		return game, fmt.Errorf("failed to map game row: %w", err)
+	game, err := mapGameRow(row)
+	if err != nil {
+		return OthelloGame{}, fmt.Errorf("failed to map game row: %w", err)
 	}
 
 	slog.Info("selected game", "trace", trace, "game", game.MarshalGGF(), "playerID", playerID)
@@ -197,24 +198,25 @@ func UpdateGame(ctx context.Context, db *sqlx.DB, game OthelloGame) (StatsResult
 	}
 }
 
-func GameOverTx(ctx context.Context, db *sqlx.DB, game OthelloGame, gr GameResult) (sr StatsResult, err error) {
+func GameOverTx(ctx context.Context, db *sqlx.DB, game OthelloGame, gameResult GameResult) (StatsResult, error) {
 	tx, err := db.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		return sr, fmt.Errorf("failed to open gameover tx: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to open gameover tx: %w", err)
 	}
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM games WHERE white_id = $1 AND black_id = $2;", game.WhitePlayer.ID, game.BlackPlayer.ID); err != nil {
-		return sr, fmt.Errorf("failed to delete game: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to delete game: %w", err)
 	}
-	if sr, err = UpdateStats(ctx, tx, gr); err != nil {
-		return sr, fmt.Errorf("failed to update stats for result=%v: %s", gr, err)
+	statsResult, err := UpdateStats(ctx, tx, gameResult)
+	if err != nil {
+		return StatsResult{}, fmt.Errorf("failed to update stats for result=%v: %s", gameResult, err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return sr, fmt.Errorf("failed to commit gameover tx: %w", err)
+		return statsResult, fmt.Errorf("failed to commit gameover tx: %w", err)
 	}
-	return sr, nil
+	return statsResult, nil
 }
 
 func CountGames(db *sqlx.DB) (int, error) {
@@ -231,10 +233,10 @@ func gameExpireTime() time.Time {
 	return time.Now().Add(GameStoreTtl)
 }
 
-func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePlayer Player) (game OthelloGame, err error) {
+func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePlayer Player) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
 
-	game = OthelloGame{ID: uuid.NewString(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: MakeInitialBoard()}
+	game := OthelloGame{ID: uuid.NewString(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: MakeInitialBoard()}
 	var player2Id *string
 	if whitePlayer.IsHuman() {
 		player2Id = &whitePlayer.ID
@@ -247,7 +249,7 @@ func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePla
 	defer tx.Rollback()
 
 	if err := CheckGameParticipation(ctx, tx, blackPlayer.ID, player2Id); err != nil {
-		return OthelloGame{}, fmt.Errorf("failed to check game participation: %w", err)
+		return game, fmt.Errorf("failed to check game participation: %w", err)
 	}
 	if err := SetGame(ctx, tx, game); err != nil {
 		return game, fmt.Errorf("failed to set game: %+v: %w", game, err)
@@ -274,18 +276,19 @@ type MoveAgainstHuman struct {
 	Tile     Tile
 }
 
-func MakeMoveAgainstHuman(ctx context.Context, db *sqlx.DB, move MoveAgainstHuman) (game OthelloGame, sr StatsResult, err error) {
+func MakeMoveAgainstHuman(ctx context.Context, db *sqlx.DB, move MoveAgainstHuman) (OthelloGame, StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
-	if game, err = GetGame(ctx, db, move.PlayerID); err != nil {
-		return game, sr, fmt.Errorf("failed to get game in move: %w", err)
+	game, err := GetGame(ctx, db, move.PlayerID)
+	if err != nil {
+		return OthelloGame{}, StatsResult{}, fmt.Errorf("failed to get game in move: %w", err)
 	}
 
 	if game.CurrentPlayer().ID != move.PlayerID {
-		return game, sr, ErrTurn
+		return game, StatsResult{}, ErrTurn
 	}
 	if !slices.Contains(game.Board.FindCurrentMoves(), move.Tile) {
-		return game, sr, ErrInvalidMove
+		return game, StatsResult{}, ErrInvalidMove
 	}
 
 	game.MakeMove(move.Tile)
@@ -295,12 +298,13 @@ func MakeMoveAgainstHuman(ctx context.Context, db *sqlx.DB, move MoveAgainstHuma
 		return game, StatsResult{}, ErrIsAgainstBot
 	}
 
-	if sr, err = UpdateGame(ctx, db, game); err != nil {
-		return game, sr, fmt.Errorf("failed to update game in move: %w", err)
+	statsResult, err := UpdateGame(ctx, db, game)
+	if err != nil {
+		return game, StatsResult{}, fmt.Errorf("failed to update game in move: %w", err)
 	}
 
 	slog.Info("player made move", "trace", trace, "game", game.MarshalGGF(), "move", move, "playerID", move.PlayerID)
-	return game, sr, nil
+	return game, statsResult, nil
 }
 
 func ExpireGamesCron(db *sqlx.DB) {

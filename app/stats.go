@@ -61,24 +61,26 @@ func GetStats(ctx context.Context, q CtxQuerier, playerID string) (StatsRow, err
 	return GetStatsDefault(ctx, q, DefaultStats(playerID))
 }
 
-func GetStatsDefault(ctx context.Context, q CtxQuerier, defaultStats StatsRow) (stats StatsRow, err error) {
+func GetStatsDefault(ctx context.Context, q CtxQuerier, defaultStats StatsRow) (StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
 	isCreated := false
 
-	err = q.GetContext(ctx, &stats, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
+	var stats StatsRow
+	err := q.GetContext(ctx, &stats, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		isCreated = true
 	} else if err != nil {
-		return stats, fmt.Errorf("failed to get stats: %w", err)
+		return StatsRow{}, fmt.Errorf("failed to get stats: %w", err)
 	}
 
 	if isCreated {
 		stats = defaultStats
-		if _, err = q.ExecContext(ctx, "INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
+		if _, err = q.ExecContext(ctx,
+			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
 			stats.PlayerID, stats.Elo, stats.Won, stats.Lost, stats.Drawn,
 		); err != nil {
-			return stats, fmt.Errorf("failed to insert stats: %w", err)
+			return stats, fmt.Errorf("failed to insert stats %+v: %w", stats, err)
 		}
 	}
 
@@ -130,19 +132,19 @@ func (s StatsResult) FormatLoserEloDiff() string {
 	return formatElo(s.LoseDiff)
 }
 
-func UpdateStats(ctx context.Context, q CtxQuerier, gr GameResult) (sr StatsResult, err error) {
+func UpdateStats(ctx context.Context, q CtxQuerier, gameResult GameResult) (StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
-	winner, err := GetStats(ctx, q, gr.Winner.ID)
+	winner, err := GetStats(ctx, q, gameResult.Winner.ID)
 	if err != nil {
-		return sr, fmt.Errorf("failed to get winner stats: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
 	}
-	loser, err := GetStats(ctx, q, gr.Loser.ID)
+	loser, err := GetStats(ctx, q, gameResult.Loser.ID)
 	if err != nil {
-		return sr, fmt.Errorf("failed to get loser stats: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
 	}
 
-	if gr.IsDraw || gr.Winner.ID == gr.Loser.ID {
+	if gameResult.IsDraw || gameResult.Winner.ID == gameResult.Loser.ID {
 		return StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: 0, LoseDiff: 0}, nil
 	}
 
@@ -154,18 +156,18 @@ func UpdateStats(ctx context.Context, q CtxQuerier, gr GameResult) (sr StatsResu
 	loser.Lost++
 
 	if err := updateStat(ctx, q, winner); err != nil {
-		return sr, fmt.Errorf("failed to update winner stat: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to update winner stat: %w", err)
 	}
 	if err := updateStat(ctx, q, loser); err != nil {
-		return sr, fmt.Errorf("failed to update loser stat: %w", err)
+		return StatsResult{}, fmt.Errorf("failed to update loser stat: %w", err)
 	}
 
 	winDiff := winner.Elo - winBefore
 	lossDiff := loser.Elo - lossBefore
-	sr = StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
+	statsResult := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
 
-	slog.Info("updated stats tx executed", "trace", trace, "game", gr, "stats", sr)
-	return sr, nil
+	slog.Info("updated stats tx executed", "trace", trace, "game", gameResult, "stats", statsResult)
+	return statsResult, nil
 }
 
 const EloK = 30

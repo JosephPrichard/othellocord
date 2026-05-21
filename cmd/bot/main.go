@@ -48,23 +48,23 @@ func main() {
 		log.Fatalf("failed to create schema: %v", err)
 	}
 
-	dg, _ := discordgo.New(fmt.Sprintf("Bot %s", token))
-	defer dg.Close()
+	discord, _ := discordgo.New(fmt.Sprintf("Bot %s", token))
+	defer discord.Close()
 
-	sh, err := app.MakeShellPool(path, shellCount)
+	shell, err := app.MakeShellPool(path, shellCount)
 	if err != nil {
 		log.Fatalf("failed to open ntest shell: %v", err)
 	}
 
 	go app.ExpireGamesCron(db)
 
-	state := app.MakeState(db, dg, sh)
-	dg.AddHandler(state.HandeInteractionCreate)
+	state := app.MakeState(db, discord, shell)
+	discord.AddHandler(app.MakeHandleInteractionCreate(&state))
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	if err = dg.Open(); err != nil {
+	if err = discord.Open(); err != nil {
 		log.Fatalf("failed to connect to events: %v", err)
 	}
 
