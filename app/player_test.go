@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestUserCache_GetUsername(t *testing.T) {

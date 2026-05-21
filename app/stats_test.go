@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/golang/mock/gomock"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/assert"
 	_ "modernc.org/sqlite"
