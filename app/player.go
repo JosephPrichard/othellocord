@@ -40,7 +40,7 @@ func MakePlayer(id string, name string) Player {
 	return player
 }
 
-func LevelToDepth(level uint64) uint64 {
+func LevelToSearchDepth(level uint64) uint64 {
 	switch level {
 	case 1:
 		return 5
@@ -56,8 +56,8 @@ func LevelToDepth(level uint64) uint64 {
 	return 0
 }
 
-func (player Player) LevelToDepth() uint64 {
-	return LevelToDepth(player.Level)
+func (player Player) LevelToSearchDepth() uint64 {
+	return LevelToSearchDepth(player.Level)
 }
 
 func (player Player) IsHuman() bool {

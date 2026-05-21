@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/stretchr/testify/assert"
@@ -71,16 +71,31 @@ func TestReadStats(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
-		playerID string
-		expStats Stats
+		playerID   string
+		expStats   Stats
+		setupMocks func(ctrl *gomock.Controller) UserFetcher
 	}{
 		{
 			playerID: "id1",
 			expStats: Stats{Player: Player{ID: "id1", Name: "Player1"}, Elo: 1750, Won: 3, Lost: 2, Drawn: 1},
+			setupMocks: func(ctrl *gomock.Controller) UserFetcher {
+				fetcher := NewMockUserFetcher(ctrl)
+				fetcher.EXPECT().
+					User(gomock.Eq("id1"), gomock.Any()).
+					Return(&discordgo.User{ID: "id1", Username: "Player1"}, nil)
+				return fetcher
+			},
 		},
 		{
 			playerID: "id4",
 			expStats: Stats{Player: Player{ID: "id4", Name: "Player4"}, Elo: 1500, Won: 0, Lost: 0, Drawn: 0},
+			setupMocks: func(ctrl *gomock.Controller) UserFetcher {
+				fetcher := NewMockUserFetcher(ctrl)
+				fetcher.EXPECT().
+					User(gomock.Eq("id4"), gomock.Any()).
+					Return(&discordgo.User{ID: "id4", Username: "Player4"}, nil)
+				return fetcher
+			},
 		},
 	}
 
@@ -91,14 +106,7 @@ func TestReadStats(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			fetcher := NewMockUserFetcher(ctrl)
-
-			fetcher.EXPECT().
-				User(gomock.Eq("id1"), gomock.Any()).
-				Return(&discordgo.User{ID: "id1", Username: "Player1"})
-			fetcher.EXPECT().
-				User(gomock.Eq("id4"), gomock.Any()).
-				Return(&discordgo.User{ID: "id4", Username: "Player4"})
+			fetcher := test.setupMocks(ctrl)
 
 			userCache := MakeUserCache(fetcher)
 			stats, err := ReadStats(ctx, db, &userCache, test.playerID)
@@ -115,8 +123,9 @@ func TestGetTopStats(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
-		playerID string
-		expStats []Stats
+		playerID   string
+		expStats   []Stats
+		setupMocks func(ctrl *gomock.Controller) UserFetcher
 	}{
 		{
 			playerID: "1",
@@ -126,6 +135,23 @@ func TestGetTopStats(t *testing.T) {
 				{Player: MakeBotPlayer(3), Elo: 1550, Won: 5, Lost: 2, Drawn: 0},
 				{Player: Player{ID: "id6", Name: "Player6"}, Elo: 1500, Won: 2, Lost: 4, Drawn: 1},
 				{Player: Player{ID: "id7", Name: "Player7"}, Elo: 1250, Won: 5, Lost: 2, Drawn: 0},
+			},
+			setupMocks: func(ctrl *gomock.Controller) UserFetcher {
+				fetcher := NewMockUserFetcher(ctrl)
+				for _, mock := range []struct {
+					id       string
+					username string
+				}{
+					{id: "id1", username: "Player1"},
+					{id: "id2", username: "Player2"},
+					{id: "id6", username: "Player6"},
+					{id: "id7", username: "Player7"},
+				} {
+					fetcher.EXPECT().
+						User(gomock.Eq(mock.id), gomock.Any()).
+						Return(&discordgo.User{ID: mock.id, Username: mock.username}, nil)
+				}
+				return fetcher
 			},
 		},
 	}
@@ -137,21 +163,7 @@ func TestGetTopStats(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			fetcher := NewMockUserFetcher(ctrl)
-
-			for _, mock := range []struct {
-				id string
-				username string
-			} {
-				{id: "id1", username: "Player1"},
-				{id: "id2", username: "Player2"},
-				{id: "id6", username: "Player6"},
-				{id: "id7", username: "Player7"},
-			} {
-				fetcher.EXPECT().
-					User(gomock.Eq(mock.id), gomock.Any()).
-					Return(&discordgo.User{ID: mock.id, Username: mock.username})
-			}
+			fetcher := test.setupMocks(ctrl)
 
 			userCache := MakeUserCache(fetcher)
 			stats, err := ReadTopStats(ctx, db, &userCache, 20)
@@ -169,22 +181,22 @@ func TestUpdateStats(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
-		gr            GameResult
-		expSr         StatsResult
-		expWinStats   StatsRow
-		expLoserStats StatsRow
+		gameResult     GameResult
+		expStatsResult StatsResult
+		expWinStats    StatsRow
+		expLoserStats  StatsRow
 	}{
 		{
-			gr:            GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id1"}, IsDraw: false},
-			expSr:         StatsResult{WinnerElo: 1750, LoserElo: 1750, WinDiff: 0, LoseDiff: 0},
-			expWinStats:   StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
-			expLoserStats: StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
+			gameResult:     GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id1"}, IsDraw: false},
+			expStatsResult: StatsResult{WinnerElo: 1750, LoserElo: 1750, WinDiff: 0, LoseDiff: 0},
+			expWinStats:    StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
+			expLoserStats:  StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
 		},
 		{
-			gr:            GameResult{Winner: Player{ID: "id6"}, Loser: Player{ID: "id7"}, IsDraw: false},
-			expSr:         StatsResult{WinnerElo: 1506, LoserElo: 1244, WinDiff: 6, LoseDiff: -6},
-			expWinStats:   StatsRow{PlayerID: "id6", Elo: 1506, Won: 3, Drawn: 1, Lost: 4},
-			expLoserStats: StatsRow{PlayerID: "id7", Elo: 1244, Won: 5, Drawn: 0, Lost: 3},
+			gameResult:     GameResult{Winner: Player{ID: "id6"}, Loser: Player{ID: "id7"}, IsDraw: false},
+			expStatsResult: StatsResult{WinnerElo: 1506, LoserElo: 1244, WinDiff: 6, LoseDiff: -6},
+			expWinStats:    StatsRow{PlayerID: "id6", Elo: 1506, Won: 3, Drawn: 1, Lost: 4},
+			expLoserStats:  StatsRow{PlayerID: "id7", Elo: 1244, Won: 5, Drawn: 0, Lost: 3},
 		},
 	}
 
@@ -199,19 +211,19 @@ func TestUpdateStats(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
 
-			sr, err := UpdateStats(ctx, db, test.gr)
+			sr, err := UpdateStats(ctx, db, test.gameResult)
 			if err != nil {
 				t.Fatalf("failed to update stats: %v", err)
 			}
 
 			roundElo(&sr)
-			assert.Equal(t, test.expSr, sr)
+			assert.Equal(t, test.expStatsResult, sr)
 
-			ws, err := GetStats(ctx, db, test.gr.Winner.ID)
+			ws, err := GetStats(ctx, db, test.gameResult.Winner.ID)
 			if err != nil {
 				t.Fatalf("failed to get or insert winner stats: %v", err)
 			}
-			ls, err := GetStats(ctx, db, test.gr.Loser.ID)
+			ls, err := GetStats(ctx, db, test.gameResult.Loser.ID)
 			if err != nil {
 				t.Fatalf("failed to get or insert loser stats: %v", err)
 			}

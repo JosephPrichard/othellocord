@@ -294,7 +294,7 @@ func handleMoveAgainstBot(ctx context.Context, state *State, ic *discordgo.Inter
 	interactionRespond(state.Dg, ic.Interaction, makeEmbedResponse(embed, img))
 
 	botPlayer := game.CurrentPlayer()
-	botLevel := botPlayer.LevelToDepth()
+	botLevel := botPlayer.LevelToSearchDepth()
 	targetPlayer := game.OtherPlayer()
 
 	for game.HasMoves() {
@@ -380,7 +380,7 @@ func HandleAnalyze(ctx context.Context, state *State, ic *discordgo.InteractionC
 
 	interactionRespond(state.Dg, ic.Interaction, makeStringResponse("Analyzing... Wait a second..."))
 
-	resp, err := state.Sh.FindRankedMoves(ctx, game, LevelToDepth(level))
+	resp, err := state.Sh.FindRankedMoves(ctx, game, LevelToSearchDepth(level))
 	if errors.Is(err, context.Canceled) {
 		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
 		interactionResponseEdit(state.Dg, ic.Interaction, makeStringEdit("Timed out while waiting for a response."))

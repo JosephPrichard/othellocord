@@ -22,17 +22,17 @@ const (
 )
 
 type moveReq struct {
-	Kind   MoveRequestKind
-	Game   OthelloGame
-	Depth  uint64
-	RespCh chan moveResp
+	Kind        MoveRequestKind
+	Game        OthelloGame
+	Depth       uint64
+	RespCh      chan moveResp
 	IsCancelled atomic.Bool
-	Trace any
+	Trace       any
 }
 
 type moveResp struct {
 	MoveResult
-	Err   error
+	Err error
 }
 
 type MoveResult struct {
@@ -64,7 +64,7 @@ func StartNTestShell(name string, path string, moveReqCh chan moveReq) (*NTestSh
 		return nil, fmt.Errorf("failed to open stdin pipe to ntest: %v", err)
 	}
 
-	sh := &NTestShell{stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: moveReqCh}
+	sh := &NTestShell{name: name, stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: moveReqCh}
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start ntest: %v", err)
@@ -98,7 +98,7 @@ func (sh *NTestShell) write(cmd string) error {
 func (sh *NTestShell) stdoutText() string {
 	line := sh.stdout.Text()
 	if line != "" {
-		slog.Info("ntest stdout", "line", line)
+		slog.Info("ntest stdout", "line", line, "shellName", sh.name)
 	}
 	return line
 }
@@ -244,8 +244,6 @@ func (sh *NTestShell) findBestMove(game OthelloGame, depth uint64) (RankTile, er
 	if !slices.Contains(game.Board.FindCurrentMoves(), move) {
 		return RankTile{}, fmt.Errorf("engine produced an illegal move: %s for game: %s", move, game.MarshalGGF())
 	}
-
-	slog.Info("found best tile", "depth", depth, "move", tile)
 	return tile, err
 }
 
@@ -293,15 +291,14 @@ func (sh *NTestShell) findRankedMoves(game OthelloGame, depth uint64) ([]RankTil
 func (sh *NTestShell) ListenRequests() {
 	for req := range sh.moveReqCh {
 		trace := req.Trace
+		start := time.Now()
 
 		if req.IsCancelled.Load() {
-			slog.Warn("skipping cancelled move request", "trace", trace, "name", sh.name)
+			slog.Warn("skipping cancelled move request", "trace", trace, "shellName", sh.name)
 			continue
 		}
 
-		start := time.Now()
-
-		slog.Info("move request begin", "req", req, "trace", trace, "name", sh.name)
+		slog.Info("move request begin", "req", req, "trace", trace, "shellName", sh.name)
 
 		var resp moveResp
 		switch req.Kind {
@@ -321,7 +318,8 @@ func (sh *NTestShell) ListenRequests() {
 			panic(fmt.Sprintf("invalid move request kind: %d", req.Kind))
 		}
 
-		slog.Info("move request complete", "req", req, "resp", resp, "name", sh.name, "trace", trace, "duration", time.Since(start))
+		slog.Info("move request complete",
+			"req", req, "resp", resp, "shellName", sh.name, "trace", trace, "duration", time.Since(start))
 		req.RespCh <- resp
 	}
 }
@@ -363,7 +361,7 @@ func (sh *NTestShellPool) sendRequest(ctx context.Context, req moveReq) (MoveRes
 			return resp.MoveResult, nil
 		}
 	case <-ctx.Done():
-		// marks a request as cancelled so if it is in the queue, it will be ignored once handled. does not cancel inflight requests (we cannot).
+		// marks a request as canceled, so if it is in the queue, it will be ignored once handled. does not cancel inflight requests (we cannot).
 		req.IsCancelled.Store(true)
 		return MoveResult{}, ctx.Err()
 	}
@@ -373,6 +371,6 @@ func (sh *NTestShellPool) FindBestMove(ctx context.Context, game OthelloGame, de
 	return sh.sendRequest(ctx, moveReq{Kind: BestMoveKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
 }
 
-func (sh *NTestShellPool) FindRankedMoves(ctx context.Context,game OthelloGame, depth uint64) (MoveResult, error)  {
+func (sh *NTestShellPool) FindRankedMoves(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error) {
 	return sh.sendRequest(ctx, moveReq{Kind: RankMovesKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
 }

@@ -50,11 +50,12 @@ func GenerateSimulation(ctx context.Context, sh *NTestShellPool, initialGame Oth
 
 	for i := 0; ; i++ {
 		if game.HasMoves() {
-			resp, err := sh.FindBestMove(ctx, game, game.CurrentPlayer().LevelToDepth())
+			resp, err := sh.FindBestMove(ctx, game, game.CurrentPlayer().LevelToSearchDepth())
 			if errors.Is(err, context.Canceled) {
 				slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
 				return
 			} else if err != nil {
+				slog.Info("simulation encountered an error", "err", err)
 				simChan <- SimStep{Ok: false}
 				return
 			}

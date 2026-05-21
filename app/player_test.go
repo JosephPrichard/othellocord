@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestUserCache_GetUsername(t *testing.T) {
 
 	fetcher.EXPECT().
 		User(gomock.Eq("id1"), gomock.Any()).
-		Return(&discordgo.User{ID: "id1", Username: "Player1"})
+		Return(&discordgo.User{ID: "id1", Username: "Player1"}, nil)
 
 	userCache := MakeUserCache(fetcher)
 
