@@ -130,15 +130,25 @@ func mapGameRow(row GameRow) (OthelloGame, error) {
 	return game, nil
 }
 
+type GameService struct {
+	database *sqlx.DB
+}
+
+func MakeGameService(db *sqlx.DB) *GameService {
+	return &GameService{database: db}
+}
+
 const GameStoreTtl = time.Hour * 24
 
 var ErrGameNotFound = errors.New("game not found")
 
-func GetGame(ctx context.Context, db *sqlx.DB, playerID string) (OthelloGame, error) {
+func (service *GameService) GetGame(ctx context.Context, playerID string) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
 
 	var row GameRow
-	err := db.GetContext(ctx, &row, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;", playerID)
+	err := service.database.GetContext(ctx, &row,
+		"SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE white_id = $1 OR black_id = $1;",
+		playerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return OthelloGame{}, ErrGameNotFound
 	} else if err != nil {
@@ -153,9 +163,10 @@ func GetGame(ctx context.Context, db *sqlx.DB, playerID string) (OthelloGame, er
 	return game, nil
 }
 
-func CheckGameParticipation(ctx context.Context, tx *sqlx.Tx, player1Id string, player2Id *string) error {
+func checkGameParticipation(ctx context.Context, querier Querier, player1Id string, player2Id *string) error {
 	var count int
-	if err := tx.GetContext(ctx, &count, "SELECT COUNT(*) FROM games WHERE white_id = $1 OR black_id = $1 OR white_id = $2 OR black_id = $2;", player1Id, player2Id); err != nil {
+	if err := querier.GetContext(ctx, &count,
+		"SELECT COUNT(*) FROM games WHERE white_id = $1 OR black_id = $1 OR white_id = $2 OR black_id = $2;", player1Id, player2Id); err != nil {
 		return fmt.Errorf("failed to get games count: %w", err)
 	}
 	if count > 0 {
@@ -164,11 +175,11 @@ func CheckGameParticipation(ctx context.Context, tx *sqlx.Tx, player1Id string, 
 	return nil
 }
 
-func SetGame(ctx context.Context, ext sqlx.ExtContext, game OthelloGame) error {
-	return SetGameTimeWithTime(ctx, ext, game, gameExpireTime())
+func setGame(ctx context.Context, ext sqlx.ExtContext, game OthelloGame) error {
+	return setGameWithTime(ctx, ext, game, gameExpireTime())
 }
 
-func SetGameTimeWithTime(ctx context.Context, ext sqlx.ExtContext, game OthelloGame, expireTime time.Time) error {
+func setGameWithTime(ctx context.Context, ext sqlx.ExtContext, game OthelloGame, expireTime time.Time) error {
 	boardStr := game.Board.MarshalString()
 	moveListStr := MarshalMoveList(game.MoveList)
 
@@ -190,16 +201,16 @@ func SetGameTimeWithTime(ctx context.Context, ext sqlx.ExtContext, game OthelloG
 	return nil
 }
 
-func UpdateGame(ctx context.Context, db *sqlx.DB, game OthelloGame) (StatsResult, error) {
+func (service *GameService) UpdateGame(ctx context.Context, game OthelloGame) (StatsResult, error) {
 	if len(game.Board.FindCurrentMoves()) == 0 {
-		return GameOverTx(ctx, db, game, game.CreateResult())
+		return service.UpdateGameOver(ctx, game, game.CreateResult())
 	} else {
-		return StatsResult{}, SetGame(ctx, db, game)
+		return StatsResult{}, setGame(ctx, service.database, game)
 	}
 }
 
-func GameOverTx(ctx context.Context, db *sqlx.DB, game OthelloGame, gameResult GameResult) (StatsResult, error) {
-	tx, err := db.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+func (service *GameService) UpdateGameOver(ctx context.Context, game OthelloGame, gameResult GameResult) (StatsResult, error) {
+	tx, err := service.database.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to open gameover tx: %w", err)
 	}
@@ -219,21 +230,13 @@ func GameOverTx(ctx context.Context, db *sqlx.DB, game OthelloGame, gameResult G
 	return statsResult, nil
 }
 
-func CountGames(db *sqlx.DB) (int, error) {
-	var count int
-	if err := db.Get(&count, "SELECT COUNT(*) FROM games;"); err != nil {
-		return 0, fmt.Errorf("failed to count games: %w", err)
-	}
-	return count, nil
-}
-
 var ErrAlreadyPlaying = errors.New("one or more players are already in a game")
 
 func gameExpireTime() time.Time {
 	return time.Now().Add(GameStoreTtl)
 }
 
-func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePlayer Player) (OthelloGame, error) {
+func (service *GameService) CreateGame(ctx context.Context, blackPlayer Player, whitePlayer Player) (OthelloGame, error) {
 	trace := ctx.Value(TraceKey)
 
 	game := OthelloGame{ID: uuid.NewString(), WhitePlayer: whitePlayer, BlackPlayer: blackPlayer, Board: MakeInitialBoard()}
@@ -242,16 +245,16 @@ func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePla
 		player2Id = &whitePlayer.ID
 	}
 
-	tx, err := db.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	tx, err := service.database.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return game, fmt.Errorf("failed to open create game tx: %w", err)
 	}
 	defer tx.Rollback()
 
-	if err := CheckGameParticipation(ctx, tx, blackPlayer.ID, player2Id); err != nil {
+	if err := checkGameParticipation(ctx, tx, blackPlayer.ID, player2Id); err != nil {
 		return game, fmt.Errorf("failed to check game participation: %w", err)
 	}
-	if err := SetGame(ctx, tx, game); err != nil {
+	if err := setGame(ctx, tx, game); err != nil {
 		return game, fmt.Errorf("failed to set game: %+v: %w", game, err)
 	}
 
@@ -263,8 +266,8 @@ func CreateGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, whitePla
 	return game, nil
 }
 
-func CreateBotGameTx(ctx context.Context, db *sqlx.DB, blackPlayer Player, level uint64) (OthelloGame, error) {
-	return CreateGameTx(ctx, db, blackPlayer, MakeBotPlayer(level))
+func (service *GameService) CreateBotGame(ctx context.Context, blackPlayer Player, level uint64) (OthelloGame, error) {
+	return service.CreateGame(ctx, blackPlayer, MakeBotPlayer(level))
 }
 
 var ErrTurn = errors.New("not players turn")
@@ -276,10 +279,10 @@ type MoveAgainstHuman struct {
 	Tile     Tile
 }
 
-func MakeMoveAgainstHuman(ctx context.Context, db *sqlx.DB, move MoveAgainstHuman) (OthelloGame, StatsResult, error) {
+func (service *GameService) MakeMoveAgainstHuman(ctx context.Context, move MoveAgainstHuman) (OthelloGame, StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
-	game, err := GetGame(ctx, db, move.PlayerID)
+	game, err := service.GetGame(ctx, move.PlayerID)
 	if err != nil {
 		return OthelloGame{}, StatsResult{}, fmt.Errorf("failed to get game in move: %w", err)
 	}
@@ -298,7 +301,7 @@ func MakeMoveAgainstHuman(ctx context.Context, db *sqlx.DB, move MoveAgainstHuma
 		return game, StatsResult{}, ErrIsAgainstBot
 	}
 
-	statsResult, err := UpdateGame(ctx, db, game)
+	statsResult, err := service.UpdateGame(ctx, game)
 	if err != nil {
 		return game, StatsResult{}, fmt.Errorf("failed to update game in move: %w", err)
 	}
@@ -314,19 +317,21 @@ func ExpireGamesCron(db *sqlx.DB) {
 	ticker := time.NewTicker(time.Minute * 1)
 	defer ticker.Stop()
 
+	gameService := &GameService{database: db}
+
 	for range ticker.C {
 		slog.Info("executing expire games task", "trace", trace)
-		if err := ExpireGames(ctx, db); err != nil {
+		if err := gameService.ExpireGames(ctx); err != nil {
 			slog.Error("failed to expire games", "trace", trace, "err", err)
 		}
 	}
 }
 
-func ExpireGames(ctx context.Context, db *sqlx.DB) error {
+func (service *GameService) ExpireGames(ctx context.Context) error {
 	trace := ctx.Value(TraceKey)
 	t := time.Now()
 
-	rows, err := db.QueryxContext(ctx, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE expire_time < $1;", t)
+	rows, err := service.database.QueryxContext(ctx, "SELECT id, board, moves, white_id, black_id, white_name, black_name FROM games WHERE expire_time < $1;", t)
 	if err != nil {
 		return fmt.Errorf("failed to select expired games: %w", err)
 	}
@@ -348,7 +353,7 @@ func ExpireGames(ctx context.Context, db *sqlx.DB) error {
 	slog.Info("expiring games", "trace", trace, "games", games)
 
 	for _, game := range games {
-		sr, err := GameOverTx(ctx, db, game, GameResult{Winner: game.OtherPlayer(), Loser: game.CurrentPlayer(), IsDraw: false})
+		sr, err := service.UpdateGameOver(ctx, game, GameResult{Winner: game.OtherPlayer(), Loser: game.CurrentPlayer(), IsDraw: false})
 		if err != nil {
 			return fmt.Errorf("failed to update stats: %v for expired games: %w", sr, err)
 		}

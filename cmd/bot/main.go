@@ -58,7 +58,7 @@ func main() {
 
 	go app.ExpireGamesCron(db)
 
-	state := app.MakeState(db, discord, shell)
+	state := app.MakeHandler(db, discord, shell)
 	discord.AddHandler(app.MakeHandleInteractionCreate(&state))
 
 	signalChan := make(chan os.Signal, 1)

@@ -40,7 +40,7 @@ type SimStep struct {
 
 const MaxSimCount = BoardSize * BoardSize // maximum number of possible simulation states
 
-func GenerateSimulation(ctx context.Context, sh *NTestShellPool, initialGame OthelloGame, simChan chan SimStep) {
+func generateSimulation(ctx context.Context, sh *NTestShellPool, initialGame OthelloGame, simChan chan SimStep) {
 	trace := ctx.Value(TraceKey)
 
 	defer close(simChan)

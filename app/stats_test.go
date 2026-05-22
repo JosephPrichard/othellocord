@@ -14,7 +14,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func setupStatsTest(t *testing.T) (*sqlx.DB, func()) {
+func setupStatsTestDb(t *testing.T) (*sqlx.DB, func()) {
 	db, cleanup := createTestDB()
 
 	ctx := context.WithValue(context.Background(), TraceKey, "seed-insert-stats")
@@ -58,7 +58,10 @@ func setupStatsTest(t *testing.T) (*sqlx.DB, func()) {
 	}
 
 	for _, row := range rows {
-		if _, err := GetStatsDefault(ctx, db, row); err != nil {
+		if _, err := db.ExecContext(ctx,
+			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
+			row.PlayerID, row.Elo, row.Won, row.Lost, row.Drawn,
+		); err != nil {
 			t.Fatal("failed to insert stats:", err)
 		}
 	}
@@ -66,8 +69,8 @@ func setupStatsTest(t *testing.T) (*sqlx.DB, func()) {
 	return db, cleanup
 }
 
-func TestReadStats(t *testing.T) {
-	db, cleanup := setupStatsTest(t)
+func TestStatsService_ReadStats(t *testing.T) {
+	db, cleanup := setupStatsTestDb(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -101,15 +104,15 @@ func TestReadStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-next-stats")
+			ctx := t.Context()
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			fetcher := test.setupMocks(ctrl)
+			statsService := StatsService{database: db, userCache: MakeUserCache(fetcher)}
 
-			userCache := MakeUserCache(fetcher)
-			stats, err := ReadStats(ctx, db, &userCache, test.playerID)
+			stats, err := statsService.ReadStats(ctx, test.playerID)
 			if err != nil {
 				t.Fatalf("failed to next stats: %v", err)
 			}
@@ -118,8 +121,8 @@ func TestReadStats(t *testing.T) {
 	}
 }
 
-func TestGetTopStats(t *testing.T) {
-	db, cleanup := setupStatsTest(t)
+func TestStatsService_GetTopStats(t *testing.T) {
+	db, cleanup := setupStatsTestDb(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -158,15 +161,15 @@ func TestGetTopStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
+			ctx := t.Context()
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			fetcher := test.setupMocks(ctrl)
+			statsService := StatsService{database: db, userCache: MakeUserCache(fetcher)}
 
-			userCache := MakeUserCache(fetcher)
-			stats, err := ReadTopStats(ctx, db, &userCache, 20)
+			stats, err := statsService.ReadTopStats(ctx, 20)
 			if err != nil {
 				t.Fatalf("failed to next stats: %v", err)
 			}
@@ -176,8 +179,8 @@ func TestGetTopStats(t *testing.T) {
 	}
 }
 
-func TestUpdateStats(t *testing.T) {
-	db, cleanup := setupStatsTest(t)
+func TestStatsService_UpdateStats(t *testing.T) {
+	db, cleanup := setupStatsTestDb(t)
 	defer cleanup()
 
 	tests := []struct {
@@ -209,7 +212,7 @@ func TestUpdateStats(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-next-top-stats")
+			ctx := t.Context()
 
 			sr, err := UpdateStats(ctx, db, test.gameResult)
 			if err != nil {
@@ -219,14 +222,8 @@ func TestUpdateStats(t *testing.T) {
 			roundElo(&sr)
 			assert.Equal(t, test.expStatsResult, sr)
 
-			ws, err := GetStats(ctx, db, test.gameResult.Winner.ID)
-			if err != nil {
-				t.Fatalf("failed to get or insert winner stats: %v", err)
-			}
-			ls, err := GetStats(ctx, db, test.gameResult.Loser.ID)
-			if err != nil {
-				t.Fatalf("failed to get or insert loser stats: %v", err)
-			}
+			ws := getStatsHelper(t, db, test.gameResult.Winner.ID)
+			ls := getStatsHelper(t, db, test.gameResult.Loser.ID)
 			ws.Elo = math.Round(ws.Elo)
 			ls.Elo = math.Round(ls.Elo)
 
@@ -234,4 +231,12 @@ func TestUpdateStats(t *testing.T) {
 			assert.Equal(t, test.expLoserStats, ls)
 		})
 	}
+}
+
+func getStatsHelper(t *testing.T, db *sqlx.DB, playerID string) StatsRow {
+	var stats StatsRow
+	if err := db.GetContext(t.Context(), &stats, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", playerID); err != nil {
+		t.Fatalf("failed to get stats: %v", err)
+	}
+	return stats
 }

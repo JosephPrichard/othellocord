@@ -14,9 +14,10 @@ const TestDb = "./othellocord-temp.db"
 //go:embed schema.sql
 var CreateSchema string
 
-type CtxQuerier interface {
+type Querier interface {
 	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 func createTestDB() (*sqlx.DB, func()) {

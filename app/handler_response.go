@@ -42,6 +42,16 @@ type InteractionError struct {
 
 func (r InteractionError) isHandlerResponse() {}
 
+type ManyResponses struct {
+	Responses []HandlerResponse
+}
+
+func (r ManyResponses) isHandlerResponse() {}
+
+func MakeManyResponses(responses ...HandlerResponse) ManyResponses {
+	return ManyResponses{Responses: responses}
+}
+
 const InternalServerErrorMsg = "An unexpected error occurred."
 
 func handleResponseSend(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, resp HandlerResponse) {
@@ -56,6 +66,10 @@ func handleResponseSend(ctx context.Context, dg *discordgo.Session, ic *discordg
 		interactionResponseEdit(ctx, dg, ic.Interaction, resp.Edit)
 	case InteractionError:
 		handleInteractionError(ctx, dg, ic, resp.Err)
+	case ManyResponses:
+		for _, r := range resp.Responses {
+			handleResponseSend(ctx, dg, ic, r)
+		}
 	}
 }
 

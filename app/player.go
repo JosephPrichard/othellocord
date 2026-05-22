@@ -81,18 +81,13 @@ type UserFetcher interface {
 	User(userID string, options ...discordgo.RequestOption) (st *discordgo.User, err error)
 }
 
-type UserCacheApi interface {
-	GetUsername(ctx context.Context, playerID string) (string, error)
-	GetPlayer(ctx context.Context, playerID string) (Player, error)
-}
-
 type UserCache struct {
 	internal    *ttlcache.Cache[string, *discordgo.User]
 	userFetcher UserFetcher
 }
 
-func MakeUserCache(userFetcher UserFetcher) UserCache {
-	return UserCache{internal: ttlcache.New[string, *discordgo.User](), userFetcher: userFetcher}
+func MakeUserCache(userFetcher UserFetcher) *UserCache {
+	return &UserCache{internal: ttlcache.New[string, *discordgo.User](), userFetcher: userFetcher}
 }
 
 func (cache UserCache) GetUsername(ctx context.Context, playerID string) (string, error) {

@@ -57,17 +57,26 @@ func MapStats(row StatsRow) Stats {
 	}
 }
 
-func GetStats(ctx context.Context, q CtxQuerier, playerID string) (StatsRow, error) {
-	return GetStatsDefault(ctx, q, DefaultStats(playerID))
+type StatsService struct {
+	database  *sqlx.DB
+	userCache *UserCache
 }
 
-func GetStatsDefault(ctx context.Context, q CtxQuerier, defaultStats StatsRow) (StatsRow, error) {
+func MakeStatsService(db *sqlx.DB, userCache *UserCache) *StatsService {
+	return &StatsService{database: db, userCache: userCache}
+}
+
+func getStats(ctx context.Context, querier Querier, playerID string) (StatsRow, error) {
+	return getStatsDefault(ctx, querier, DefaultStats(playerID))
+}
+
+func getStatsDefault(ctx context.Context, querier Querier, defaultStats StatsRow) (StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
 	isCreated := false
 
 	var stats StatsRow
-	err := q.GetContext(ctx, &stats, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
+	err := querier.GetContext(ctx, &stats, "SELECT player_id, elo, won, lost, drawn FROM stats WHERE player_id = $1;", defaultStats.PlayerID)
 	if errors.Is(err, sql.ErrNoRows) {
 		isCreated = true
 	} else if err != nil {
@@ -76,7 +85,7 @@ func GetStatsDefault(ctx context.Context, q CtxQuerier, defaultStats StatsRow) (
 
 	if isCreated {
 		stats = defaultStats
-		if _, err = q.ExecContext(ctx,
+		if _, err = querier.ExecContext(ctx,
 			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
 			stats.PlayerID, stats.Elo, stats.Won, stats.Lost, stats.Drawn,
 		); err != nil {
@@ -88,7 +97,7 @@ func GetStatsDefault(ctx context.Context, q CtxQuerier, defaultStats StatsRow) (
 	return stats, nil
 }
 
-func GetTopStats(ctx context.Context, db *sqlx.DB, count int) ([]StatsRow, error) {
+func getTopStats(ctx context.Context, db *sqlx.DB, count int) ([]StatsRow, error) {
 	trace := ctx.Value(TraceKey)
 
 	var stats []StatsRow
@@ -101,8 +110,8 @@ func GetTopStats(ctx context.Context, db *sqlx.DB, count int) ([]StatsRow, error
 	return stats, nil
 }
 
-func updateStat(ctx context.Context, q CtxQuerier, stats StatsRow) error {
-	_, err := q.ExecContext(ctx,
+func updateOneStats(ctx context.Context, querier Querier, stats StatsRow) error {
+	_, err := querier.ExecContext(ctx,
 		"UPDATE stats SET elo = ?, won = ?, lost = ?, drawn = ? WHERE player_id = ?;",
 		stats.Elo, stats.Won, stats.Lost, stats.Drawn, stats.PlayerID,
 	)
@@ -132,14 +141,14 @@ func (s StatsResult) FormatLoserEloDiff() string {
 	return formatElo(s.LoseDiff)
 }
 
-func UpdateStats(ctx context.Context, q CtxQuerier, gameResult GameResult) (StatsResult, error) {
+func UpdateStats(ctx context.Context, querier Querier, gameResult GameResult) (StatsResult, error) {
 	trace := ctx.Value(TraceKey)
 
-	winner, err := GetStats(ctx, q, gameResult.Winner.ID)
+	winner, err := getStats(ctx, querier, gameResult.Winner.ID)
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
 	}
-	loser, err := GetStats(ctx, q, gameResult.Loser.ID)
+	loser, err := getStats(ctx, querier, gameResult.Loser.ID)
 	if err != nil {
 		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
 	}
@@ -155,10 +164,10 @@ func UpdateStats(ctx context.Context, q CtxQuerier, gameResult GameResult) (Stat
 	winner.Won++
 	loser.Lost++
 
-	if err := updateStat(ctx, q, winner); err != nil {
+	if err := updateOneStats(ctx, querier, winner); err != nil {
 		return StatsResult{}, fmt.Errorf("failed to update winner stat: %w", err)
 	}
-	if err := updateStat(ctx, q, loser); err != nil {
+	if err := updateOneStats(ctx, querier, loser); err != nil {
 		return StatsResult{}, fmt.Errorf("failed to update loser stat: %w", err)
 	}
 
@@ -184,25 +193,27 @@ func calcEloLost(rating, probability float64) float64 {
 	return rating - EloK*probability
 }
 
-func ReadStats(ctx context.Context, db *sqlx.DB, uc UserCacheApi, playerID string) (Stats, error) {
-	row, err := GetStats(ctx, db, playerID)
+func (service *StatsService) ReadStats(ctx context.Context, playerID string) (Stats, error) {
+	row, err := getStats(ctx, service.database, playerID)
 	if err != nil {
 		return Stats{}, fmt.Errorf("failed to next row: %w", err)
 	}
 	stats := MapStats(row)
 
 	if stats.Player.IsHuman() {
-		if stats.Player.Name, err = uc.GetUsername(ctx, playerID); err != nil {
+		name, err := service.userCache.GetUsername(ctx, playerID)
+		if err != nil {
 			return Stats{}, fmt.Errorf("failed to get username: %w", err)
 		}
+		stats.Player.Name = name
 	}
 	return stats, nil
 }
 
-func ReadTopStats(ctx context.Context, db *sqlx.DB, uc UserCacheApi, count int) ([]Stats, error) {
+func (service *StatsService) ReadTopStats(ctx context.Context, count int) ([]Stats, error) {
 	trace := ctx.Value(TraceKey)
 
-	rowList, err := GetTopStats(ctx, db, count)
+	rowList, err := getTopStats(ctx, service.database, count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to next top stats: %w", err)
 	}
@@ -219,7 +230,7 @@ func ReadTopStats(ctx context.Context, db *sqlx.DB, uc UserCacheApi, count int) 
 		}
 
 		eg.Go(func() error {
-			username, err := uc.GetUsername(ctx, stats.Player.ID)
+			username, err := service.userCache.GetUsername(ctx, stats.Player.ID)
 			if err != nil {
 				return fmt.Errorf("failed in get user task: %d: %w", i, err)
 			}

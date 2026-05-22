@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"math"
@@ -13,7 +12,7 @@ import (
 
 func setupGamesTest(t *testing.T) (*sqlx.DB, func()) {
 	db, cleanup := createTestDB()
-	ctx := context.WithValue(context.Background(), TraceKey, "seed-insert-games")
+	ctx := t.Context()
 
 	games := []OthelloGame{
 		{
@@ -32,7 +31,7 @@ func setupGamesTest(t *testing.T) (*sqlx.DB, func()) {
 	}
 
 	for _, game := range games {
-		if err := SetGameTimeWithTime(ctx, db, game, time.Time{}); err != nil {
+		if err := setGameWithTime(ctx, db, game, time.Time{}); err != nil {
 			t.Fatal("failed to insert games:", err)
 		}
 	}
@@ -40,17 +39,19 @@ func setupGamesTest(t *testing.T) (*sqlx.DB, func()) {
 	return db, cleanup
 }
 
-func TestGameStore_CreateGame(t *testing.T) {
+func TestGameService_CreateThenGetGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
+	ctx := t.Context()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-create-game")
-	game, err := CreateGameTx(ctx, db, Player{ID: "id3", Name: "Player3"}, Player{ID: "id4", Name: "Player4"})
+	gameService := GameService{database: db}
+
+	game, err := gameService.CreateGame(ctx, Player{ID: "id3", Name: "Player3"}, Player{ID: "id4", Name: "Player4"})
 	if err != nil {
 		t.Fatalf("failed to create the Game: %v", err)
 	}
 
-	dbGame, err := GetGame(ctx, db, "id3")
+	dbGame, err := gameService.GetGame(ctx, "id3")
 	if err != nil {
 		t.Fatalf("failed to get game: %v", err)
 	}
@@ -61,17 +62,19 @@ func TestGameStore_CreateGame(t *testing.T) {
 	assert.Equal(t, expGame, dbGame)
 }
 
-func TestGameStore_CreateBotGame(t *testing.T) {
+func TestGameService_CreateThenGetBotGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
+	ctx := t.Context()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-create-bot-game")
-	game, err := CreateBotGameTx(ctx, db, Player{ID: "id3", Name: "Player3"}, 5)
+	gameService := GameService{database: db}
+
+	game, err := gameService.CreateBotGame(ctx, Player{ID: "id3", Name: "Player3"}, 5)
 	if err != nil {
 		t.Fatalf("failed to create the game: %v", err)
 	}
 
-	dbGame, err := GetGame(ctx, db, "id3")
+	dbGame, err := gameService.GetGame(ctx, "id3")
 	if err != nil {
 		t.Fatalf("failed to get game: %v", err)
 	}
@@ -82,13 +85,13 @@ func TestGameStore_CreateBotGame(t *testing.T) {
 	assert.Equal(t, expGame, dbGame)
 }
 
-func TestGameStore_GetGame(t *testing.T) {
+func TestGameService_GetGame(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-get-game")
+	gameService := GameService{database: db}
 
-	game, err := GetGame(ctx, db, "id1")
+	game, err := gameService.GetGame(t.Context(), "id1")
 	if err != nil {
 		t.Fatalf("failed to get the game: %v", err)
 	}
@@ -97,13 +100,13 @@ func TestGameStore_GetGame(t *testing.T) {
 	assert.Equal(t, expGame, game)
 }
 
-func TestGameStore_GetGameMoves(t *testing.T) {
+func TestGameService_GetGameMoves(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-get-moves")
+	gameService := GameService{database: db}
 
-	game, err := GetGame(ctx, db, "id10")
+	game, err := gameService.GetGame(t.Context(), "id10")
 	if err != nil {
 		t.Fatalf("failed to get the moves: %v", err)
 	}
@@ -112,25 +115,22 @@ func TestGameStore_GetGameMoves(t *testing.T) {
 	assert.Equal(t, expMoves, game.MoveList)
 }
 
-func TestGameStore_ExpireGames(t *testing.T) {
+func TestGameService_ExpireGames_ThenGetTopStats(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
+	ctx := t.Context()
 
-	ctx := context.WithValue(context.Background(), TraceKey, "test-expire-games")
+	gameService := GameService{database: db}
 
-	c1, err := CountGames(db)
-	if err != nil {
-		t.Fatalf("failed to count games: %v", err)
-	}
-	err = ExpireGames(ctx, db)
-	if err != nil {
+	count1 := countGames(t, db)
+
+	if err := gameService.ExpireGames(ctx); err != nil {
 		t.Fatalf("failed to expire games: %v", err)
 	}
-	c2, err := CountGames(db)
-	if err != nil {
-		t.Fatalf("failed to count games: %v", err)
-	}
-	stats, err := GetTopStats(ctx, db, 10)
+
+	count2 := countGames(t, db)
+
+	stats, err := getTopStats(ctx, db, 10)
 	if err != nil {
 		t.Fatalf("failed to get top stats: %v", err)
 	}
@@ -170,14 +170,16 @@ func TestGameStore_ExpireGames(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, 2, c1)
-	assert.Equal(t, 0, c2)
+	assert.Equal(t, 2, count1)
+	assert.Equal(t, 0, count2)
 	assert.Equal(t, expStats, stats)
 }
 
-func TestGameStore_MakeMove(t *testing.T) {
+func TestGameService_MakeMove_ThenGet(t *testing.T) {
 	db, cleanup := setupGamesTest(t)
 	defer cleanup()
+
+	gameService := GameService{database: db}
 
 	initialGame := OthelloGame{ID: "1", Board: MakeInitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
 	testMove := initialGame.Board.FindCurrentMoves()[0]
@@ -185,11 +187,11 @@ func TestGameStore_MakeMove(t *testing.T) {
 	expGame.MakeMove(testMove)
 
 	tests := []struct {
-		playerID string
-		move     Tile
-		expGame  OthelloGame
-		expSr    StatsResult
-		expErr   error
+		playerID       string
+		move           Tile
+		expGame        OthelloGame
+		expStatsResult StatsResult
+		expErr         error
 	}{
 		{playerID: "id5", expErr: ErrGameNotFound},
 		{playerID: "id2", expErr: ErrTurn},
@@ -199,20 +201,28 @@ func TestGameStore_MakeMove(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), TraceKey, "test-make-move")
+			ctx := t.Context()
 
-			game, sr, err := MakeMoveAgainstHuman(ctx, db, MoveAgainstHuman{test.playerID, test.move})
+			game, statsResult, err := gameService.MakeMoveAgainstHuman(ctx, MoveAgainstHuman{test.playerID, test.move})
 			if err != nil {
 				assert.ErrorIs(t, err, test.expErr)
 			} else {
-				dbGame, err := GetGame(ctx, db, "id1")
+				dbGame, err := gameService.GetGame(ctx, "id1")
 				if err != nil {
 					t.Fatalf("failed to get the game: %v", err)
 				}
-				assert.Equal(t, test.expSr, sr)
+				assert.Equal(t, test.expStatsResult, statsResult)
 				assert.Equal(t, test.expGame, game)
 				assert.Equal(t, test.expGame, dbGame)
 			}
 		})
 	}
+}
+
+func countGames(t *testing.T, db *sqlx.DB) int {
+	var count int
+	if err := db.Get(&count, "SELECT COUNT(*) FROM games;"); err != nil {
+		t.Fatalf("failed to count games: %v", err)
+	}
+	return count
 }
