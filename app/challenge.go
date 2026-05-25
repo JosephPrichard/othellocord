@@ -29,13 +29,12 @@ func MakeChallengeCache() ChallengeCache {
 }
 
 func (cc ChallengeCache) CreateChallenge(ctx context.Context, challenge Challenge, handleExpire func()) {
-	trace := ctx.Value(TraceKey)
 
 	stopChan := make(chan struct{}, 1)
 
 	key := challenge.Key()
 	_ = cc.store.Set(key, stopChan, ChallengeTTl)
-	slog.Info("set challenge into challenge Cache", "trace", trace, "key", key, "challenge", challenge)
+	slog.InfoContext(ctx, "set challenge into challenge Cache", "key", key, "challenge", challenge)
 
 	go func() {
 		defer cc.store.Delete(key)
@@ -43,19 +42,17 @@ func (cc ChallengeCache) CreateChallenge(ctx context.Context, challenge Challeng
 		timer := time.NewTimer(ChallengeTTl)
 		select {
 		case <-timer.C:
-			slog.Info("expired challenge", "trace", trace, "key", key, "challenge", challenge)
+			slog.InfoContext(ctx, "expired challenge", "key", key, "challenge", challenge)
 			handleExpire()
 			return
 		case <-stopChan:
-			slog.Info("stopped challenge", "trace", trace, "key", key, "challenge", challenge)
+			slog.InfoContext(ctx, "stopped challenge", "key", key, "challenge", challenge)
 			return
 		}
 	}()
 }
 
 func (cc ChallengeCache) AcceptChallenge(ctx context.Context, challenge Challenge) bool {
-	trace := ctx.Value(TraceKey)
-
 	key := challenge.Key()
 
 	item := cc.store.Get(key)
@@ -68,6 +65,6 @@ func (cc ChallengeCache) AcceptChallenge(ctx context.Context, challenge Challeng
 		stopChan <- struct{}{}
 	}
 
-	slog.Info("accepted challenge from challenge Cache", "trace", trace, "key", key, "challenge", challenge)
+	slog.InfoContext(ctx, "accepted challenge from challenge Cache", "key", key, "challenge", challenge)
 	return true
 }

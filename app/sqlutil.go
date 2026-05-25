@@ -21,22 +21,18 @@ type Querier interface {
 }
 
 func createTestDB() (*sqlx.DB, func()) {
-	fail := func(err error) {
-		log.Fatalf("failed to open test sqlite db: %v", err)
-	}
-
 	db, err := sqlx.Open("sqlite", TestDb)
 	if err != nil {
-		fail(err)
+		log.Fatalf("failed to open test sqlite db: %v", err)
 	}
 	closer := func() {
 		_ = db.Close()
 		if err := os.Remove(TestDb); err != nil {
-			fail(err)
+			log.Fatalf("failed to remove test sqlite file: %v", err)
 		}
 	}
 	if _, err := db.Exec(CreateSchema); err != nil {
-		fail(err)
+		log.Fatalf("failed to create test schema: %v", err)
 	}
 	return db, closer
 }

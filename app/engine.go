@@ -57,17 +57,17 @@ func StartNTestShell(name string, path string, moveReqCh chan moveReq) (*NTestSh
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open stdout pipe to ntest: %v", err)
+		return nil, fmt.Errorf("open stdout pipe to ntest: %v", err)
 	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open stdin pipe to ntest: %v", err)
+		return nil, fmt.Errorf("open stdin pipe to ntest: %v", err)
 	}
 
 	sh := &NTestShell{name: name, stdout: bufio.NewScanner(stdout), stdin: bufio.NewWriter(stdin), moveReqCh: moveReqCh}
 
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start ntest: %v", err)
+		return nil, fmt.Errorf("start ntest: %v", err)
 	}
 
 	var startLines = []string{
@@ -86,11 +86,12 @@ func StartNTestShell(name string, path string, moveReqCh chan moveReq) (*NTestSh
 
 func (sh *NTestShell) write(cmd string) error {
 	slog.Info("writing cmd to stdin", "cmd", cmd)
+
 	if _, err := sh.stdin.WriteString(cmd); err != nil {
-		return fmt.Errorf("failed to write to ntest stdin: %v", err)
+		return fmt.Errorf("write to ntest stdin: %v", err)
 	}
 	if err := sh.stdin.Flush(); err != nil {
-		return fmt.Errorf("failed to flush ntest stdin: %v", err)
+		return fmt.Errorf("flush ntest stdin: %v", err)
 	}
 	return nil
 }
@@ -298,7 +299,7 @@ func (sh *NTestShell) ListenRequests() {
 			continue
 		}
 
-		slog.Info("move request begin", "req", req, "trace", trace, "shellName", sh.name)
+		slog.Info("move request begin", "trace", trace, "req", req, "shellName", sh.name)
 
 		var resp moveResp
 		switch req.Kind {
@@ -318,8 +319,8 @@ func (sh *NTestShell) ListenRequests() {
 			panic(fmt.Sprintf("invalid move request kind: %d", req.Kind))
 		}
 
-		slog.Info("move request complete",
-			"req", req, "resp", resp, "shellName", sh.name, "trace", trace, "duration", time.Since(start))
+		slog.Info("move request complete", "trace", trace,
+			"req", req, "resp", resp, "shellName", sh.name, "duration", time.Since(start))
 		req.RespCh <- resp
 	}
 }
@@ -328,7 +329,7 @@ type NTestShellPool struct {
 	moveReqCh chan moveReq
 }
 
-func MakeShellPool(path string, shellCount int) (*NTestShellPool, error) {
+func MakeNTestShellPool(path string, shellCount int) (*NTestShellPool, error) {
 	moveReqCh := make(chan moveReq)
 	pool := &NTestShellPool{moveReqCh: moveReqCh}
 
@@ -367,10 +368,26 @@ func (sh *NTestShellPool) sendRequest(ctx context.Context, req moveReq) (MoveRes
 	}
 }
 
+//go:generate mockgen -source=engine.go -destination=./engine_mock.go -package=app
+type NTestShellAPI interface {
+	FindBestMove(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error)
+	FindRankedMoves(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error)
+}
+
 func (sh *NTestShellPool) FindBestMove(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error) {
-	return sh.sendRequest(ctx, moveReq{Kind: BestMoveKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
+	return sh.sendRequest(ctx, moveReq{
+		Kind:  BestMoveKind,
+		Game:  game,
+		Depth: depth,
+		Trace: ctx.Value(TraceKey),
+	})
 }
 
 func (sh *NTestShellPool) FindRankedMoves(ctx context.Context, game OthelloGame, depth uint64) (MoveResult, error) {
-	return sh.sendRequest(ctx, moveReq{Kind: RankMovesKind, Game: game, Depth: depth, Trace: ctx.Value(TraceKey)})
+	return sh.sendRequest(ctx, moveReq{
+		Kind:  RankMovesKind,
+		Game:  game,
+		Depth: depth,
+		Trace: ctx.Value(TraceKey),
+	})
 }

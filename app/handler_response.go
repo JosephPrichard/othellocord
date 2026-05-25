@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"log/slog"
 )
@@ -54,52 +55,75 @@ func MakeManyResponses(responses ...HandlerResponse) ManyResponses {
 
 const InternalServerErrorMsg = "An unexpected error occurred."
 
-func handleResponseSend(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, resp HandlerResponse) {
+//go:generate mockgen -source=handler_response.go -destination=./handler_response_mock.go -package=app
+type DiscordAPI interface {
+	ChannelMessageSend(channelID string, content string, options ...discordgo.RequestOption) (st *discordgo.Message, err error)
+	ChannelMessageSendComplex(channelID string, data *discordgo.MessageSend, options ...discordgo.RequestOption) (st *discordgo.Message, err error)
+	InteractionRespond(interaction *discordgo.Interaction, resp *discordgo.InteractionResponse, options ...discordgo.RequestOption) error
+	InteractionResponseEdit(interaction *discordgo.Interaction, newresp *discordgo.WebhookEdit, options ...discordgo.RequestOption) (*discordgo.Message, error)
+}
+
+func handleResponseSend(ctx context.Context, discord DiscordAPI, ic *discordgo.InteractionCreate, resp HandlerResponse) {
 	switch resp := resp.(type) {
 	case ChannelMessageSendResponse:
-		channelMessageSend(ctx, dg, resp.ChannelID, resp.Message)
+		channelMessageSend(ctx, discord, resp.ChannelID, resp.Message)
 	case ChannelMessageSendComplexResponse:
-		channelMessageSendComplex(ctx, dg, resp.ChannelID, resp.Data)
+		channelMessageSendComplex(ctx, discord, resp.ChannelID, resp.Data)
 	case InteractionResponse:
-		interactionRespond(ctx, dg, ic.Interaction, resp.Response)
+		interactionRespond(ctx, discord, ic.Interaction, resp.Response)
 	case InteractionResponseEdit:
-		interactionResponseEdit(ctx, dg, ic.Interaction, resp.Edit)
+		interactionResponseEdit(ctx, discord, ic.Interaction, resp.Edit)
 	case InteractionError:
-		handleInteractionError(ctx, dg, ic, resp.Err)
+		handleInteractionError(ctx, discord, ic, resp.Err)
 	case ManyResponses:
 		for _, r := range resp.Responses {
-			handleResponseSend(ctx, dg, ic, r)
+			handleResponseSend(ctx, discord, ic, r)
 		}
 	}
 }
 
-func channelMessageSend(ctx context.Context, dg *discordgo.Session, channelID string, str string) {
-	if _, err := dg.ChannelMessageSend(channelID, str); err != nil {
-		slog.Error("failed to send message", "err", err, "trace", ctx.Value(TraceKey))
+func marshalJson(v interface{}) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func channelMessageSend(ctx context.Context, discord DiscordAPI, channelID string, str string) {
+	slog.InfoContext(ctx, "sending message to channel", "channelID", channelID, "response", str)
+
+	if _, err := discord.ChannelMessageSend(channelID, str); err != nil {
+		slog.ErrorContext(ctx, "failed to send message", "err", err)
 	}
 }
 
-func channelMessageSendComplex(ctx context.Context, dg *discordgo.Session, channelID string, data *discordgo.MessageSend) {
-	if _, err := dg.ChannelMessageSendComplex(channelID, data); err != nil {
-		slog.Error("failed to send message complex", "err", err, "trace", ctx.Value(TraceKey))
+func channelMessageSendComplex(ctx context.Context, discord DiscordAPI, channelID string, data *discordgo.MessageSend) {
+	slog.InfoContext(ctx, "sending complex message to channel", "channelID", channelID, "response", marshalJson(data))
+
+	if _, err := discord.ChannelMessageSendComplex(channelID, data); err != nil {
+		slog.ErrorContext(ctx, "failed to send message complex", "err", err)
 	}
 }
 
-func interactionRespond(ctx context.Context, dg *discordgo.Session, i *discordgo.Interaction, r *discordgo.InteractionResponse) {
-	if err := dg.InteractionRespond(i, r); err != nil {
-		slog.Error("failed to send interaction response", "err", err, "trace", ctx.Value(TraceKey))
+func interactionRespond(ctx context.Context, discord DiscordAPI, i *discordgo.Interaction, r *discordgo.InteractionResponse) {
+	slog.InfoContext(ctx, "sending interaction response", "response", marshalJson(r))
+
+	if err := discord.InteractionRespond(i, r); err != nil {
+		slog.ErrorContext(ctx, "failed to send interaction response", "err", err)
 	}
 }
 
-func interactionResponseEdit(ctx context.Context, dg *discordgo.Session, i *discordgo.Interaction, e *discordgo.WebhookEdit) {
-	if _, err := dg.InteractionResponseEdit(i, e); err != nil {
-		slog.Error("failed to send interaction response edit", "err", err, "trace", ctx.Value(TraceKey))
+func interactionResponseEdit(ctx context.Context, discord DiscordAPI, i *discordgo.Interaction, e *discordgo.WebhookEdit) {
+	slog.InfoContext(ctx, "sending interaction response edit", "response", marshalJson(e))
+
+	if _, err := discord.InteractionResponseEdit(i, e); err != nil {
+		slog.ErrorContext(ctx, "failed to send interaction response edit", "err", err)
 	}
 }
 
-func handleInteractionError(ctx context.Context, dg *discordgo.Session, ic *discordgo.InteractionCreate, err error) {
-	trace := ctx.Value(TraceKey)
-	slog.Error("error when handling command", "trace", trace, "err", err)
+func handleInteractionError(ctx context.Context, discord DiscordAPI, ic *discordgo.InteractionCreate, err error) {
+	slog.ErrorContext(ctx, "error when handling command", "err", err)
 
 	content := InternalServerErrorMsg
 
@@ -114,7 +138,7 @@ func handleInteractionError(ctx context.Context, dg *discordgo.Session, ic *disc
 			Content: content,
 		},
 	}
-	if err := dg.InteractionRespond(ic.Interaction, resp); err != nil {
-		slog.Error("failed to respond interaction error", "err", err)
+	if err := discord.InteractionRespond(ic.Interaction, resp); err != nil {
+		slog.ErrorContext(ctx, "failed to respond interaction error", "err", err)
 	}
 }

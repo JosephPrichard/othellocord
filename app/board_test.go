@@ -56,10 +56,10 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			board := initialBoard
-			for _, move := range test.moves {
+			for _, move := range tt.moves {
 				board = board.SetSquareByNotation(move)
 			}
 			t.Logf("board:\n %v", board.String())
@@ -68,7 +68,7 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 			sortTiles(moves)
 
 			var expMoves []Tile
-			for _, move := range test.expMoves {
+			for _, move := range tt.expMoves {
 				expMoves = append(expMoves, ParseTile(move))
 			}
 			assert.Equal(t, expMoves, moves)
@@ -78,11 +78,13 @@ func TestBoard_FindCurrentMoves(t *testing.T) {
 
 func TestBoard_MakeMoved(t *testing.T) {
 	tests := []struct {
+		name      string
 		preMoves  []ColorMove
 		move      Tile
 		postMoves []ColorMove
 	}{
 		{
+			name:     "MakeMove",
 			preMoves: TestMoves,
 			move:     ParseTile("c5"),
 			postMoves: []ColorMove{
@@ -95,19 +97,19 @@ func TestBoard_MakeMoved(t *testing.T) {
 
 	initialBoard := MakeInitialBoard()
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			board := initialBoard
-			for _, move := range test.preMoves {
+			for _, move := range tt.preMoves {
 				board = board.SetSquareByNotation(move)
 			}
 			t.Logf("board:\n %v", board.String())
 
-			boardAfter := board.MakeMoved(test.move)
+			boardAfter := board.MakeMoved(tt.move)
 			t.Logf("boardAfter:\n %v", boardAfter.String())
 
 			var expBoard OthelloBoard
-			for _, move := range test.postMoves {
+			for _, move := range tt.postMoves {
 				expBoard = boardAfter.SetSquareByNotation(move)
 			}
 			t.Logf("expBoard:\n %v", expBoard.String())
@@ -119,70 +121,77 @@ func TestBoard_MakeMoved(t *testing.T) {
 
 func TestMoveList_UnmarshalStrings(t *testing.T) {
 	tests := []struct {
-		MoveListStr string
-		MoveList    []Move
+		name        string
+		moveListStr string
+		moveList    []Move
 	}{
 		{
-			MoveListStr: "a1,a2,a3,a4",
-			MoveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}, {Tile: Tile{Row: 1, Col: 0}}, {Tile: Tile{Row: 2, Col: 0}}, {Tile: Tile{Row: 3, Col: 0}}},
+			name:        "UnmarshalManyMoves",
+			moveListStr: "a1,a2,a3,a4",
+			moveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}, {Tile: Tile{Row: 1, Col: 0}}, {Tile: Tile{Row: 2, Col: 0}}, {Tile: Tile{Row: 3, Col: 0}}},
 		},
 		{
-			MoveListStr: "a1,",
-			MoveList:    []Move{{}},
+			name:        "UnmarshalOneMove",
+			moveListStr: "a1,",
+			moveList:    []Move{{}},
 		},
 		{
-			MoveListStr: "",
-			MoveList:    nil,
+			name:        "UnmarshalEmpty",
+			moveListStr: "",
+			moveList:    nil,
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			moveList, err := UnmarshalMoveList(test.MoveListStr)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			moveList, err := UnmarshalMoveList(tt.moveListStr)
 			if err != nil {
 				t.Fatalf("failed to unmarshal game: %v", err)
 			}
-			assert.Equal(t, test.MoveList, moveList)
+			assert.Equal(t, tt.moveList, moveList)
 		})
 	}
 }
 
 func TestBoard_MarshalString(t *testing.T) {
 	tests := []struct {
-		Moves  []Tile
-		String string
+		name   string
+		moves  []Tile
+		string string
 	}{
 		{
-			Moves:  []Tile{},
-			String: "b+27wb6bw27",
+			name:   "NoMoves",
+			moves:  []Tile{},
+			string: "b+27wb6bw27",
 		},
 		{
-			Moves:  []Tile{{}, {Row: 1}, {Col: 1}, {Row: 1, Col: 1}},
-			String: "b+bb6ww17wb6bw27",
+			name:   "OneMove",
+			moves:  []Tile{{}, {Row: 1}, {Col: 1}, {Row: 1, Col: 1}},
+			string: "b+bb6ww17wb6bw27",
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("Marshal/%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("Marshal_%s", tt.name), func(t *testing.T) {
 			board := MakeInitialBoard()
-			for _, move := range test.Moves {
+			for _, move := range tt.moves {
 				board.MakeMove(move)
 			}
 
 			str := board.MarshalString()
 			t.Logf("\n%s\n", board.String())
 
-			assert.Equal(t, test.String, str)
+			assert.Equal(t, tt.string, str)
 		})
 	}
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("Unmarshal/%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("Unmarshal_%s", tt.name), func(t *testing.T) {
 			expBoard := MakeInitialBoard()
-			for _, move := range test.Moves {
+			for _, move := range tt.moves {
 				expBoard.MakeMove(move)
 			}
 
-			board, err := UnmarshalBoard(test.String)
+			board, err := UnmarshalBoard(tt.string)
 			if err != nil {
 				t.Fatalf("failed to unmarshal string: %v", err)
 			}

@@ -108,15 +108,13 @@ func makeSimulationActionRow(simulationID string, isPaused bool) []discordgo.Mes
 	return nil
 }
 
-var empty = ""
-
 func makeEmbedEdit(embed *discordgo.MessageEmbed, img image.Image) *discordgo.WebhookEdit {
 	files := addEmbedFiles(embed, img)
 	return &discordgo.WebhookEdit{
 		Embeds:      &[]*discordgo.MessageEmbed{embed},
 		Attachments: &[]*discordgo.MessageAttachment{},
 		Files:       files,
-		Content:     &empty,
+		Content:     ptr(""),
 	}
 }
 
@@ -209,7 +207,7 @@ func makeForfeitEmbed(result GameResult, statsResult StatsResult) *discordgo.Mes
 	}
 }
 
-func makeStepEdit(renderer Renderer, step SimStep) *discordgo.WebhookEdit {
+func makeStepEdit(renderer *Renderer, step SimStep) *discordgo.WebhookEdit {
 	var edit *discordgo.WebhookEdit
 	img := renderer.DrawBoardMoves(step.Game.Board, step.Game.Board.FindCurrentMoves())
 	if !step.Ok {
@@ -237,7 +235,7 @@ func makeSimulationEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
 }
 
 func makeSimulationEndEmbed(game OthelloGame, move Tile) *discordgo.MessageEmbed {
-	result := game.CreateResult()
+	result := game.MakeResult()
 	desc := fmt.Sprintf("%s%s",
 		getMoveMessage(result.Winner, move.String()),
 		getScoreMessage(game.Board.WhiteScore(), game.Board.BlackScore()),

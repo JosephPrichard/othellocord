@@ -71,8 +71,6 @@ func getStats(ctx context.Context, querier Querier, playerID string) (StatsRow, 
 }
 
 func getStatsDefault(ctx context.Context, querier Querier, defaultStats StatsRow) (StatsRow, error) {
-	trace := ctx.Value(TraceKey)
-
 	isCreated := false
 
 	var stats StatsRow
@@ -80,7 +78,7 @@ func getStatsDefault(ctx context.Context, querier Querier, defaultStats StatsRow
 	if errors.Is(err, sql.ErrNoRows) {
 		isCreated = true
 	} else if err != nil {
-		return StatsRow{}, fmt.Errorf("failed to get stats: %w", err)
+		return StatsRow{}, fmt.Errorf("get stats: %w", err)
 	}
 
 	if isCreated {
@@ -89,24 +87,22 @@ func getStatsDefault(ctx context.Context, querier Querier, defaultStats StatsRow
 			"INSERT INTO STATS (player_id, elo, won, lost, drawn) VALUES ($1, $2, $3, $4, $5)",
 			stats.PlayerID, stats.Elo, stats.Won, stats.Lost, stats.Drawn,
 		); err != nil {
-			return stats, fmt.Errorf("failed to insert stats %+v: %w", stats, err)
+			return stats, fmt.Errorf("insertstats % +v: %w", stats, err)
 		}
 	}
 
-	slog.Info("selected stats for player", "trace", trace, "playerID", stats.PlayerID, "stats", stats, "created", isCreated)
+	slog.InfoContext(ctx, "selected stats for player", "playerID", stats.PlayerID, "stats", stats, "created", isCreated)
 	return stats, nil
 }
 
 func getTopStats(ctx context.Context, db *sqlx.DB, count int) ([]StatsRow, error) {
-	trace := ctx.Value(TraceKey)
-
 	var stats []StatsRow
 	err := db.SelectContext(ctx, &stats, "SELECT player_id, elo, won, lost, drawn FROM stats ORDER BY elo DESC LIMIT $1;", count)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get top stats: %w", err)
+		return nil, fmt.Errorf("get top stats: %w", err)
 	}
 
-	slog.Info("selected top stats", "trace", trace, "stats", stats)
+	slog.InfoContext(ctx, "selected top stats", "stats", stats)
 	return stats, nil
 }
 
@@ -142,15 +138,13 @@ func (s StatsResult) FormatLoserEloDiff() string {
 }
 
 func UpdateStats(ctx context.Context, querier Querier, gameResult GameResult) (StatsResult, error) {
-	trace := ctx.Value(TraceKey)
-
 	winner, err := getStats(ctx, querier, gameResult.Winner.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get winner stats: %w", err)
+		return StatsResult{}, fmt.Errorf("get winner stats: %w", err)
 	}
 	loser, err := getStats(ctx, querier, gameResult.Loser.ID)
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("failed to get loser stats: %w", err)
+		return StatsResult{}, fmt.Errorf("get loser stats: %w", err)
 	}
 
 	if gameResult.IsDraw || gameResult.Winner.ID == gameResult.Loser.ID {
@@ -165,17 +159,17 @@ func UpdateStats(ctx context.Context, querier Querier, gameResult GameResult) (S
 	loser.Lost++
 
 	if err := updateOneStats(ctx, querier, winner); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update winner stat: %w", err)
+		return StatsResult{}, fmt.Errorf("update winner stat: %w", err)
 	}
 	if err := updateOneStats(ctx, querier, loser); err != nil {
-		return StatsResult{}, fmt.Errorf("failed to update loser stat: %w", err)
+		return StatsResult{}, fmt.Errorf("update loser stat: %w", err)
 	}
 
 	winDiff := winner.Elo - winBefore
 	lossDiff := loser.Elo - lossBefore
 	statsResult := StatsResult{WinnerElo: winner.Elo, LoserElo: loser.Elo, WinDiff: winDiff, LoseDiff: lossDiff}
 
-	slog.Info("updated stats tx executed", "trace", trace, "game", gameResult, "stats", statsResult)
+	slog.InfoContext(ctx, "updated stats tx executed", "game", gameResult, "stats", statsResult)
 	return statsResult, nil
 }
 
@@ -196,14 +190,14 @@ func calcEloLost(rating, probability float64) float64 {
 func (service *StatsService) ReadStats(ctx context.Context, playerID string) (Stats, error) {
 	row, err := getStats(ctx, service.database, playerID)
 	if err != nil {
-		return Stats{}, fmt.Errorf("failed to next row: %w", err)
+		return Stats{}, fmt.Errorf("get stats: %w", err)
 	}
 	stats := MapStats(row)
 
 	if stats.Player.IsHuman() {
 		name, err := service.userCache.GetUsername(ctx, playerID)
 		if err != nil {
-			return Stats{}, fmt.Errorf("failed to get username: %w", err)
+			return Stats{}, fmt.Errorf("get username: %w", err)
 		}
 		stats.Player.Name = name
 	}
@@ -211,11 +205,9 @@ func (service *StatsService) ReadStats(ctx context.Context, playerID string) (St
 }
 
 func (service *StatsService) ReadTopStats(ctx context.Context, count int) ([]Stats, error) {
-	trace := ctx.Value(TraceKey)
-
 	rowList, err := getTopStats(ctx, service.database, count)
 	if err != nil {
-		return nil, fmt.Errorf("failed to next top stats: %w", err)
+		return nil, fmt.Errorf("get top stats: %w", err)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -232,7 +224,7 @@ func (service *StatsService) ReadTopStats(ctx context.Context, count int) ([]Sta
 		eg.Go(func() error {
 			username, err := service.userCache.GetUsername(ctx, stats.Player.ID)
 			if err != nil {
-				return fmt.Errorf("failed in get user task: %d: %w", i, err)
+				return fmt.Errorf("get user task: %d: %w", i, err)
 			}
 			stats.Player.Name = username
 			return nil
@@ -242,6 +234,6 @@ func (service *StatsService) ReadTopStats(ctx context.Context, count int) ([]Sta
 		return nil, err
 	}
 
-	slog.Info("fetched top stats", "trace", trace, "count", count)
+	slog.InfoContext(ctx, "fetched top stats", "count", count)
 	return statsList, nil
 }

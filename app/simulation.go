@@ -40,9 +40,7 @@ type SimStep struct {
 
 const MaxSimCount = BoardSize * BoardSize // maximum number of possible simulation states
 
-func generateSimulation(ctx context.Context, sh *NTestShellPool, initialGame OthelloGame, simChan chan SimStep) {
-	trace := ctx.Value(TraceKey)
-
+func generateSimulation(ctx context.Context, sh NTestShellAPI, initialGame OthelloGame, simChan chan SimStep) {
 	defer close(simChan)
 
 	var game = initialGame
@@ -51,11 +49,11 @@ func generateSimulation(ctx context.Context, sh *NTestShellPool, initialGame Oth
 	for i := 0; ; i++ {
 		if game.HasMoves() {
 			resp, err := sh.FindBestMove(ctx, game, game.CurrentPlayer().LevelToSearchDepth())
-			if errors.Is(err, context.Canceled) {
-				slog.Info("cancelled simulation", "index", i, "trace", trace, "move", move)
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				slog.InfoContext(ctx, "cancelled simulation", "index", i, "move", move)
 				return
 			} else if err != nil {
-				slog.Info("simulation encountered an error", "err", err)
+				slog.InfoContext(ctx, "simulation encountered an error", "err", err)
 				simChan <- SimStep{Ok: false}
 				return
 			}
@@ -65,7 +63,7 @@ func generateSimulation(ctx context.Context, sh *NTestShellPool, initialGame Oth
 			game.MakeMove(move.Tile)
 			simChan <- SimStep{Game: game, Move: move.Tile, Ok: true}
 		} else {
-			slog.Info("finished simulation", "trace", trace, "move", move)
+			slog.InfoContext(ctx, "finished simulation", "move", move)
 			simChan <- SimStep{Game: game, Move: move.Tile, Finished: true, Ok: true}
 			return
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	app.InitLogger()
+
 	slog.Info("starting othellocord service")
 
 	if err := godotenv.Load(); err != nil {
@@ -32,7 +35,7 @@ func main() {
 	}
 	shellCount, err := strconv.Atoi(shellCountStr)
 	if err != nil {
-		log.Fatalf("node count envvar must be an integer: %v", err)
+		log.Fatalf("shell count envvar must be an integer: %v", err)
 	}
 
 	db, err := sqlx.Connect("sqlite", "./othellocord.db?_busy_timeout=5000")
@@ -51,15 +54,17 @@ func main() {
 	discord, _ := discordgo.New(fmt.Sprintf("Bot %s", token))
 	defer discord.Close()
 
-	shell, err := app.MakeShellPool(path, shellCount)
+	shell, err := app.MakeNTestShellPool(path, shellCount)
 	if err != nil {
 		log.Fatalf("failed to open ntest shell: %v", err)
 	}
 
 	go app.ExpireGamesCron(db)
 
-	state := app.MakeHandler(db, discord, shell)
-	discord.AddHandler(app.MakeHandleInteractionCreate(&state))
+	handler := app.MakeHandler(db, discord, shell)
+	discord.AddHandler(func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
+		handler.HandleInteractionCreate(context.Background(), ic)
+	})
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)

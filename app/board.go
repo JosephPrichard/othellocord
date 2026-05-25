@@ -200,12 +200,12 @@ func (b *OthelloBoard) OnPotentialMoves(color byte, onMove func(Tile)) {
 			// skip any discs of a different color
 			continue
 		}
-		// check each direction from tile for potential flank
+		// check each direction from the tile for potential flank
 		for _, direction := range Directions {
 			row := tile.Row + direction[0]
 			col := tile.Col + direction[1]
 
-			// iterate from tile to next opposite color
+			// iterate from the tile to the next opposite color
 			count := 0
 			for InBounds(row, col) {
 				if b.GetSquare(row, col) != oppColor {
@@ -215,8 +215,8 @@ func (b *OthelloBoard) OnPotentialMoves(color byte, onMove func(Tile)) {
 				col += direction[1]
 				count++
 			}
-			// add move to potential preMoves list assuming
-			// we flank at least once tile, the tile is in bounds and is empty
+			// add move to the potential preMoves list assuming
+			// we flank tile at least once, the tile is in bounds and is empty
 			if count > 0 && InBounds(row, col) && b.GetSquare(row, col) == Empty {
 				if duplicateTile[row][col] {
 					continue

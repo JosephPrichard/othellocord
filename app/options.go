@@ -44,7 +44,7 @@ func getPlayerOpt(ctx context.Context, uc *UserCache, options []*Option, name st
 	}
 	opponent, err := uc.GetPlayer(ctx, name)
 	if err != nil {
-		return Player{}, fmt.Errorf("failed to get player option name=%s, err: %s", name, err)
+		return Player{}, fmt.Errorf("get player option name=%s, err: %s", name, err)
 	}
 	return opponent, nil
 }
@@ -90,10 +90,10 @@ func getLevelOpt(options []*Option, name string) (uint64, error) {
 
 const DefaultDelay = time.Second * 2
 
-func getDelayOpt(options []*Option, name string) (time.Duration, error) {
+func getDelayOpt(options []*Option, name string, defaultDelay time.Duration) (time.Duration, error) {
 	option := getOpt(options, name)
 	if option == nil {
-		return DefaultDelay, nil
+		return defaultDelay, nil
 	}
 
 	value, ok := option.Value.(float64)

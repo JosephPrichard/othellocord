@@ -25,7 +25,7 @@ func MakeHumanPlayer(user *discordgo.User) Player {
 }
 
 func MakeBotPlayer(level uint64) Player {
-	return Player{ID: fmt.Sprintf("%d", level), Name: fmt.Sprintf("NTest level %d", level), Level: level}
+	return Player{ID: strconv.Itoa(int(level)), Name: fmt.Sprintf("NTest level %d", level), Level: level}
 }
 
 func MakePlayer(id string, name string) Player {
@@ -53,7 +53,7 @@ func LevelToSearchDepth(level uint64) uint64 {
 	case 5:
 		return 20
 	}
-	return 0
+	return 5
 }
 
 func (player Player) LevelToSearchDepth() uint64 {
@@ -90,7 +90,7 @@ func MakeUserCache(userFetcher UserFetcher) *UserCache {
 	return &UserCache{internal: ttlcache.New[string, *discordgo.User](), userFetcher: userFetcher}
 }
 
-func (cache UserCache) GetUsername(ctx context.Context, playerID string) (string, error) {
+func (cache *UserCache) GetUsername(ctx context.Context, playerID string) (string, error) {
 	user, err := cache.GetUser(ctx, playerID)
 	if err != nil {
 		return "", err
@@ -98,7 +98,7 @@ func (cache UserCache) GetUsername(ctx context.Context, playerID string) (string
 	return user.Username, nil
 }
 
-func (cache UserCache) GetPlayer(ctx context.Context, playerID string) (Player, error) {
+func (cache *UserCache) GetPlayer(ctx context.Context, playerID string) (Player, error) {
 	user, err := cache.GetUser(ctx, playerID)
 	if err != nil {
 		return Player{}, err
@@ -108,9 +108,7 @@ func (cache UserCache) GetPlayer(ctx context.Context, playerID string) (Player, 
 
 const UserCacheTTl = time.Hour
 
-func (cache UserCache) GetUser(ctx context.Context, playerID string) (*discordgo.User, error) {
-	trace := ctx.Value(TraceKey)
-
+func (cache *UserCache) GetUser(ctx context.Context, playerID string) (*discordgo.User, error) {
 	var user *discordgo.User
 
 	item := cache.internal.Get(playerID)
@@ -119,13 +117,13 @@ func (cache UserCache) GetUser(ctx context.Context, playerID string) (*discordgo
 	} else {
 		u, err := cache.userFetcher.User(playerID, discordgo.WithContext(ctx))
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch user from discord: %w", err)
+			return nil, fmt.Errorf("fetch user from discord: %w", err)
 		}
 		user = u
 		cache.internal.Set(playerID, user, UserCacheTTl)
-		slog.Info("set user back into the cache", "trace", trace, "user", user.Username, "player", playerID)
+		slog.InfoContext(ctx, "set user back into the cache", "user", user.Username, "player", playerID)
 	}
 
-	slog.Info("fetched user", "trace", trace, "username", user.Username, "ID", playerID)
+	slog.InfoContext(ctx, "fetched user", "username", user.Username, "ID", playerID)
 	return user, nil
 }

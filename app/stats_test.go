@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"testing"
 
@@ -74,11 +73,13 @@ func TestStatsService_ReadStats(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
+		name       string
 		playerID   string
 		expStats   Stats
 		setupMocks func(ctrl *gomock.Controller) UserFetcher
 	}{
 		{
+			name:     "GetStatsExist",
 			playerID: "id1",
 			expStats: Stats{Player: Player{ID: "id1", Name: "Player1"}, Elo: 1750, Won: 3, Lost: 2, Drawn: 1},
 			setupMocks: func(ctrl *gomock.Controller) UserFetcher {
@@ -90,6 +91,7 @@ func TestStatsService_ReadStats(t *testing.T) {
 			},
 		},
 		{
+			name:     "GetStatsLazyInit",
 			playerID: "id4",
 			expStats: Stats{Player: Player{ID: "id4", Name: "Player4"}, Elo: 1500, Won: 0, Lost: 0, Drawn: 0},
 			setupMocks: func(ctrl *gomock.Controller) UserFetcher {
@@ -102,35 +104,34 @@ func TestStatsService_ReadStats(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			fetcher := test.setupMocks(ctrl)
+			fetcher := tt.setupMocks(ctrl)
 			statsService := StatsService{database: db, userCache: MakeUserCache(fetcher)}
 
-			stats, err := statsService.ReadStats(ctx, test.playerID)
+			stats, err := statsService.ReadStats(ctx, tt.playerID)
 			if err != nil {
 				t.Fatalf("failed to next stats: %v", err)
 			}
-			assert.Equal(t, test.expStats, stats)
+			assert.Equal(t, tt.expStats, stats)
 		})
 	}
 }
 
 func TestStatsService_GetTopStats(t *testing.T) {
-	db, cleanup := setupStatsTestDb(t)
-	defer cleanup()
-
 	tests := []struct {
+		name       string
 		playerID   string
 		expStats   []Stats
 		setupMocks func(ctrl *gomock.Controller) UserFetcher
 	}{
 		{
+			name:     "GetTopStats",
 			playerID: "1",
 			expStats: []Stats{
 				{Player: Player{ID: "id1", Name: "Player1"}, Elo: 1750, Won: 3, Lost: 2, Drawn: 1},
@@ -159,14 +160,17 @@ func TestStatsService_GetTopStats(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
+
+			db, cleanup := setupStatsTestDb(t)
+			defer cleanup()
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			fetcher := test.setupMocks(ctrl)
+			fetcher := tt.setupMocks(ctrl)
 			statsService := StatsService{database: db, userCache: MakeUserCache(fetcher)}
 
 			stats, err := statsService.ReadTopStats(ctx, 20)
@@ -174,32 +178,39 @@ func TestStatsService_GetTopStats(t *testing.T) {
 				t.Fatalf("failed to next stats: %v", err)
 			}
 
-			assert.Equal(t, test.expStats, stats)
+			assert.Equal(t, tt.expStats, stats)
 		})
 	}
 }
 
 func TestStatsService_UpdateStats(t *testing.T) {
-	db, cleanup := setupStatsTestDb(t)
-	defer cleanup()
-
 	tests := []struct {
+		name           string
 		gameResult     GameResult
 		expStatsResult StatsResult
 		expWinStats    StatsRow
 		expLoserStats  StatsRow
 	}{
 		{
+			name:           "UpdateStatsVsSelf",
 			gameResult:     GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id1"}, IsDraw: false},
 			expStatsResult: StatsResult{WinnerElo: 1750, LoserElo: 1750, WinDiff: 0, LoseDiff: 0},
 			expWinStats:    StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
 			expLoserStats:  StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
 		},
 		{
+			name:           "UpdateStats",
 			gameResult:     GameResult{Winner: Player{ID: "id6"}, Loser: Player{ID: "id7"}, IsDraw: false},
 			expStatsResult: StatsResult{WinnerElo: 1506, LoserElo: 1244, WinDiff: 6, LoseDiff: -6},
 			expWinStats:    StatsRow{PlayerID: "id6", Elo: 1506, Won: 3, Drawn: 1, Lost: 4},
 			expLoserStats:  StatsRow{PlayerID: "id7", Elo: 1244, Won: 5, Drawn: 0, Lost: 3},
+		},
+		{
+			name:           "UpdateStatsDraw",
+			gameResult:     GameResult{Winner: Player{ID: "id1"}, Loser: Player{ID: "id2"}, IsDraw: true},
+			expStatsResult: StatsResult{WinnerElo: 1750, LoserElo: 1600, WinDiff: 0, LoseDiff: 0},
+			expWinStats:    StatsRow{PlayerID: "id1", Elo: 1750, Won: 3, Drawn: 1, Lost: 2},
+			expLoserStats:  StatsRow{PlayerID: "id2", Elo: 1600, Won: 2, Drawn: 4, Lost: 1},
 		},
 	}
 
@@ -210,25 +221,28 @@ func TestStatsService_UpdateStats(t *testing.T) {
 		sr.LoseDiff = math.Round(sr.LoseDiff)
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, cleanup := setupStatsTestDb(t)
+			defer cleanup()
+
 			ctx := t.Context()
 
-			sr, err := UpdateStats(ctx, db, test.gameResult)
+			statsResult, err := UpdateStats(ctx, db, tt.gameResult)
 			if err != nil {
 				t.Fatalf("failed to update stats: %v", err)
 			}
 
-			roundElo(&sr)
-			assert.Equal(t, test.expStatsResult, sr)
+			roundElo(&statsResult)
+			assert.Equal(t, tt.expStatsResult, statsResult)
 
-			ws := getStatsHelper(t, db, test.gameResult.Winner.ID)
-			ls := getStatsHelper(t, db, test.gameResult.Loser.ID)
+			ws := getStatsHelper(t, db, tt.gameResult.Winner.ID)
+			ls := getStatsHelper(t, db, tt.gameResult.Loser.ID)
 			ws.Elo = math.Round(ws.Elo)
 			ls.Elo = math.Round(ls.Elo)
 
-			assert.Equal(t, test.expWinStats, ws)
-			assert.Equal(t, test.expLoserStats, ls)
+			assert.Equal(t, tt.expWinStats, ws)
+			assert.Equal(t, tt.expLoserStats, ls)
 		})
 	}
 }

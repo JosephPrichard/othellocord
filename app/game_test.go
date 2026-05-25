@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"math"
 	"testing"
@@ -176,44 +175,63 @@ func TestGameService_ExpireGames_ThenGetTopStats(t *testing.T) {
 }
 
 func TestGameService_MakeMove_ThenGet(t *testing.T) {
-	db, cleanup := setupGamesTest(t)
-	defer cleanup()
-
-	gameService := GameService{database: db}
-
 	initialGame := OthelloGame{ID: "1", Board: MakeInitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
-	testMove := initialGame.Board.FindCurrentMoves()[0]
+	firstMove := initialGame.Board.FindCurrentMoves()[0]
 	expGame := initialGame
-	expGame.MakeMove(testMove)
+	expGame.MakeMove(firstMove)
 
 	tests := []struct {
+		name           string
 		playerID       string
 		move           Tile
 		expGame        OthelloGame
 		expStatsResult StatsResult
 		expErr         error
 	}{
-		{playerID: "id5", expErr: ErrGameNotFound},
-		{playerID: "id2", expErr: ErrTurn},
-		{playerID: "id1", move: Tile{Row: 0, Col: 1}, expErr: ErrInvalidMove},
-		{playerID: "id1", move: testMove, expGame: expGame},
+		{
+			name:     "GameNotFound",
+			playerID: "id5",
+			expErr:   ErrGameNotFound,
+		},
+		{
+			name:     "NotYourTurn",
+			playerID: "id2",
+			expErr:   ErrTurn,
+		},
+		{
+			name:     "InvalidMove",
+			playerID: "id1",
+			move:     Tile{Row: 0, Col: 1},
+			expErr:   ErrInvalidMove,
+		},
+		{
+			name:     "ValidMove",
+			playerID: "id1",
+			move:     firstMove,
+			expGame:  expGame,
+		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 
-			game, statsResult, err := gameService.MakeMoveAgainstHuman(ctx, MoveAgainstHuman{test.playerID, test.move})
+			db, cleanup := setupGamesTest(t)
+			defer cleanup()
+
+			gameService := GameService{database: db}
+
+			game, statsResult, err := gameService.MakeMoveAgainstHuman(ctx, MoveAgainstHuman{tt.playerID, tt.move})
 			if err != nil {
-				assert.ErrorIs(t, err, test.expErr)
+				assert.ErrorIs(t, err, tt.expErr)
 			} else {
-				dbGame, err := gameService.GetGame(ctx, "id1")
+				dbGame, err := gameService.GetGame(ctx, tt.playerID)
 				if err != nil {
 					t.Fatalf("failed to get the game: %v", err)
 				}
-				assert.Equal(t, test.expStatsResult, statsResult)
-				assert.Equal(t, test.expGame, game)
-				assert.Equal(t, test.expGame, dbGame)
+				assert.Equal(t, tt.expStatsResult, statsResult)
+				assert.Equal(t, tt.expGame, game)
+				assert.Equal(t, tt.expGame, dbGame)
 			}
 		})
 	}

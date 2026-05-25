@@ -15,14 +15,16 @@ import (
 )
 
 type Handler struct {
-	discord        *discordgo.Session
-	shell          *NTestShellPool
-	renderer       Renderer
+	discord        DiscordAPI
+	shell          NTestShellAPI
+	renderer       *Renderer
 	userCache      *UserCache
 	statsService   *StatsService
 	gameService    *GameService
 	challengeCache ChallengeCache
 	simCache       SimCache
+
+	defaultDelay time.Duration
 }
 
 func MakeHandler(db *sqlx.DB, dg *discordgo.Session, sh *NTestShellPool) Handler {
@@ -36,29 +38,26 @@ func MakeHandler(db *sqlx.DB, dg *discordgo.Session, sh *NTestShellPool) Handler
 		renderer:       MakeRenderCache(),
 		challengeCache: MakeChallengeCache(),
 		simCache:       MakeSimCache(),
+
+		defaultDelay: DefaultDelay,
 	}
 }
 
 var ErrUserNotProvided = errors.New("user not provided")
 
-func (h *Handler) HandleDiscordInteraction(_ *discordgo.Session, ic *discordgo.InteractionCreate) {
-	trace := uuid.NewString()
-	ctx := context.WithValue(context.Background(), TraceKey, trace)
-
-	resp := h.HandeInteraction(ctx, ic)
-
+func (h *Handler) HandleInteractionCreate(ctx context.Context, ic *discordgo.InteractionCreate) {
+	ctx = context.WithValue(ctx, TraceKey, uuid.NewString())
+	resp := h.handeInteraction(ctx, ic)
 	handleResponseSend(ctx, h.discord, ic, resp)
 }
 
-func (h *Handler) HandeInteraction(ctx context.Context, ic *discordgo.InteractionCreate) HandlerResponse {
-	trace := ctx.Value(TraceKey)
+func (h *Handler) handeInteraction(ctx context.Context, ic *discordgo.InteractionCreate) HandlerResponse {
+	slog.InfoContext(ctx, "handling interaction", "type", ic.Type)
 
 	switch ic.Type {
-	case discordgo.InteractionApplicationCommandAutocomplete:
-		fallthrough
-	case discordgo.InteractionApplicationCommand:
+	case discordgo.InteractionApplicationCommand, discordgo.InteractionApplicationCommandAutocomplete:
 		cmd := ic.ApplicationCommandData()
-		slog.Info("received a command", "trace", trace, "name", cmd.Name, "options", formatOptions(cmd.Options))
+		slog.InfoContext(ctx, "received a command", "name", cmd.Name, "options", formatOptions(cmd.Options))
 
 		switch cmd.Name {
 		case "challenge":
@@ -88,7 +87,7 @@ func (h *Handler) HandeInteraction(ctx context.Context, ic *discordgo.Interactio
 		}
 	case discordgo.InteractionMessageComponent:
 		msg := ic.MessageComponentData()
-		slog.Info("received a message component", "name", msg.CustomID)
+		slog.InfoContext(ctx, "received a message component", "name", msg.CustomID)
 
 		cond, key := parseCustomId(msg.CustomID)
 
@@ -141,7 +140,7 @@ func (h *Handler) HandleBotChallengeCommand(
 		return InteractionResponse{Response: makeStringResponse("You're already in a game.")}
 	}
 	if err != nil {
-		return InteractionError{Err: fmt.Errorf("failed to make game with level=%d, player=%v: %w", level, player, err)}
+		return InteractionError{Err: fmt.Errorf("make game with level = %d, player = %v: %w", level, player, err)}
 	}
 
 	embed := makeGameStartEmbed(game)
@@ -195,7 +194,7 @@ func (h *Handler) HandleAccept(ctx context.Context, ic *discordgo.InteractionCre
 		return InteractionResponse{Response: makeStringResponse("One or more participants is already in a game.")}
 	}
 	if err != nil {
-		return InteractionError{Err: fmt.Errorf("failed to make game with opponent=%v cmd: %w", opponent, err)}
+		return InteractionError{Err: fmt.Errorf("make game with opponent = %v cmd: %w", opponent, err)}
 	}
 
 	embed := makeGameStartEmbed(game)
@@ -216,7 +215,7 @@ func (h *Handler) handleGetGame(ctx context.Context, ic *discordgo.InteractionCr
 	if errors.Is(err, ErrGameNotFound) {
 		return OthelloGame{}, nil, InteractionResponse{Response: makeStringResponse("You're not playing a game.")}
 	} else if err != nil {
-		return OthelloGame{}, nil, InteractionError{Err: fmt.Errorf("failed to get game for player=%s: %w", user.ID, err)}
+		return OthelloGame{}, nil, InteractionError{Err: fmt.Errorf("get game for player = %s: %w", user.ID, err)}
 	}
 
 	return game, user, nil
@@ -243,7 +242,7 @@ func (h *Handler) HandleForfeit(ctx context.Context, ic *discordgo.InteractionCr
 	gameResult := game.CreateForfeitResult(user.ID)
 	statsResult, err := h.gameService.UpdateGameOver(ctx, game, gameResult)
 	if err != nil {
-		return InteractionError{Err: fmt.Errorf("failed to delete game in forfeit: %w", err)}
+		return InteractionError{Err: fmt.Errorf("delete game in forfeit: %w", err)}
 	}
 
 	embed := makeForfeitEmbed(gameResult, statsResult)
@@ -281,7 +280,7 @@ func (h *Handler) handleMoveAgainstBot(ctx context.Context, ic *discordgo.Intera
 	for game.HasMoves() {
 		resp, err := h.shell.FindBestMove(ctx, game, botLevel)
 		if err != nil {
-			return InteractionError{Err: fmt.Errorf("failed to retrieve analyis data from engine: %w", ctx.Err())}
+			return InteractionError{Err: fmt.Errorf("retrieve analyis data from engine: %w", ctx.Err())}
 		}
 
 		move := resp.Move.Tile
@@ -291,20 +290,24 @@ func (h *Handler) handleMoveAgainstBot(ctx context.Context, ic *discordgo.Intera
 		img := h.renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
 		channelMessageSendComplex(ctx, h.discord, ic.ChannelID, makeEmbedSend(embed, img, targetPlayer))
 
+		slog.InfoContext(ctx, "computed bot move in temporary game state", "game", game, "move", move, "moveKind", moveKind)
+
 		if moveKind != Pass {
 			break
 		}
 	}
 
+	slog.InfoContext(ctx, "updating game state after bot moves", "game", game)
+
 	statsResult, err := h.gameService.UpdateGame(ctx, game)
 	if err != nil {
-		return InteractionError{Err: fmt.Errorf("failed to update game: %w", err)}
+		return InteractionError{Err: fmt.Errorf("update game: %w", err)}
 	}
 
 	if game.IsOver() {
-		embed := makeGameOverEmbed(game, game.CreateResult(), statsResult, move)
+		embed := makeGameOverEmbed(game, game.MakeResult(), statsResult, move)
 		img := h.renderer.DrawBoard(game.Board)
-		channelMessageSendComplex(ctx, h.discord, ic.ChannelID, makeEmbedSend(embed, img, targetPlayer))
+		return ChannelMessageSendComplexResponse{ChannelID: ic.ChannelID, Data: makeEmbedSend(embed, img, targetPlayer)}
 	}
 
 	return nil
@@ -323,21 +326,20 @@ func (h *Handler) HandleMove(ctx context.Context, ic *discordgo.InteractionCreat
 		return InteractionError{Err: ErrUserNotProvided}
 	}
 
-	game, statsResult, err := h.gameService.MakeMoveAgainstHuman(ctx, MoveAgainstHuman{player.ID, move})
+	slog.InfoContext(ctx, "handling make move command", "move", move, "player", player.ID)
 
-	if errors.Is(err, ErrIsAgainstBot) {
+	game, statsResult, err := h.gameService.MakeMoveAgainstHuman(ctx, MoveAgainstHuman{player.ID, move})
+	switch {
+	case errors.Is(err, ErrIsAgainstBot):
 		return h.handleMoveAgainstBot(ctx, ic, game, move)
-	} else {
-		switch {
-		case errors.Is(err, ErrGameNotFound):
-			return InteractionResponse{Response: makeStringResponse("You're not currently playing a game.")}
-		case errors.Is(err, ErrInvalidMove):
-			return InteractionResponse{Response: makeStringResponse(fmt.Sprintf("Can't make a ColorMove to %s.", moveStr))}
-		case errors.Is(err, ErrTurn):
-			return InteractionResponse{Response: makeStringResponse("It isn't your turn.")}
-		case err != nil:
-			return InteractionError{Err: fmt.Errorf("failed to make move against human: %w", err)}
-		}
+	case errors.Is(err, ErrGameNotFound):
+		return InteractionResponse{Response: makeStringResponse("You're not currently playing a game.")}
+	case errors.Is(err, ErrInvalidMove):
+		return InteractionResponse{Response: makeStringResponse(fmt.Sprintf("Can't make a move to %s.", moveStr))}
+	case errors.Is(err, ErrTurn):
+		return InteractionResponse{Response: makeStringResponse("It isn't your turn.")}
+	case err != nil:
+		return InteractionError{Err: fmt.Errorf("make move against human: %w", err)}
 	}
 
 	var embed *discordgo.MessageEmbed
@@ -345,7 +347,7 @@ func (h *Handler) HandleMove(ctx context.Context, ic *discordgo.InteractionCreat
 
 	if game.IsOver() {
 		img = h.renderer.DrawBoard(game.Board)
-		embed = makeGameOverEmbed(game, game.CreateResult(), statsResult, move)
+		embed = makeGameOverEmbed(game, game.MakeResult(), statsResult, move)
 	} else {
 		img = h.renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
 		embed = makeGameMoveEmbed(game, move, game.OtherPlayer())
@@ -353,13 +355,14 @@ func (h *Handler) HandleMove(ctx context.Context, ic *discordgo.InteractionCreat
 
 	return MakeManyResponses(
 		InteractionResponse{Response: makeEmbedResponse(embed, img)},
-		ChannelMessageSendComplexResponse{ChannelID: ic.ChannelID, Data: &discordgo.MessageSend{Content: fmt.Sprintf("<@%s>", game.CurrentPlayer().ID)}},
+		ChannelMessageSendComplexResponse{
+			ChannelID: ic.ChannelID,
+			Data:      &discordgo.MessageSend{Content: fmt.Sprintf("<@%s>", game.CurrentPlayer().ID)},
+		},
 	)
 }
 
 func (h *Handler) HandleAnalyze(ctx context.Context, ic *discordgo.InteractionCreate) HandlerResponse {
-	trace := ctx.Value(TraceKey)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Minute*2)
 	defer cancel()
 
@@ -373,9 +376,11 @@ func (h *Handler) HandleAnalyze(ctx context.Context, ic *discordgo.InteractionCr
 	}
 	interactionRespond(ctx, h.discord, ic.Interaction, makeStringResponse("Analyzing... Wait a second..."))
 
+	slog.InfoContext(ctx, "starting analysis", "level", level)
+
 	moveResult, err := h.shell.FindRankedMoves(ctx, game, LevelToSearchDepth(level))
-	if errors.Is(err, context.Canceled) {
-		slog.Warn("client timed out while waiting for an analysis response", "trace", trace, "err", ctx.Err())
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		slog.WarnContext(ctx, "client timed out while waiting for an analysis response", "err", ctx.Err())
 		return InteractionResponseEdit{Edit: makeStringEdit("Timed out while waiting for a response.")}
 	} else if err != nil {
 		return InteractionResponseEdit{Edit: makeEmbedTextEdit("Failed to retrieve analysis data from engine.")}
@@ -401,27 +406,28 @@ func (h *Handler) HandleSimulate(ctx context.Context, ic *discordgo.InteractionC
 	if err != nil {
 		return InteractionError{Err: err}
 	}
-	delay, err := getDelayOpt(cmd.Options, "delay")
+	delay, err := getDelayOpt(cmd.Options, "delay", h.defaultDelay)
 	if err != nil {
 		return InteractionError{Err: err}
 	}
+
+	slog.InfoContext(ctx, "starting simulation", "whiteLevel", whiteLevel, "blackLevel", blackLevel, "delay", delay)
 
 	initialGame := OthelloGame{
 		WhitePlayer: MakeBotPlayer(whiteLevel),
 		BlackPlayer: MakeBotPlayer(blackLevel),
 		Board:       MakeInitialBoard(),
 	}
+
 	embed := makeSimulationStartEmbed(initialGame)
 	img := h.renderer.DrawBoard(initialGame.Board)
-
 	simulationID := uuid.New().String()
-
 	actionRowResp := makeComponentResponse(embed, img, makeSimulationActionRow(simulationID, false))
 	interactionRespond(ctx, h.discord, ic.Interaction, actionRowResp)
 
 	// run the simulation against the engine and add it to the cache (so it can be paused/resumed)
 	simState := &SimState{Cancel: cancel}
-	simChan := make(chan SimStep, MaxSimCount) // give this a size so we don't block on send
+	simChan := make(chan SimStep, MaxSimCount) // give this a size so we don't block on sending
 
 	h.simCache.Set(simulationID, simState, SimulationTtl)
 
@@ -431,14 +437,18 @@ func (h *Handler) HandleSimulate(ctx context.Context, ic *discordgo.InteractionC
 	return finalSimResp
 }
 
-func (h *Handler) recvSimulation(ctx context.Context, ic *discordgo.InteractionCreate, delay time.Duration, simState *SimState, simChan chan SimStep) HandlerResponse {
-	trace := ctx.Value(TraceKey)
-
+func (h *Handler) recvSimulation(
+	ctx context.Context,
+	ic *discordgo.InteractionCreate,
+	delay time.Duration,
+	simState *SimState,
+	simChan chan SimStep,
+) HandlerResponse {
 	ticker := time.NewTicker(delay)
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("simulation receiver stopped", "trace", trace)
+			slog.InfoContext(ctx, "simulation receiver stopped", "simState", simState)
 			return InteractionResponseEdit{Edit: &discordgo.WebhookEdit{Components: &[]discordgo.MessageComponent{}}}
 		case <-ticker.C:
 			if simState.IsPaused.Load() { // paused? check again once the ticker executes
@@ -446,7 +456,7 @@ func (h *Handler) recvSimulation(ctx context.Context, ic *discordgo.InteractionC
 			}
 			step, ok := <-simChan
 			if !ok {
-				slog.Info("simulation receiver complete", "trace", trace)
+				slog.InfoContext(ctx, "simulation receiver complete", "simState", simState)
 				return nil
 			}
 			interactionResponseEdit(ctx, h.discord, ic.Interaction, makeStepEdit(h.renderer, step))

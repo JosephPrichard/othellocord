@@ -56,8 +56,8 @@ type Renderer struct {
 	background image.Image
 }
 
-func MakeRenderCache() Renderer {
-	return Renderer{
+func MakeRenderCache() *Renderer {
+	return &Renderer{
 		whiteDisc:  DrawDisc(WhiteFill, 2.0),
 		blackDisc:  DrawDisc(BlackFill, 2.0),
 		noDisc:     DrawDisc(NoFill, 3.0),
@@ -159,7 +159,7 @@ func drawBackground(boardSize int) image.Image {
 	g.SetFillColor(BlackBg)
 
 	// draw black horizontal lines
-	for i := range boardSize+1 {
+	for i := range boardSize + 1 {
 		y := float64(i*TileSize + SideOffset)
 		g.MoveTo(SideOffset, y)
 		g.LineTo(float64(width), y)
@@ -168,7 +168,7 @@ func drawBackground(boardSize int) image.Image {
 	}
 
 	// draw black vertical lines
-	for i := range boardSize+1 {
+	for i := range boardSize + 1 {
 		x := float64(i*TileSize + SideOffset)
 		g.MoveTo(x, SideOffset)
 		g.LineTo(x, float64(height))
