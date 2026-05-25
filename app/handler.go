@@ -290,7 +290,7 @@ func (h *Handler) handleMoveAgainstBot(ctx context.Context, ic *discordgo.Intera
 		img := h.renderer.DrawBoardMoves(game.Board, game.Board.FindCurrentMoves())
 		channelMessageSendComplex(ctx, h.discord, ic.ChannelID, makeEmbedSend(embed, img, targetPlayer))
 
-		slog.InfoContext(ctx, "computed bot move in temporary game state", "game", game, "move", move, "moveKind", moveKind)
+		slog.InfoContext(ctx, "computed bot move in temporary game state", "move", move, "moveKind", moveKind, "game", game)
 
 		if moveKind != Pass {
 			break

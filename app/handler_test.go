@@ -40,8 +40,18 @@ func setupGameHandlersTest(t *testing.T) (*sqlx.DB, func()) {
 			MoveList:    []Move{{Tile: Tile{Row: 0, Col: 0}}},
 		},
 		{
-			ID:          "3",
-			Board:       MakeInitialBoard(),
+			ID: "3",
+			Board: func() OthelloBoard {
+				b := OthelloBoard{IsBlackMove: true}
+
+				// board state is engineered to create a scenario where white can make multiple moves in a row
+				b.SetSquare(0, 0, White)
+				b.SetSquare(0, 1, Black)
+				b.SetSquare(1, 0, Black)
+				b.SetSquare(1, 1, White)
+
+				return b
+			}(),
 			BlackPlayer: Player{ID: "id3", Name: "Player3"},
 			WhitePlayer: MakeBotPlayer(1),
 		},
@@ -57,10 +67,10 @@ func setupGameHandlersTest(t *testing.T) (*sqlx.DB, func()) {
 }
 
 func TestHandleAnalyze(t *testing.T) {
-	setupMockDiscordAPI := func(t *testing.T, ctrl *gomock.Controller) *MockDiscordAPI {
+	setupMockDiscordAPI := func(ctrl *gomock.Controller) *MockDiscordAPI {
 		discord := NewMockDiscordAPI(ctrl)
 		discord.EXPECT().
-			InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+			InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: "Analyzing... Wait a second...",
@@ -74,17 +84,17 @@ func TestHandleAnalyze(t *testing.T) {
 		name       string
 		level      float64
 		userID     string
-		setupMocks func(t *testing.T, ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI)
+		setupMocks func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI)
 	}{
 		{
 			name:   "LevelProvided",
 			level:  1,
 			userID: "id1",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
-				discord := setupMockDiscordAPI(t, ctrl)
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
+				discord := setupMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionResponseEdit(gomock.Any(), mockMatcher(t, &discordgo.WebhookEdit{
+					InteractionResponseEdit(gomock.Any(), mockMatcher(ctrl.T, &discordgo.WebhookEdit{
 						Content: ptr(""),
 						Embeds: &[]*discordgo.MessageEmbed{
 							{
@@ -112,10 +122,10 @@ func TestHandleAnalyze(t *testing.T) {
 			name:   "GameNotFound",
 			level:  1,
 			userID: "id-invalid",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
 							Content: "You're not playing a game.",
@@ -130,11 +140,11 @@ func TestHandleAnalyze(t *testing.T) {
 			name:   "AnalysisTimeout",
 			level:  1,
 			userID: "id2",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
-				discord := setupMockDiscordAPI(t, ctrl)
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
+				discord := setupMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionResponseEdit(gomock.Any(), mockMatcher(t, &discordgo.WebhookEdit{
+					InteractionResponseEdit(gomock.Any(), mockMatcher(ctrl.T, &discordgo.WebhookEdit{
 						Content: ptr("Timed out while waiting for a response."),
 					}, cmpOptsWebhookEdit...)).
 					Return(nil, nil)
@@ -157,7 +167,7 @@ func TestHandleAnalyze(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			discord, shell := tt.setupMocks(t, ctrl)
+			discord, shell := tt.setupMocks(ctrl)
 
 			handler := Handler{
 				discord:     discord,
@@ -194,7 +204,7 @@ func TestHandleSimulate(t *testing.T) {
 	discord := NewMockDiscordAPI(ctrl)
 
 	discord.EXPECT().
-		InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+		InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Components: []discordgo.MessageComponent{
@@ -272,79 +282,74 @@ func TestHandleSimulate(t *testing.T) {
 }
 
 func TestHandleMove(t *testing.T) {
-	initialGame := OthelloGame{ID: "1", Board: MakeInitialBoard(), BlackPlayer: Player{ID: "id1", Name: "Player1"}, WhitePlayer: Player{ID: "id2", Name: "Player2"}}
-	firstMove := initialGame.Board.FindCurrentMoves()[0]
-	expGame := initialGame
-	expGame.MakeMove(firstMove)
-
 	testChannelID := "channel1"
 
 	tests := []struct {
 		name       string
 		userID     string
 		move       string
-		setupMocks func(t *testing.T, ctrl *gomock.Controller) DiscordAPI
+		setupMocks func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI)
 	}{
 		{
 			name:   "GameNotFound",
 			userID: "id-invalid",
 			move:   "a1",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) DiscordAPI {
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{Content: "You're not currently playing a game."},
 					})).
 					Return(nil)
 
-				return discord
+				return discord, NewMockNTestShellAPI(ctrl)
 			},
 		},
 		{
 			name:   "NotYourTurn",
 			userID: "id2",
 			move:   "a1",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) DiscordAPI {
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{Content: "It isn't your turn."},
 					})).
 					Return(nil)
 
-				return discord
+				return discord, NewMockNTestShellAPI(ctrl)
 			},
 		},
 		{
 			name:   "InvalidMove",
 			userID: "id1",
 			move:   "b1",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) DiscordAPI {
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{Content: "Can't make a move to b1."},
 					})).
 					Return(nil)
 
-				return discord
+				return discord, NewMockNTestShellAPI(ctrl)
 			},
 		},
 		{
 			name:   "ValidMove_AgainstHuman",
 			userID: "id1",
 			move:   "C4",
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) DiscordAPI {
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
 							Embeds: []*discordgo.MessageEmbed{
@@ -359,22 +364,20 @@ func TestHandleMove(t *testing.T) {
 					}, cmpOptsInteractionResponse...)).
 					Return(nil)
 				discord.EXPECT().
-					ChannelMessageSendComplex(gomock.Eq(testChannelID), mockMatcher(t, &discordgo.MessageSend{
-						Content: "<@id2>",
-					}))
+					ChannelMessageSendComplex(gomock.Eq(testChannelID), mockMatcher(ctrl.T, &discordgo.MessageSend{Content: "<@id2>"}))
 
-				return discord
+				return discord, NewMockNTestShellAPI(ctrl)
 			},
 		},
 		{
 			name:   "ValidMove_AgainstBot",
 			userID: "id3",
-			move:   firstMove.String(),
-			setupMocks: func(t *testing.T, ctrl *gomock.Controller) DiscordAPI {
+			move:   "C2",
+			setupMocks: func(ctrl *gomock.Controller) (DiscordAPI, NTestShellAPI) {
 				discord := NewMockDiscordAPI(ctrl)
 
 				discord.EXPECT().
-					InteractionRespond(gomock.Any(), mockMatcher(t, &discordgo.InteractionResponse{
+					InteractionRespond(gomock.Any(), mockMatcher(ctrl.T, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
 							Embeds: []*discordgo.MessageEmbed{
@@ -389,7 +392,25 @@ func TestHandleMove(t *testing.T) {
 					}, cmpOptsInteractionResponse...)).
 					Return(nil)
 
-				return discord
+				shell := NewMockNTestShellAPI(ctrl)
+
+				// suppose a scenario where the bot (white) is able to make a number of moves in a row.
+				for _, tile := range []Tile{
+					{Row: 0, Col: 2},
+					{Row: 2, Col: 0},
+					{Row: 2, Col: 1},
+				} {
+					// expect the right number of messages to the right channel - contents of the embed are too precise to assert on.
+					shell.EXPECT().
+						FindBestMove(gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(MoveResult{Move: RankTile{Tile: tile}}, nil)
+
+					discord.EXPECT().
+						ChannelMessageSendComplex(gomock.Eq(testChannelID), gomock.Any()).
+						Return(nil, nil)
+				}
+
+				return discord, shell
 			},
 		},
 	}
@@ -402,10 +423,11 @@ func TestHandleMove(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			discord := tt.setupMocks(t, gomock.NewController(t))
+			discord, shell := tt.setupMocks(ctrl)
 
 			handler := Handler{
 				discord:      discord,
+				shell:        shell,
 				renderer:     MakeRenderCache(),
 				gameService:  MakeGameService(db),
 				simCache:     MakeSimCache(),

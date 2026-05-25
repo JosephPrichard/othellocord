@@ -5,10 +5,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.uber.org/mock/gomock"
 	"reflect"
-	"testing"
 )
 
-func assertEqual[T any](t *testing.T, expected, actual T, opts ...cmp.Option) bool {
+func assertEqual[T any](t gomock.TestHelper, expected, actual T, opts ...cmp.Option) bool {
 	t.Helper()
 	diff := cmp.Diff(expected, actual, opts...)
 	isEqual := diff == ""
@@ -18,13 +17,13 @@ func assertEqual[T any](t *testing.T, expected, actual T, opts ...cmp.Option) bo
 	return isEqual
 }
 
-func mockMatcher[T any](t *testing.T, expected T, opts ...cmp.Option) gomock.Matcher {
+func mockMatcher[T any](t gomock.TestHelper, expected T, opts ...cmp.Option) gomock.Matcher {
 	return gomock.Cond(func(got T) bool {
 		return assertEqual(t, expected, got, opts...)
 	})
 }
 
-func assertEqualFmt[T fmt.Stringer](t *testing.T, expected, actual T) bool {
+func assertEqualFmt[T fmt.Stringer](t gomock.TestHelper, expected, actual T) bool {
 	t.Helper()
 	isEqual := reflect.DeepEqual(expected, actual)
 	if !isEqual {
@@ -33,7 +32,7 @@ func assertEqualFmt[T fmt.Stringer](t *testing.T, expected, actual T) bool {
 	return isEqual
 }
 
-func mockMatcherFmt[T fmt.Stringer](t *testing.T, expected T) gomock.Matcher {
+func mockMatcherFmt[T fmt.Stringer](t gomock.TestHelper, expected T) gomock.Matcher {
 	return gomock.Cond(func(got T) bool {
 		return assertEqualFmt(t, expected, got)
 	})

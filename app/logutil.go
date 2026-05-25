@@ -18,7 +18,7 @@ func (h *TraceHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func InitLogger() {
-	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	base := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 	slog.SetDefault(slog.New(&TraceHandler{base}))

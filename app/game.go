@@ -167,7 +167,7 @@ func (service *GameService) GetGame(ctx context.Context, playerID string) (Othel
 		return OthelloGame{}, fmt.Errorf("map game row: %w", err)
 	}
 
-	slog.InfoContext(ctx, "selected game", "game", game.MarshalGGF(), "playerID", playerID)
+	slog.InfoContext(ctx, "selected game", "game", game, "playerID", playerID)
 	return game, nil
 }
 
@@ -209,9 +209,11 @@ func (service *GameService) UpdateGame(ctx context.Context, game OthelloGame) (S
 func (service *GameService) UpdateGameOver(ctx context.Context, game OthelloGame, gameResult GameResult) (StatsResult, error) {
 	tx, err := service.database.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
-		return StatsResult{}, fmt.Errorf("open gameover tx: %w", err)
+		return StatsResult{}, fmt.Errorf("open game over tx: %w", err)
 	}
 	defer tx.Rollback()
+
+	slog.InfoContext(ctx, "handling game over event", "game", game, "gameResult", gameResult)
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM games WHERE white_id = $1 AND black_id = $2;", game.WhitePlayer.ID, game.BlackPlayer.ID); err != nil {
 		return StatsResult{}, fmt.Errorf("delete game: %w", err)
@@ -222,7 +224,7 @@ func (service *GameService) UpdateGameOver(ctx context.Context, game OthelloGame
 	}
 
 	if err := tx.Commit(); err != nil {
-		return statsResult, fmt.Errorf("commit gameover tx: %w", err)
+		return statsResult, fmt.Errorf("commit game over tx: %w", err)
 	}
 	return statsResult, nil
 }
@@ -299,7 +301,7 @@ func (service *GameService) MakeMoveAgainstHuman(ctx context.Context, move MoveA
 	game.MakeMove(move.Tile)
 
 	if game.CurrentPlayer().IsBot() {
-		slog.InfoContext(ctx, "player made move against bot", "game", game.MarshalGGF(), "move", move, "playerID", move.PlayerID)
+		slog.InfoContext(ctx, "player made move against bot", "game", game, "move", move, "playerID", move.PlayerID)
 		return game, StatsResult{}, ErrIsAgainstBot
 	}
 
@@ -308,7 +310,7 @@ func (service *GameService) MakeMoveAgainstHuman(ctx context.Context, move MoveA
 		return game, StatsResult{}, fmt.Errorf("update game in move: %w", err)
 	}
 
-	slog.InfoContext(ctx, "player made move against human", "game", game.MarshalGGF(), "move", move, "playerID", move.PlayerID)
+	slog.InfoContext(ctx, "player made move against human", "game", game, "move", move, "playerID", move.PlayerID)
 	return game, statsResult, nil
 }
 

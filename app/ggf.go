@@ -25,6 +25,7 @@ func (b *OthelloBoard) MarshallGGF() string {
 }
 
 func (o *OthelloGame) MarshalGGF() string {
+	// GGF function assumes that we start from the same initial board 'InitialBoard'.
 	var sb strings.Builder
 
 	sb.WriteString("(;GM[Othello]")
